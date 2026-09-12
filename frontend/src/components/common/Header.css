@@ -199,7 +199,8 @@
 .site-mobile-menu-button:focus-visible,
 .site-search-button:focus-visible,
 .site-language-option:focus-visible,
-.site-navigation-link:focus-visible {
+.site-navigation-link:focus-visible,
+.site-admin-button:focus-visible {
   outline: 2px solid rgba(31, 120, 103, 0.28);
   outline-offset: 3px;
 }
@@ -295,6 +296,15 @@
   gap: 5px;
 }
 
+.site-admin-button {
+  width: 34px;
+  padding: 0;
+}
+
+.site-admin-button span {
+  display: none;
+}
+
 .site-login-button,
 .site-register-button {
   padding: 0 9px;
@@ -320,6 +330,53 @@
     display: none;
   }
 }
+.site-admin-button {
+  height: 34px;
+  padding: 0 13px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border: 1px solid var(--fyce-primary);
+  border-radius: 18px;
+
+  background: var(--fyce-primary);
+  color: #ffffff;
+
+  cursor: pointer;
+
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+
+  box-shadow:
+    0 6px 15px rgba(31, 120, 103, 0.14);
+
+  transition:
+    background-color var(--fyce-transition),
+    border-color var(--fyce-transition),
+    box-shadow var(--fyce-transition),
+    transform var(--fyce-transition);
+}
+
+.site-admin-button:hover {
+  background: var(--fyce-primary-dark);
+  border-color: var(--fyce-primary-dark);
+
+  box-shadow:
+    0 8px 19px rgba(31, 120, 103, 0.2);
+}
+
+.site-admin-button:active {
+  transform: translateY(1px);
+}
+
+.site-admin-button svg {
+  flex-shrink: 0;
+}
+
 .site-auth-actions {
   display: inline-flex;
   align-items: center;

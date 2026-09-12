@@ -6,7 +6,8 @@ import {
   User,
   ChevronDown,
   LogOut,
-  UserRound
+  UserRound,
+  LayoutDashboard
 } from "lucide-react";
 import {
   NavLink,
@@ -101,17 +102,6 @@ const Header = () => {
             Về chúng tôi
         </a>
 
-          <NavLink
-            to="/booking"
-            className={({ isActive }) =>
-              `site-navigation-link ${
-                isActive ? "active" : ""
-              }`
-            }
-            onClick={closeMobileMenu}
-          >
-            Đặt vé
-          </NavLink>
         </nav>
 
         <div className="site-header-actions">
@@ -146,6 +136,22 @@ const Header = () => {
               EN
             </button>
           </div>
+
+          {user?.role === "admin" && (
+            <button
+              type="button"
+              className="site-admin-button"
+              onClick={() => {
+                setAccountMenuOpen(false);
+                closeMobileMenu();
+                navigate("/admin/events");
+              }}
+              aria-label="Về trang quản trị"
+            >
+              <LayoutDashboard size={16} />
+              <span>Quản trị</span>
+            </button>
+          )}
 
           {!user ? (
             <div className="site-auth-actions">
