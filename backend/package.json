@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "migrate:images-gridfs": "node src/scripts/migrateImagesToGridFS.js",
+    "migrate:images-gridfs:dry-run": "node src/scripts/migrateImagesToGridFS.js --dry-run",
+    "migrate:videos-gridfs": "node src/scripts/migrateVideosToGridFS.js",
+    "migrate:videos-gridfs:dry-run": "node src/scripts/migrateVideosToGridFS.js --dry-run"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

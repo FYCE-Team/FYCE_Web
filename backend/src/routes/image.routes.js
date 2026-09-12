@@ -1,45 +1,84 @@
 import express from "express";
 import multer from "multer";
 
-import { uploadImageFile } from "../controllers/image.controller.js";
-import { authenticateToken } from "../middleware/auth.middleware.js";
-import { uploadImage } from "../middleware/image.middleware.js";
+import {
+    streamImageFile,
+    uploadImageFile
+} from "../controllers/image.controller.js";
+
+import {
+    authenticateToken
+} from "../middleware/auth.middleware.js";
+
+import {
+    uploadImage
+} from "../middleware/image.middleware.js";
 
 const router = express.Router();
+
+/*
+ * Public endpoint để <img src="..."> có thể đọc trực tiếp.
+ */
+router.get(
+    "/:id",
+    streamImageFile
+);
 
 router.post(
     "/upload",
     authenticateToken,
     (req, res, next) => {
-        uploadImage.single("image")(req, res, (error) => {
-            if (!error) {
-                next();
-                return;
-            }
-
-            if (error instanceof multer.MulterError) {
-                if (error.code === "LIMIT_FILE_SIZE") {
-                    return res.status(400).json({
-                        success: false,
-                        message: "Hình ảnh vượt quá dung lượng cho phép. Tối đa 50MB."
-                    });
+        uploadImage.single("image")(
+            req,
+            res,
+            (error) => {
+                if (!error) {
+                    next();
+                    return;
                 }
 
-                return res.status(400).json({
-                    success: false,
-                    message: error.message
-                });
-            }
+                if (
+                    error instanceof
+                    multer.MulterError
+                ) {
+                    if (
+                        error.code ===
+                        "LIMIT_FILE_SIZE"
+                    ) {
+                        return res
+                            .status(400)
+                            .json({
+                                success: false,
+                                message:
+                                    "Hình ảnh vượt quá dung lượng cho phép. Tối đa 50MB."
+                            });
+                    }
 
-            if (error.message === "IMAGE_TYPE_INVALID") {
-                return res.status(400).json({
-                    success: false,
-                    message: "Định dạng hình ảnh không được hỗ trợ."
-                });
-            }
+                    return res
+                        .status(400)
+                        .json({
+                            success: false,
+                            message:
+                                error.message
+                        });
+                }
 
-            next(error);
-        });
+                if (
+                    error.message ===
+                    "IMAGE_TYPE_INVALID"
+                ) {
+                    return res
+                        .status(400)
+                        .json({
+                            success: false,
+                            message:
+                                "Định dạng hình ảnh không được hỗ trợ."
+                        });
+                }
+
+                next(error);
+            }
+        );
     },
     uploadImageFile
 );

@@ -81,7 +81,23 @@ const getYouTubeEmbedUrl = (url) => {
 const isLocalVideo = (url) => {
     if (!url) return false;
 
-    return /\.(mp4|webm|mov|mkv)(\?.*)?$/i.test(url);
+    const value = String(url).trim();
+
+    /*
+     * GridFS video URL không còn extension:
+     * /api/videos/<ObjectId>
+     */
+    if (
+        /^\/api\/videos\/[a-f0-9]{24}(?:[?#].*)?$/i.test(
+            value
+        )
+    ) {
+        return true;
+    }
+
+    return /\.(mp4|webm|mov|mkv)(\?.*)?$/i.test(
+        value
+    );
 };
 
 const getInitialTicketColor = (index) => {
