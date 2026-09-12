@@ -2,6 +2,7 @@ import express from "express";
 
 import {
     create,
+    preview,
     getOne,
     getMine,
     getActive,
@@ -25,6 +26,16 @@ Body:
     "holdToken": "..."
 }
 */
+/*
+POST /api/bookings/preview
+Chỉ xác thực hold + tính giá checkout.
+KHÔNG tạo document Booking.
+*/
+router.post(
+    "/preview",
+    preview
+);
+
 router.post(
     "/",
     create

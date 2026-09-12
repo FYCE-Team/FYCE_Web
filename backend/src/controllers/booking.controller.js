@@ -1,5 +1,6 @@
 import {
     createBooking,
+    previewBooking,
     getBookingByCode,
     getMyBookings,
     getActiveBookingByEvent,
@@ -185,6 +186,35 @@ const handleBookingError = (
 
         default:
             return next(error);
+    }
+};
+
+export const preview = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const checkout =
+            await previewBooking(
+                req.body || {},
+                req.user.userId
+            );
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Xác thực phiên giữ ghế thành công",
+            data: {
+                checkout
+            }
+        });
+    } catch (error) {
+        return handleBookingError(
+            error,
+            res,
+            next
+        );
     }
 };
 

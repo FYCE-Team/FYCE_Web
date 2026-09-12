@@ -464,6 +464,377 @@ const releaseUncommittedHold = async (
     );
 };
 
+/*
+ * ============================================================
+ * CHECKOUT PREVIEW — KHÔNG TẠO BOOKING DOCUMENT
+ * ============================================================
+ *
+ * Dùng ở bước user đã giữ ghế và bấm "Tiếp tục".
+ * Hàm này chỉ xác thực hold + tính lại giá ở backend rồi trả dữ liệu
+ * để Checkout hiển thị. KHÔNG gọi Booking.create().
+ *
+ * Booking chỉ được tạo sau này khi user thực sự bắt đầu thanh toán.
+ */
+export const previewBooking = async (
+    {
+        eventId,
+        seatIds,
+        holdToken
+    },
+    userId
+) => {
+    const normalizedEventId =
+        ensureObjectId(
+            eventId,
+            "EVENT_ID"
+        );
+
+    const normalizedUserId =
+        ensureObjectId(
+            userId,
+            "USER_ID"
+        );
+
+    const normalizedSeatIds =
+        normalizeSeatIds(
+            seatIds
+        );
+
+    const normalizedHoldToken =
+        normalizeHoldToken(
+            holdToken
+        );
+
+    await releaseExpiredHolds(
+        normalizedEventId
+    );
+
+    const [
+        event,
+        user
+    ] = await Promise.all([
+        Event.findById(
+            normalizedEventId
+        ).lean(),
+        User.findById(
+            normalizedUserId
+        ).lean()
+    ]);
+
+    if (!event) {
+        throw new Error(
+            "EVENT_NOT_FOUND"
+        );
+    }
+
+    if (!user) {
+        throw new Error(
+            "USER_NOT_FOUND"
+        );
+    }
+
+    if (user.isActive === false) {
+        throw new Error(
+            "USER_INACTIVE"
+        );
+    }
+
+    assertEventBookable(event);
+
+    const seats = await Seat.find({
+        _id: {
+            $in: normalizedSeatIds
+        },
+        eventId:
+            normalizedEventId,
+        isActive: true
+    }).lean();
+
+    if (
+        seats.length !==
+        normalizedSeatIds.length
+    ) {
+        throw new Error(
+            "BOOKING_SEAT_NOT_FOUND"
+        );
+    }
+
+    const now = new Date();
+
+    for (const seat of seats) {
+        const owned =
+            seat.status === "held" &&
+            seat.holdToken ===
+                normalizedHoldToken &&
+            String(
+                seat.heldByUserId || ""
+            ) ===
+                String(
+                    normalizedUserId
+                ) &&
+            seat.holdExpiresAt &&
+            new Date(
+                seat.holdExpiresAt
+            ) > now;
+
+        if (!owned) {
+            throw createServiceError(
+                "BOOKING_SEAT_HOLD_INVALID",
+                {
+                    seatId:
+                        String(seat._id),
+                    seatLabel:
+                        seat.label,
+                    status:
+                        seat.status
+                }
+            );
+        }
+    }
+
+    const categoryMap = new Map(
+        (event.ticketCategories || [])
+            .map((category) => [
+                String(category._id),
+                category
+            ])
+    );
+
+    const categoryCounts =
+        new Map();
+
+    const categoryRepairs =
+        [];
+
+    const items = seats
+        .map((seat) => {
+            const {
+                category,
+                usedFallback
+            } =
+                resolveSeatCategory(
+                    seat,
+                    event
+                );
+
+            if (!category) {
+                throw createServiceError(
+                    "BOOKING_TICKET_CATEGORY_NOT_FOUND",
+                    {
+                        seatId:
+                            String(seat._id),
+                        seatLabel:
+                            seat.label,
+                        seatTicketCategoryId:
+                            String(
+                                seat.ticketCategoryId ||
+                                    ""
+                            ),
+                        inferredCode:
+                            inferFyceCategoryCode(
+                                seat
+                            ),
+                        currentCategories:
+                            (
+                                event.ticketCategories ||
+                                []
+                            ).map(
+                                (item) => ({
+                                    id:
+                                        String(
+                                            item._id
+                                        ),
+                                    code:
+                                        item.code,
+                                    name:
+                                        item.name
+                                })
+                            )
+                    }
+                );
+            }
+
+            if (
+                category.isActive === false
+            ) {
+                throw createServiceError(
+                    "BOOKING_TICKET_CATEGORY_INACTIVE",
+                    {
+                        categoryId:
+                            String(category._id),
+                        categoryName:
+                            category.name
+                    }
+                );
+            }
+
+            if (
+                usedFallback &&
+                String(
+                    seat.ticketCategoryId ||
+                        ""
+                ) !==
+                    String(category._id)
+            ) {
+                categoryRepairs.push({
+                    updateOne: {
+                        filter: {
+                            _id: seat._id,
+                            eventId:
+                                normalizedEventId
+                        },
+                        update: {
+                            $set: {
+                                ticketCategoryId:
+                                    category._id
+                            }
+                        }
+                    }
+                });
+            }
+
+            const categoryId =
+                String(category._id);
+
+            categoryCounts.set(
+                categoryId,
+                (categoryCounts.get(
+                    categoryId
+                ) || 0) + 1
+            );
+
+            return {
+                seatId: seat._id,
+                seatLabel: seat.label,
+                section: seat.section,
+                row: seat.row,
+                number: seat.number,
+                ticketCategoryId:
+                    category._id,
+                ticketCategoryCode:
+                    category.code,
+                ticketCategoryName:
+                    category.name,
+                unitPrice:
+                    Number(
+                        category.price
+                    ) || 0
+            };
+        })
+        .sort((a, b) => {
+            if (a.row !== b.row) {
+                return a.row.localeCompare(
+                    b.row,
+                    "vi"
+                );
+            }
+
+            return a.number - b.number;
+        });
+
+    if (categoryRepairs.length > 0) {
+        await Seat.bulkWrite(
+            categoryRepairs,
+            {
+                ordered: false
+            }
+        );
+    }
+
+    for (
+        const [
+            categoryId,
+            count
+        ] of categoryCounts.entries()
+    ) {
+        const category =
+            categoryMap.get(
+                categoryId
+            );
+
+        const maxPerOrder =
+            Number(
+                category?.maxPerOrder
+            ) || 6;
+
+        if (count > maxPerOrder) {
+            throw createServiceError(
+                "BOOKING_MAX_PER_ORDER_EXCEEDED",
+                {
+                    categoryName:
+                        category?.name ||
+                        "Hạng vé",
+                    maxPerOrder,
+                    requested: count
+                }
+            );
+        }
+    }
+
+    const holdExpiresAt =
+        seats.reduce(
+            (earliest, seat) => {
+                const current = new Date(
+                    seat.holdExpiresAt
+                );
+
+                if (
+                    !earliest ||
+                    current < earliest
+                ) {
+                    return current;
+                }
+
+                return earliest;
+            },
+            null
+        );
+
+    if (
+        !holdExpiresAt ||
+        holdExpiresAt <= new Date()
+    ) {
+        throw new Error(
+            "BOOKING_HOLD_EXPIRED"
+        );
+    }
+
+    const subtotal = items.reduce(
+        (sum, item) =>
+            sum + item.unitPrice,
+        0
+    );
+
+    return {
+        eventId:
+            normalizedEventId,
+        eventSnapshot: {
+            title: event.title,
+            slug: event.slug,
+            startAt:
+                event.startAt || null,
+            venue:
+                event.venue || "",
+            address:
+                event.address || ""
+        },
+        customer: {
+            fullName:
+                user.fullName,
+            email:
+                user.email,
+            phone:
+                user.phone || ""
+        },
+        items,
+        subtotal,
+        totalAmount: subtotal,
+        holdToken:
+            normalizedHoldToken,
+        holdExpiresAt
+    };
+};
+
 export const createBooking = async (
     {
         eventId,

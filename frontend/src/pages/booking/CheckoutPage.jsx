@@ -20,6 +20,15 @@ const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:3000/api";
 
+const HOLD_STORAGE_PREFIX =
+    "fyce-seat-hold:";
+
+const getHoldStorageKey = (
+    eventId,
+    userId
+) =>
+    `${HOLD_STORAGE_PREFIX}${userId}:${eventId}`;
+
 const formatPrice = (value) =>
     `${new Intl.NumberFormat(
         "vi-VN"
@@ -67,17 +76,34 @@ const formatCountdown = (
 };
 
 const CheckoutPage = () => {
-    const { bookingCode } =
-        useParams();
+    const params = useParams();
+
+    /*
+     * Hỗ trợ cả route mới /checkout/:eventId
+     * và route cũ /checkout/:bookingCode để bạn chưa cần
+     * sửa App.jsx ngay. Giá trị URL hiện tại là eventId.
+     */
+    const eventId =
+        params.eventId ||
+        params.bookingCode ||
+        "";
 
     const navigate = useNavigate();
 
     const {
         accessToken,
+        user,
         refreshSession
     } = useAuth();
 
-    const [booking, setBooking] =
+    const currentUserId = String(
+        user?._id ||
+        user?.id ||
+        user?.userId ||
+        ""
+    );
+
+    const [checkout, setCheckout] =
         useState(null);
     const [loading, setLoading] =
         useState(true);
@@ -87,6 +113,19 @@ const CheckoutPage = () => {
         useState(0);
     const [cancelling, setCancelling] =
         useState(false);
+    const [expired, setExpired] =
+        useState(false);
+
+    const storageKey = useMemo(
+        () =>
+            eventId && currentUserId
+                ? getHoldStorageKey(
+                      eventId,
+                      currentUserId
+                  )
+                : "",
+        [eventId, currentUserId]
+    );
 
     const authenticatedRequest =
         useCallback(
@@ -133,8 +172,14 @@ const CheckoutPage = () => {
                                 }
                             );
 
-                        const result =
-                            await response.json();
+                        let result = null;
+
+                        try {
+                            result =
+                                await response.json();
+                        } catch {
+                            result = null;
+                        }
 
                         if (
                             !response.ok ||
@@ -143,11 +188,15 @@ const CheckoutPage = () => {
                             const requestError =
                                 new Error(
                                     result?.message ||
-                                        "Không thể xử lý booking"
+                                        "Không thể xử lý checkout"
                                 );
 
                             requestError.status =
                                 response.status;
+                            requestError.code =
+                                result?.code || null;
+                            requestError.data =
+                                result?.data || null;
 
                             throw requestError;
                         }
@@ -189,48 +238,153 @@ const CheckoutPage = () => {
             ]
         );
 
-    const loadBooking =
+    const clearHoldSession =
+        useCallback(() => {
+            if (storageKey) {
+                sessionStorage.removeItem(
+                    storageKey
+                );
+            }
+        }, [storageKey]);
+
+    const readHoldSession =
+        useCallback(() => {
+            if (!storageKey) {
+                return null;
+            }
+
+            try {
+                const raw =
+                    sessionStorage.getItem(
+                        storageKey
+                    );
+
+                if (!raw) {
+                    return null;
+                }
+
+                const saved =
+                    JSON.parse(raw);
+
+                const expiresAt =
+                    new Date(
+                        saved.holdExpiresAt
+                    );
+
+                if (
+                    !saved.holdToken ||
+                    !Array.isArray(
+                        saved.selectedSeats
+                    ) ||
+                    saved.selectedSeats.length === 0 ||
+                    !Number.isFinite(
+                        expiresAt.getTime()
+                    ) ||
+                    expiresAt <= new Date()
+                ) {
+                    clearHoldSession();
+                    return null;
+                }
+
+                return saved;
+            } catch {
+                clearHoldSession();
+                return null;
+            }
+        }, [
+            storageKey,
+            clearHoldSession
+        ]);
+
+    const loadCheckout =
         useCallback(async () => {
+            if (
+                !eventId ||
+                !currentUserId
+            ) {
+                return;
+            }
+
             try {
                 setLoading(true);
                 setError("");
+                setExpired(false);
+
+                const hold =
+                    readHoldSession();
+
+                if (!hold) {
+                    throw new Error(
+                        "Không tìm thấy phiên giữ ghế còn hiệu lực. Vui lòng chọn lại ghế."
+                    );
+                }
 
                 const data =
                     await authenticatedRequest(
-                        `/bookings/${bookingCode}`
+                        "/bookings/preview",
+                        {
+                            method: "POST",
+                            body: JSON.stringify({
+                                eventId,
+                                seatIds:
+                                    hold.selectedSeats.map(
+                                        (seat) =>
+                                            seat._id
+                                    ),
+                                holdToken:
+                                    hold.holdToken
+                            })
+                        }
                     );
 
-                setBooking(
-                    data.booking
+                setCheckout(
+                    data.checkout
                 );
             } catch (err) {
+                if (
+                    err.code ===
+                        "BOOKING_HOLD_EXPIRED" ||
+                    err.code ===
+                        "BOOKING_SEAT_HOLD_INVALID"
+                ) {
+                    clearHoldSession();
+                    setExpired(true);
+                }
+
+                setCheckout(null);
                 setError(
                     err.message ||
-                        "Không thể tải đơn đặt vé"
+                        "Không thể tải checkout"
                 );
             } finally {
                 setLoading(false);
             }
         }, [
+            eventId,
+            currentUserId,
+            readHoldSession,
             authenticatedRequest,
-            bookingCode
+            clearHoldSession
         ]);
 
     useEffect(() => {
-        loadBooking();
-    }, [loadBooking]);
+        if (
+            eventId &&
+            currentUserId
+        ) {
+            loadCheckout();
+        }
+    }, [
+        eventId,
+        currentUserId,
+        loadCheckout
+    ]);
 
     useEffect(() => {
-        if (
-            !booking?.holdExpiresAt ||
-            booking.status !==
-                "pending_payment"
-        ) {
+        if (!checkout?.holdExpiresAt) {
             setRemainingSeconds(0);
             return;
         }
-
-        let expiredReloaded = false;
 
         const tick = () => {
             const seconds = Math.max(
@@ -238,7 +392,7 @@ const CheckoutPage = () => {
                 Math.ceil(
                     (
                         new Date(
-                            booking.holdExpiresAt
+                            checkout.holdExpiresAt
                         ).getTime() -
                         Date.now()
                     ) /
@@ -250,42 +404,56 @@ const CheckoutPage = () => {
                 seconds
             );
 
-            if (
-                seconds === 0 &&
-                !expiredReloaded
-            ) {
-                expiredReloaded = true;
-                loadBooking();
+            if (seconds === 0) {
+                clearHoldSession();
+                setExpired(true);
+                setError(
+                    "Thời gian giữ ghế đã hết. Vui lòng chọn lại ghế."
+                );
             }
         };
 
         tick();
 
-        const timer = window.setInterval(
-            tick,
-            1000
-        );
+        const timer =
+            window.setInterval(
+                tick,
+                1000
+            );
 
         return () =>
-            window.clearInterval(timer);
+            window.clearInterval(
+                timer
+            );
     }, [
-        booking?.holdExpiresAt,
-        booking?.status,
-        loadBooking
+        checkout?.holdExpiresAt,
+        clearHoldSession
     ]);
 
     const groupedItems = useMemo(
         () =>
-            booking?.items || [],
-        [booking]
+            checkout?.items || [],
+        [checkout]
     );
 
     const handleCancel = async () => {
         if (
-            !booking ||
-            booking.status !==
-                "pending_payment"
+            !checkout ||
+            remainingSeconds === 0
         ) {
+            clearHoldSession();
+
+            if (
+                checkout?.eventSnapshot?.slug
+            ) {
+                navigate(
+                    `/events/${checkout.eventSnapshot.slug}/seats`,
+                    {
+                        replace: true
+                    }
+                );
+            }
+
             return;
         }
 
@@ -293,35 +461,41 @@ const CheckoutPage = () => {
             setCancelling(true);
             setError("");
 
-            const data =
-                await authenticatedRequest(
-                    `/bookings/${booking.bookingCode}/cancel`,
-                    {
-                        method: "POST",
-                        body: JSON.stringify({})
-                    }
-                );
-
-            setBooking(
-                data.booking
+            await authenticatedRequest(
+                "/seats/release",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        eventId,
+                        seatIds:
+                            checkout.items.map(
+                                (item) =>
+                                    item.seatId
+                            ),
+                        holdToken:
+                            checkout.holdToken
+                    })
+                }
             );
 
-            const slug =
-                data.booking
-                    ?.eventSnapshot?.slug;
+            clearHoldSession();
 
-            if (slug) {
-                navigate(
-                    `/events/${slug}/seats`,
-                    {
-                        replace: true
-                    }
-                );
-            }
+            navigate(
+                `/events/${checkout.eventSnapshot.slug}/seats`,
+                {
+                    replace: true
+                }
+            );
         } catch (err) {
+            if (
+                err.status === 409
+            ) {
+                clearHoldSession();
+            }
+
             setError(
                 err.message ||
-                    "Không thể hủy đơn đặt vé"
+                    "Không thể nhả ghế"
             );
         } finally {
             setCancelling(false);
@@ -333,13 +507,13 @@ const CheckoutPage = () => {
             <section className="checkout-state">
                 <div className="checkout-spinner" />
                 <p>
-                    Đang tải đơn đặt vé...
+                    Đang xác thực phiên giữ ghế...
                 </p>
             </section>
         );
     }
 
-    if (error && !booking) {
+    if (error && !checkout) {
         return (
             <section className="checkout-state">
                 <h1>
@@ -356,19 +530,13 @@ const CheckoutPage = () => {
         );
     }
 
-    if (!booking) {
+    if (!checkout) {
         return null;
     }
 
-    const isPending =
-        booking.status ===
-        "pending_payment";
-
-    const isExpired =
-        booking.status === "expired";
-
-    const isCancelled =
-        booking.status === "cancelled";
+    const holdActive =
+        !expired &&
+        remainingSeconds > 0;
 
     return (
         <main className="checkout-page">
@@ -379,10 +547,10 @@ const CheckoutPage = () => {
                             CHECKOUT FYCE
                         </span>
                         <h1>
-                            Xác nhận đơn đặt vé
+                            Xác nhận thông tin vé
                         </h1>
                         <p>
-                            Kiểm tra ghế và thông tin trước khi chuyển sang bước thanh toán.
+                            Đây mới là phiên giữ ghế tạm thời. Chưa có Booking nào được lưu vào MongoDB.
                         </p>
                     </div>
 
@@ -391,11 +559,11 @@ const CheckoutPage = () => {
                             THỜI GIAN CÒN LẠI
                         </small>
                         <strong>
-                            {isPending
+                            {holdActive
                                 ? formatCountdown(
                                       remainingSeconds
                                   )
-                                : "--:--"}
+                                : "00:00"}
                         </strong>
                     </div>
                 </header>
@@ -406,12 +574,9 @@ const CheckoutPage = () => {
                     </div>
                 )}
 
-                {(isExpired ||
-                    isCancelled) && (
+                {expired && (
                     <div className="checkout-message checkout-message--warning">
-                        {isExpired
-                            ? "Đơn đặt vé đã hết thời gian giữ ghế. Bạn cần chọn lại ghế."
-                            : "Đơn đặt vé đã được hủy."}
+                        Phiên giữ ghế đã hết hạn. Bạn cần chọn lại ghế.
                     </div>
                 )}
 
@@ -423,23 +588,23 @@ const CheckoutPage = () => {
                                     SỰ KIỆN
                                 </small>
                                 <h2>
-                                    {booking.eventSnapshot.title}
+                                    {checkout.eventSnapshot.title}
                                 </h2>
                                 <p>
                                     {formatDateTime(
-                                        booking.eventSnapshot.startAt
+                                        checkout.eventSnapshot.startAt
                                     )}
                                 </p>
                                 <p>
-                                    {booking.eventSnapshot.venue}
-                                    {booking.eventSnapshot.address
-                                        ? ` • ${booking.eventSnapshot.address}`
+                                    {checkout.eventSnapshot.venue}
+                                    {checkout.eventSnapshot.address
+                                        ? ` • ${checkout.eventSnapshot.address}`
                                         : ""}
                                 </p>
                             </div>
 
                             <span className="checkout-code">
-                                {booking.bookingCode}
+                                Tạm giữ ghế
                             </span>
                         </div>
 
@@ -459,11 +624,9 @@ const CheckoutPage = () => {
                                 (item) => (
                                     <article
                                         className="checkout-ticket-row"
-                                        key={
-                                            String(
-                                                item.seatId
-                                            )
-                                        }
+                                        key={String(
+                                            item.seatId
+                                        )}
                                     >
                                         <div className="checkout-seat-badge">
                                             {item.seatLabel}
@@ -502,14 +665,14 @@ const CheckoutPage = () => {
                                     Họ và tên
                                 </small>
                                 <strong>
-                                    {booking.customer.fullName}
+                                    {checkout.customer.fullName}
                                 </strong>
                             </div>
 
                             <div>
                                 <small>Email</small>
                                 <strong>
-                                    {booking.customer.email}
+                                    {checkout.customer.email}
                                 </strong>
                             </div>
 
@@ -518,7 +681,7 @@ const CheckoutPage = () => {
                                     Số điện thoại
                                 </small>
                                 <strong>
-                                    {booking.customer.phone ||
+                                    {checkout.customer.phone ||
                                         "Chưa cập nhật"}
                                 </strong>
                             </div>
@@ -530,7 +693,7 @@ const CheckoutPage = () => {
                             <span>Tạm tính</span>
                             <strong>
                                 {formatPrice(
-                                    booking.subtotal
+                                    checkout.subtotal
                                 )}
                             </strong>
                         </div>
@@ -541,7 +704,7 @@ const CheckoutPage = () => {
                             </span>
                             <strong>
                                 {formatPrice(
-                                    booking.totalAmount
+                                    checkout.totalAmount
                                 )}
                             </strong>
                         </div>
@@ -550,16 +713,16 @@ const CheckoutPage = () => {
                             type="button"
                             className="checkout-pay-button"
                             disabled
-                            title="Payment sẽ được tích hợp ở bước tiếp theo"
+                            title="Payment chưa được tích hợp"
                         >
                             Thanh toán — bước tiếp theo
                         </button>
 
-                        {isPending ? (
+                        {holdActive ? (
                             <>
                                 <Link
                                     className="checkout-cancel-button checkout-cancel-button--link"
-                                    to={`/events/${booking.eventSnapshot.slug}`}
+                                    to={`/events/${checkout.eventSnapshot.slug}`}
                                 >
                                     ← Quay lại thông tin sự kiện
                                 </Link>
@@ -575,14 +738,14 @@ const CheckoutPage = () => {
                                     }
                                 >
                                     {cancelling
-                                        ? "Đang hủy..."
-                                        : "Hủy booking & nhả ghế"}
+                                        ? "Đang nhả ghế..."
+                                        : "Hủy giữ ghế & chọn lại"}
                                 </button>
                             </>
                         ) : (
                             <Link
                                 className="checkout-cancel-button checkout-cancel-button--link"
-                                to={`/events/${booking.eventSnapshot.slug}/seats`}
+                                to={`/events/${checkout.eventSnapshot.slug}/seats`}
                             >
                                 Chọn lại ghế
                             </Link>

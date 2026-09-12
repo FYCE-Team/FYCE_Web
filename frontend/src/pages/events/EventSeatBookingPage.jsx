@@ -288,49 +288,6 @@ const requestSeatAction = async (
     return result.data;
 };
 
-const requestAuthenticatedGet = async (
-    path,
-    accessToken
-) => {
-    const response = await fetch(
-        `${API_BASE_URL}${path}`,
-        {
-            method: "GET",
-            headers: {
-                Authorization:
-                    `Bearer ${accessToken}`
-            },
-            credentials: "include"
-        }
-    );
-
-    let result = null;
-
-    try {
-        result = await response.json();
-    } catch {
-        result = null;
-    }
-
-    if (
-        !response.ok ||
-        !result?.success
-    ) {
-        const error = new Error(
-            result?.message ||
-                "Không thể kiểm tra booking đang hoạt động"
-        );
-
-        error.status = response.status;
-        error.code = result?.code || null;
-        error.data = result?.data || null;
-
-        throw error;
-    }
-
-    return result.data;
-};
-
 const EventSeatBookingPage = () => {
     const { slug } = useParams();
     const navigate = useNavigate();
@@ -417,63 +374,6 @@ const EventSeatBookingPage = () => {
             ]
         );
 
-    const authorizedGet =
-        useCallback(
-            async (path) => {
-                let token = accessToken;
-
-                if (!token) {
-                    const refreshed =
-                        await refreshSession();
-
-                    token =
-                        refreshed?.accessToken ||
-                        null;
-                }
-
-                if (!token) {
-                    const authError =
-                        new Error(
-                            "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
-                        );
-
-                    authError.status = 401;
-                    throw authError;
-                }
-
-                try {
-                    return await requestAuthenticatedGet(
-                        path,
-                        token
-                    );
-                } catch (error) {
-                    if (error.status !== 401) {
-                        throw error;
-                    }
-
-                    const refreshed =
-                        await refreshSession();
-
-                    const nextToken =
-                        refreshed?.accessToken ||
-                        null;
-
-                    if (!nextToken) {
-                        throw error;
-                    }
-
-                    return requestAuthenticatedGet(
-                        path,
-                        nextToken
-                    );
-                }
-            },
-            [
-                accessToken,
-                refreshSession
-            ]
-        );
-
     const [event, setEvent] =
         useState(null);
     const [loading, setLoading] =
@@ -516,14 +416,10 @@ const [
     ] = useState("");
 
     const [
-        creatingBooking,
-        setCreatingBooking
+        openingCheckout,
+        setOpeningCheckout
     ] = useState(false);
 
-    const [
-        checkingActiveBooking,
-        setCheckingActiveBooking
-    ] = useState(true);
 
     const holdRequestLock =
         useRef(false);
@@ -589,86 +485,6 @@ const [
             return;
         }
 
-        let mounted = true;
-
-        const checkActiveBooking =
-            async () => {
-                try {
-                    setCheckingActiveBooking(
-                        true
-                    );
-
-                    const data =
-                        await authorizedGet(
-                            `/bookings/active?eventId=${encodeURIComponent(
-                                event._id
-                            )}`
-                        );
-
-                    if (!mounted) {
-                        return;
-                    }
-
-                    const activeBooking =
-                        data?.booking;
-
-                    if (
-                        activeBooking
-                            ?.bookingCode
-                    ) {
-                        sessionStorage.removeItem(
-                            getHoldStorageKey(
-                                event._id,
-                                currentUserId
-                            )
-                        );
-
-                        navigate(
-                            `/checkout/${activeBooking.bookingCode}`,
-                            {
-                                replace: true
-                            }
-                        );
-
-                        return;
-                    }
-                } catch (err) {
-                    if (mounted) {
-                        setHoldMessage(
-                            err.message ||
-                                "Không thể kiểm tra booking hiện tại."
-                        );
-                    }
-                } finally {
-                    if (mounted) {
-                        setCheckingActiveBooking(
-                            false
-                        );
-                    }
-                }
-            };
-
-        checkActiveBooking();
-
-        return () => {
-            mounted = false;
-        };
-    }, [
-        event?._id,
-        currentUserId,
-        authorizedGet,
-        navigate
-    ]);
-
-useEffect(() => {
-        if (
-            !event?._id ||
-            !currentUserId ||
-            checkingActiveBooking
-        ) {
-            return;
-        }
-
         const storageKey =
             getHoldStorageKey(
                 event._id,
@@ -730,8 +546,7 @@ useEffect(() => {
         }
     }, [
         event?._id,
-        currentUserId,
-        checkingActiveBooking
+        currentUserId
     ]);
 
     useEffect(() => {
@@ -1016,84 +831,34 @@ useEffect(() => {
             }
         };
 
-    const handleContinue = async () => {
+    const handleContinue = () => {
         if (
             !event?._id ||
             selectedSeats.length === 0 ||
             !holdToken ||
+            !holdExpiresAt ||
             remainingSeconds === 0 ||
-            creatingBooking
+            openingCheckout
         ) {
             return;
         }
 
-        try {
-            setCreatingBooking(true);
-            setHoldMessage("");
+        setOpeningCheckout(true);
+        setHoldMessage("");
 
-            const data =
-                await authorizedSeatAction(
-                    "/bookings",
-                    {
-                        eventId:
-                            event._id,
-                        seatIds:
-                            selectedSeats.map(
-                                (seat) =>
-                                    seat._id
-                            ),
-                        holdToken
-                    }
-                );
+        /*
+         * Chỉ giữ checkout trong sessionStorage.
+         * Không POST /bookings ở bước này nữa.
+         */
+        saveHoldSession(
+            holdToken,
+            holdExpiresAt,
+            selectedSeats
+        );
 
-            const bookingCode =
-                data?.booking
-                    ?.bookingCode;
-
-            if (!bookingCode) {
-                throw new Error(
-                    "Không nhận được mã booking từ máy chủ."
-                );
-            }
-
-            clearHoldSession();
-
-            navigate(
-                `/checkout/${bookingCode}`,
-                {
-                    replace: true
-                }
-            );
-        } catch (err) {
-            if (
-                err.code ===
-                    "ACTIVE_BOOKING_EXISTS" &&
-                err.data?.bookingCode
-            ) {
-                clearHoldSession();
-
-                navigate(
-                    `/checkout/${err.data.bookingCode}`,
-                    {
-                        replace: true
-                    }
-                );
-
-                return;
-            }
-
-            setHoldMessage(
-                err.message ||
-                    "Không thể tạo đơn đặt vé. Vui lòng thử lại."
-            );
-
-            setSeatMapRefreshKey(
-                (value) =>
-                    value + 1
-            );
-        } finally {
-            setCreatingBooking(false);
-        }
+        navigate(
+            `/checkout/${event._id}`
+        );
     };
 
     const ticketCategories =
@@ -1166,21 +931,6 @@ useEffect(() => {
                 <div className="seat-booking-spinner" />
                 <p>
                     Đang tải trang chọn ghế...
-                </p>
-            </section>
-        );
-    }
-
-    if (
-        !loading &&
-        event &&
-        checkingActiveBooking
-    ) {
-        return (
-            <section className="seat-booking-state">
-                <div className="seat-booking-spinner" />
-                <p>
-                    Đang kiểm tra booking hiện tại...
                 </p>
             </section>
         );
@@ -1523,11 +1273,11 @@ useEffect(() => {
                             !holdToken ||
                             remainingSeconds ===
                                 0 ||
-                            creatingBooking
+                            openingCheckout
                         }
                     >
-                        {creatingBooking
-                            ? "Đang tạo đơn..."
+                        {openingCheckout
+                            ? "Đang mở checkout..."
                             : "Tiếp tục"}
                     </button>
                 </section>
