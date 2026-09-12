@@ -1,0 +1,303 @@
+.seatmap-ui {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.seatmap-ui__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    align-items: center;
+    margin-bottom: 18px;
+    padding: 14px 18px;
+    background: #ffffff;
+    border: 1px solid #d7e4f2;
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(31, 72, 120, 0.06);
+}
+
+.seatmap-ui__legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #5c6980;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.legend-swatch {
+    width: 18px;
+    height: 14px;
+    display: inline-block;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 4px;
+}
+
+.legend-swatch--vip {
+    background: #e24d57;
+}
+
+.legend-swatch--standard {
+    background: #66a8f2;
+}
+
+.legend-swatch--selected {
+    background: #f1b43d;
+}
+
+.legend-swatch--sold {
+    background: #d5dbe3;
+}
+
+.legend-swatch--held {
+    background: #8ea1b9;
+}
+
+.seatmap-ui__viewport {
+    width: 100%;
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 18px;
+    background:
+        radial-gradient(circle at top, rgba(237, 244, 255, 0.9), transparent 40%),
+        #f7fbff;
+    border: 1px solid #d7e4f2;
+    border-radius: 30px;
+    box-shadow: 0 18px 40px rgba(22, 64, 109, 0.08);
+}
+
+.seatmap-ui__svg {
+    display: block;
+    width: 100%;
+    height: auto !important;
+    min-width: 980px;
+    aspect-ratio: 1456 / 1034;
+    background: #ffffff;
+    border-radius: 24px;
+}
+
+.hall-outline {
+    fill: #ffffff;
+    stroke: #8ea2b8;
+    stroke-width: 1.5;
+}
+
+.stage {
+    fill: #ea9858;
+    stroke: #65717d;
+    stroke-width: 1.5;
+}
+
+.stage-title {
+    fill: #1d2330;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.rest-area {
+    fill: #ebd64b;
+    stroke: #737b84;
+    stroke-width: 1.5;
+}
+
+.rest-title {
+    fill: #20242f;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.technical-room {
+    fill: #60c273;
+    stroke: #737b84;
+    stroke-width: 1.5;
+}
+
+.technical-title {
+    fill: #1d2330;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 39px;
+    font-weight: 500;
+}
+
+.row-label {
+    fill: #343942;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 18px;
+    font-weight: 700;
+    pointer-events: none;
+    user-select: none;
+}
+
+.row-label--wing {
+    font-size: 17px;
+}
+
+.aisle-dot {
+    fill: #ffffff;
+    stroke: #979797;
+    stroke-width: 2;
+}
+
+.svg-seat {
+    outline: none;
+}
+
+.svg-seat:not(.svg-seat--sold):not(.svg-seat--held):not(.svg-seat--blocked),
+.svg-seat--selected:not(.svg-seat--busy) {
+    cursor: pointer;
+}
+
+.svg-seat--busy {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.svg-seat__back,
+.svg-seat__base,
+.svg-seat__arm {
+    stroke: #394653;
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+    transition:
+        stroke 120ms ease,
+        fill 120ms ease,
+        filter 120ms ease;
+}
+
+
+.svg-seat__number {
+    fill: #163457;
+    font-family: Inter, Arial, sans-serif;
+    font-size: 8px;
+    font-weight: 800;
+    pointer-events: none;
+    user-select: none;
+}
+
+.svg-seat--vip .svg-seat__back,
+.svg-seat--vip .svg-seat__base,
+.svg-seat--vip .svg-seat__arm {
+    fill: #f06a73;
+}
+
+.svg-seat--standard .svg-seat__back,
+.svg-seat--standard .svg-seat__base,
+.svg-seat--standard .svg-seat__arm {
+    fill: #7db7f5;
+}
+
+.svg-seat--selected .svg-seat__back,
+.svg-seat--selected .svg-seat__base,
+.svg-seat--selected .svg-seat__arm {
+    fill: #f1b43d;
+    stroke: #9c6600;
+}
+
+
+.svg-seat--selected .svg-seat__number {
+    fill: #5a3600;
+}
+
+.svg-seat--sold .svg-seat__back,
+.svg-seat--sold .svg-seat__base,
+.svg-seat--sold .svg-seat__arm {
+    fill: #d9e0e7;
+    stroke: #b4bec8;
+}
+
+
+.svg-seat--sold .svg-seat__number {
+    fill: #7e8791;
+}
+
+.svg-seat--held .svg-seat__back,
+.svg-seat--held .svg-seat__base,
+.svg-seat--held .svg-seat__arm {
+    fill: #a8b6c8;
+    stroke: #7e90a9;
+}
+
+
+.svg-seat--held .svg-seat__number {
+    fill: #ffffff;
+}
+
+.svg-seat--held.svg-seat--selected .svg-seat__back,
+.svg-seat--held.svg-seat--selected .svg-seat__base,
+.svg-seat--held.svg-seat--selected .svg-seat__arm {
+    fill: #f1b43d;
+    stroke: #9c6600;
+}
+
+.svg-seat--held.svg-seat--selected .svg-seat__number {
+    fill: #5a3600;
+}
+
+.svg-seat--blocked .svg-seat__back,
+.svg-seat--blocked .svg-seat__base,
+.svg-seat--blocked .svg-seat__arm {
+    fill: #90979e;
+    stroke: #717980;
+}
+
+
+.svg-seat:hover:not(.svg-seat--sold):not(.svg-seat--held):not(.svg-seat--blocked) .svg-seat__back,
+.svg-seat:hover:not(.svg-seat--sold):not(.svg-seat--held):not(.svg-seat--blocked) .svg-seat__base,
+.svg-seat:hover:not(.svg-seat--sold):not(.svg-seat--held):not(.svg-seat--blocked) .svg-seat__arm,
+.svg-seat:focus-visible .svg-seat__back,
+.svg-seat:focus-visible .svg-seat__base,
+.svg-seat:focus-visible .svg-seat__arm {
+    filter: brightness(1.05);
+    stroke: #0f5f99;
+    stroke-width: 1.8;
+}
+
+
+.seatmap-ui__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: #ffffff;
+    border: 1px solid #d7e4f2;
+    border-radius: 18px;
+    color: #5e6f85;
+}
+
+.seatmap-ui__footer strong {
+    color: #0c5f9c;
+}
+
+.seatmap-ui__selection {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.seatmap-ui--state {
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #677a8d;
+    background: #ffffff;
+    border: 1px solid #d7e4f2;
+    border-radius: 18px;
+}
+
+@media (max-width: 900px) {
+    .seatmap-ui__viewport {
+        padding: 12px;
+    }
+
+    .seatmap-ui__footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

@@ -1,0 +1,93 @@
+.fyce-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  color: inherit;
+  text-decoration: none;
+}
+
+.fyce-logo-mark {
+  width: 33px;
+  height: 33px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid var(--fyce-border);
+  border-radius: 6px;
+
+  background: var(--fyce-surface);
+  color: var(--fyce-primary);
+
+  font-family: var(--fyce-serif);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.fyce-logo-text {
+  display: flex;
+  flex-direction: column;
+
+  line-height: 1;
+}
+
+.fyce-logo-text strong {
+  color: var(--fyce-text);
+
+  font-family: var(--fyce-serif);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.fyce-logo-text span {
+  margin-top: 4px;
+
+  color: var(--fyce-text-muted);
+
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.45px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 480px) {
+  .fyce-logo-text span {
+    display: none;
+  }
+}
+
+.fyce-logo-footer
+.fyce-logo-mark {
+  border-color:
+    rgba(255, 255, 255, 0.15);
+
+  background:
+    rgba(255, 255, 255, 0.06);
+
+  color: #ffffff;
+}
+
+.fyce-logo-footer
+.fyce-logo-text strong {
+  color: #ffffff;
+}
+
+.fyce-logo-footer
+.fyce-logo-text span {
+  color: #85a39a;
+}
+
+.fyce-logo-footer .fyce-logo-mark {
+  border-color: rgba(143, 201, 234, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  color: #8fc9ea;
+}
+
+.fyce-logo-footer .fyce-logo-text strong {
+  color: #ffffff;
+}
+
+.fyce-logo-footer .fyce-logo-text span {
+  color: #8baab9;
+}
