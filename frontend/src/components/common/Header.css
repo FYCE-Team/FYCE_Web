@@ -86,41 +86,7 @@
   flex-shrink: 0;
 }
 
-.site-search-button {
-  width: 198px;
-  height: 36px;
 
-  padding: 0 13px;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  border: 1px solid var(--fyce-border);
-  border-radius: 20px;
-
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--fyce-text-muted);
-
-  cursor: pointer;
-
-  font-size: 10px;
-  text-align: left;
-
-  transition:
-    border-color var(--fyce-transition),
-    box-shadow var(--fyce-transition),
-    color var(--fyce-transition);
-}
-
-.site-search-button:hover {
-  border-color: #bfd8d0;
-
-  color: var(--fyce-text-secondary);
-
-  box-shadow:
-    0 5px 14px rgba(39, 72, 63, 0.05);
-}
 
 .site-language-switcher {
   display: inline-flex;
@@ -197,7 +163,6 @@
 }
 
 .site-mobile-menu-button:focus-visible,
-.site-search-button:focus-visible,
 .site-language-option:focus-visible,
 .site-navigation-link:focus-visible,
 .site-admin-button:focus-visible {
@@ -215,10 +180,6 @@
 
   .site-navigation {
     gap: 18px;
-  }
-
-  .site-search-button {
-    width: 155px;
   }
 }
 
@@ -279,10 +240,6 @@
   }
 
   .site-navigation-link::after {
-    display: none;
-  }
-
-  .site-search-button {
     display: none;
   }
 
@@ -646,4 +603,240 @@
 .site-account-dropdown button:hover {
   background: var(--fyce-blue-light);
   color: var(--fyce-primary);
+}
+
+/* ============================================================
+   HEADER MOBILE FIX
+   Logo stays on the LEFT.
+   Login/account/hamburger stay grouped on the RIGHT.
+   ============================================================ */
+
+.site-navigation-mobile-auth,
+.site-navigation-mobile-admin {
+  display: none;
+}
+
+.site-account-dropdown .site-account-admin {
+  color: var(--fyce-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 850px) {
+  .site-header-inner {
+    position: relative;
+    width: calc(100% - 24px);
+    min-height: 64px;
+    gap: 0;
+  }
+
+  .site-header .fyce-logo {
+    flex: 0 0 auto;
+    margin-right: auto;
+  }
+
+  .site-header-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+    justify-content: flex-end;
+    gap: 7px;
+    position: relative;
+    z-index: 3;
+  }
+
+  .site-language-switcher,
+  .site-admin-button {
+    display: none;
+  }
+
+  .site-account-name,
+  .site-account-chevron {
+    display: none;
+  }
+
+  .site-account-button {
+    width: 40px;
+    height: 40px;
+    padding: 4px;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .site-account-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .site-mobile-menu-button {
+    display: inline-flex;
+    flex: 0 0 40px;
+  }
+
+  .site-navigation {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 10px;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    border: 1px solid var(--fyce-border);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.99);
+    box-shadow: 0 18px 40px rgba(31, 65, 57, 0.11);
+    z-index: 2;
+  }
+
+  .site-navigation.site-navigation-open {
+    display: flex;
+  }
+
+  .site-navigation-link {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 12px;
+    justify-content: flex-start;
+    border-radius: 9px;
+  }
+
+  .site-navigation-link::after {
+    display: none;
+  }
+
+  .site-navigation-mobile-admin {
+    min-height: 44px;
+    margin-top: 6px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 9px;
+    background: var(--fyce-primary-light);
+    color: var(--fyce-primary);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .site-account-dropdown {
+    right: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .site-header-inner {
+    width: calc(100% - 20px);
+  }
+
+  .site-header-actions,
+  .site-auth-actions {
+    gap: 5px;
+  }
+
+  .site-login-button {
+    height: 36px;
+    padding: 0 10px;
+    font-size: 9px;
+  }
+
+  /* Keep Login visible in top-right, move Register into hamburger. */
+  .site-register-button {
+    display: none;
+  }
+
+  .site-navigation-mobile-auth {
+    margin-top: 7px;
+    padding-top: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    border-top: 1px solid var(--fyce-border-light);
+  }
+
+  .site-navigation-mobile-auth button {
+    min-height: 40px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .site-navigation-mobile-login {
+    border: 1px solid var(--fyce-border);
+    background: #fff;
+    color: var(--fyce-primary);
+  }
+
+  .site-navigation-mobile-register {
+    border: 1px solid var(--fyce-primary);
+    background: var(--fyce-primary);
+    color: #fff;
+  }
+}
+
+@media (max-width: 390px) {
+  .site-header-inner {
+    width: calc(100% - 16px);
+  }
+
+  .site-account-dropdown {
+    width: min(210px, calc(100vw - 24px));
+  }
+}
+
+/* ============================================================
+   MOBILE AUTH V2
+   On mobile, unauthenticated actions live ONLY in hamburger.
+   ============================================================ */
+
+@media (max-width: 850px) {
+  .site-auth-actions {
+    display: none !important;
+  }
+
+  .site-navigation-mobile-auth {
+    margin-top: 7px;
+    padding-top: 8px;
+
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+
+    border-top: 1px solid var(--fyce-border-light);
+  }
+
+  .site-navigation-mobile-auth button {
+    min-height: 42px;
+    width: 100%;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 12px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+  }
+
+  .site-navigation-mobile-login {
+    border: 1px solid var(--fyce-border);
+    background: #ffffff;
+    color: var(--fyce-primary);
+  }
+
+  .site-navigation-mobile-register {
+    border: 1px solid var(--fyce-primary);
+    background: var(--fyce-primary);
+    color: #ffffff;
+  }
 }

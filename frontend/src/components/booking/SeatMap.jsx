@@ -1,6 +1,7 @@
 import {
     useEffect,
     useMemo,
+    useRef,
     useState
 } from "react";
 import "./SeatMap.css";
@@ -12,6 +13,17 @@ const API_BASE_URL =
 const EMPTY_SELECTED_SEAT_IDS = [];
 const CANVAS_WIDTH = 1456;
 const CANVAS_HEIGHT = 1034;
+
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4.5;
+const ZOOM_STEP = 0.25;
+
+const INITIAL_VIEWBOX = {
+    x: 0,
+    y: 0,
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT
+};
 
 const VIP_ROWS = new Set([
     "B",
@@ -367,11 +379,60 @@ const buildDynamicLabels = (
     return labels;
 };
 
+const clamp = (value, min, max) =>
+    Math.min(
+        max,
+        Math.max(min, value)
+    );
+
+const clampViewBox = (next) => {
+    const width = clamp(
+        Number(next.width) ||
+            CANVAS_WIDTH,
+        CANVAS_WIDTH / MAX_ZOOM,
+        CANVAS_WIDTH
+    );
+
+    const height =
+        width *
+        (CANVAS_HEIGHT / CANVAS_WIDTH);
+
+    return {
+        x: clamp(
+            Number(next.x) || 0,
+            0,
+            Math.max(
+                0,
+                CANVAS_WIDTH - width
+            )
+        ),
+        y: clamp(
+            Number(next.y) || 0,
+            0,
+            Math.max(
+                0,
+                CANVAS_HEIGHT - height
+            )
+        ),
+        width,
+        height
+    };
+};
+
+const pointerDistance = (
+    first,
+    second
+) =>
+    Math.hypot(
+        first.clientX - second.clientX,
+        first.clientY - second.clientY
+    );
+
 const SeatIcon = ({
     seat,
     ticketCategories,
     selected,
-    busy,
+    busy = false,
     onSelect
 }) => {
     const x = Number(
@@ -471,7 +532,6 @@ const SeatIcon = ({
                 selectable ? 0 : -1
             }
             aria-disabled={!selectable}
-            aria-busy={busy}
             aria-pressed={selected}
             aria-label={`Ghế ${seat.label}, ${visualCategory}, ${price} VND`}
             onClick={activate}
@@ -561,10 +621,10 @@ const SeatMap = ({
     eventId,
     ticketCategories = [],
     selectedSeatIds = EMPTY_SELECTED_SEAT_IDS,
-    onSelectionChange,
-    onSeatToggle,
     busySeatIds = EMPTY_SELECTED_SEAT_IDS,
     refreshKey = 0,
+    onSeatToggle = null,
+    onSelectionChange = null,
     className = "",
     showLegend = true,
     showFooter = true
@@ -575,6 +635,41 @@ const SeatMap = ({
         useState(true);
     const [error, setError] =
         useState("");
+
+    const [
+        viewBox,
+        setViewBox
+    ] = useState(
+        INITIAL_VIEWBOX
+    );
+
+    const svgRef =
+        useRef(null);
+
+    const pointersRef =
+        useRef(new Map());
+
+    const gestureRef =
+        useRef(null);
+
+    const suppressClickRef =
+        useRef(false);
+
+    const busyIds = useMemo(
+        () =>
+            new Set(
+                (
+                    Array.isArray(
+                        busySeatIds
+                    )
+                        ? busySeatIds
+                        : []
+                ).map(
+                    (id) => String(id)
+                )
+            ),
+        [busySeatIds]
+    );
 
     const [
         internalSelectedIds,
@@ -701,59 +796,532 @@ const SeatMap = ({
         ]
     );
 
-    const busyIds = useMemo(
-        () =>
-            new Set(
-                (
-                    Array.isArray(
-                        busySeatIds
-                    )
-                        ? busySeatIds
-                        : []
-                ).map(
-                    (id) =>
-                        String(id)
-                )
-            ),
-        [busySeatIds]
-    );
+    const zoom =
+        CANVAS_WIDTH /
+        viewBox.width;
 
-    const handleSeatSelect = (
-        seat
+    const isZoomed =
+        zoom > 1.001;
+
+    const zoomTo = (
+        requestedZoom,
+        anchor = null
     ) => {
+        const nextZoom = clamp(
+            requestedZoom,
+            MIN_ZOOM,
+            MAX_ZOOM
+        );
+
+        setViewBox((current) => {
+            const nextWidth =
+                CANVAS_WIDTH / nextZoom;
+
+            const nextHeight =
+                CANVAS_HEIGHT / nextZoom;
+
+            let ratioX = 0.5;
+            let ratioY = 0.5;
+
+            if (
+                anchor &&
+                svgRef.current
+            ) {
+                const rect =
+                    svgRef.current
+                        .getBoundingClientRect();
+
+                ratioX = clamp(
+                    (
+                        anchor.clientX -
+                        rect.left
+                    ) /
+                        Math.max(
+                            1,
+                            rect.width
+                        ),
+                    0,
+                    1
+                );
+
+                ratioY = clamp(
+                    (
+                        anchor.clientY -
+                        rect.top
+                    ) /
+                        Math.max(
+                            1,
+                            rect.height
+                        ),
+                    0,
+                    1
+                );
+            }
+
+            const anchorX =
+                current.x +
+                current.width * ratioX;
+
+            const anchorY =
+                current.y +
+                current.height * ratioY;
+
+            return clampViewBox({
+                x:
+                    anchorX -
+                    nextWidth * ratioX,
+                y:
+                    anchorY -
+                    nextHeight * ratioY,
+                width: nextWidth,
+                height: nextHeight
+            });
+        });
+    };
+
+    const resetZoom = () => {
+        setViewBox(
+            INITIAL_VIEWBOX
+        );
+    };
+
+    /*
+     * Dùng native wheel listener với passive:false.
+     * Cách này tránh lỗi:
+     * "Unable to preventDefault inside passive event listener invocation."
+     */
+    useEffect(() => {
+        const svg =
+            svgRef.current;
+
+        if (
+            !svg ||
+            loading ||
+            error
+        ) {
+            return undefined;
+        }
+
+        const handleNativeWheel =
+            (event) => {
+                if (
+                    !event.ctrlKey &&
+                    !event.metaKey
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                zoomTo(
+                    zoom +
+                        (
+                            event.deltaY < 0
+                                ? ZOOM_STEP
+                                : -ZOOM_STEP
+                        ),
+                    {
+                        clientX:
+                            event.clientX,
+                        clientY:
+                            event.clientY
+                    }
+                );
+            };
+
+        svg.addEventListener(
+            "wheel",
+            handleNativeWheel,
+            {
+                passive: false
+            }
+        );
+
+        return () => {
+            svg.removeEventListener(
+                "wheel",
+                handleNativeWheel
+            );
+        };
+    }, [
+        zoom,
+        loading,
+        error
+    ]);
+
+    /*
+     * Pointer gesture rules:
+     *
+     * - A simple tap/click on a .svg-seat MUST stay on that seat so its
+     *   own onClick handler can run.
+     * - Do NOT call setPointerCapture() on pointerdown. Doing that on the
+     *   parent SVG steals the pointerup/click from the seat and makes the
+     *   chair look unclickable.
+     * - Only capture after a real pan has started.
+     * - Pinch is handled by two pointers and suppresses the following click.
+     */
+    const handlePointerDown =
+        (event) => {
+            if (
+                event.pointerType ===
+                    "mouse" &&
+                event.button !== 0
+            ) {
+                return;
+            }
+
+            pointersRef.current.set(
+                event.pointerId,
+                {
+                    clientX:
+                        event.clientX,
+                    clientY:
+                        event.clientY
+                }
+            );
+
+            if (
+                pointersRef.current.size ===
+                1
+            ) {
+                gestureRef.current = {
+                    mode: "pan",
+                    pointerId:
+                        event.pointerId,
+                    startClientX:
+                        event.clientX,
+                    startClientY:
+                        event.clientY,
+                    startViewBox: {
+                        ...viewBox
+                    },
+                    captured: false
+                };
+
+                return;
+            }
+
+            if (
+                pointersRef.current.size ===
+                2
+            ) {
+                const [
+                    first,
+                    second
+                ] = [
+                    ...pointersRef.current.values()
+                ];
+
+                gestureRef.current = {
+                    mode: "pinch",
+                    startDistance:
+                        Math.max(
+                            1,
+                            pointerDistance(
+                                first,
+                                second
+                            )
+                        ),
+                    startZoom:
+                        zoom,
+                    startViewBox: {
+                        ...viewBox
+                    }
+                };
+
+                suppressClickRef.current =
+                    true;
+            }
+        };
+
+    const handlePointerMove =
+        (event) => {
+            if (
+                !pointersRef.current.has(
+                    event.pointerId
+                )
+            ) {
+                return;
+            }
+
+            pointersRef.current.set(
+                event.pointerId,
+                {
+                    clientX:
+                        event.clientX,
+                    clientY:
+                        event.clientY
+                }
+            );
+
+            const gesture =
+                gestureRef.current;
+
+            if (!gesture) {
+                return;
+            }
+
+            if (
+                gesture.mode ===
+                    "pinch" &&
+                pointersRef.current.size >=
+                    2
+            ) {
+                const [
+                    first,
+                    second
+                ] = [
+                    ...pointersRef.current.values()
+                ];
+
+                const distance =
+                    Math.max(
+                        1,
+                        pointerDistance(
+                            first,
+                            second
+                        )
+                    );
+
+                const nextZoom =
+                    clamp(
+                        gesture.startZoom *
+                            (
+                                distance /
+                                gesture.startDistance
+                            ),
+                        MIN_ZOOM,
+                        MAX_ZOOM
+                    );
+
+                const nextWidth =
+                    CANVAS_WIDTH /
+                    nextZoom;
+
+                const nextHeight =
+                    CANVAS_HEIGHT /
+                    nextZoom;
+
+                const start =
+                    gesture.startViewBox;
+
+                setViewBox(
+                    clampViewBox({
+                        x:
+                            start.x +
+                            (
+                                start.width -
+                                nextWidth
+                            ) / 2,
+                        y:
+                            start.y +
+                            (
+                                start.height -
+                                nextHeight
+                            ) / 2,
+                        width:
+                            nextWidth,
+                        height:
+                            nextHeight
+                    })
+                );
+
+                suppressClickRef.current =
+                    true;
+
+                return;
+            }
+
+            if (
+                gesture.mode !== "pan" ||
+                gesture.pointerId !==
+                    event.pointerId ||
+                !isZoomed ||
+                !svgRef.current
+            ) {
+                return;
+            }
+
+            const deltaX =
+                event.clientX -
+                gesture.startClientX;
+
+            const deltaY =
+                event.clientY -
+                gesture.startClientY;
+
+            const distanceMoved =
+                Math.hypot(
+                    deltaX,
+                    deltaY
+                );
+
+            /*
+             * Treat small movement as a normal tap.
+             * This is what keeps seat selection reliable on phones.
+             */
+            if (
+                distanceMoved <= 6
+            ) {
+                return;
+            }
+
+            suppressClickRef.current =
+                true;
+
+            /*
+             * Only after a real drag starts do we capture the pointer.
+             * At this point we WANT the SVG to own the gesture.
+             */
+            if (
+                !gesture.captured
+            ) {
+                try {
+                    event.currentTarget
+                        .setPointerCapture(
+                            event.pointerId
+                        );
+
+                    gesture.captured =
+                        true;
+                } catch {
+                    // Pointer capture is optional.
+                }
+            }
+
+            const rect =
+                svgRef.current
+                    .getBoundingClientRect();
+
+            const start =
+                gesture.startViewBox;
+
+            setViewBox(
+                clampViewBox({
+                    ...start,
+                    x:
+                        start.x -
+                        deltaX *
+                            (
+                                start.width /
+                                Math.max(
+                                    1,
+                                    rect.width
+                                )
+                            ),
+                    y:
+                        start.y -
+                        deltaY *
+                            (
+                                start.height /
+                                Math.max(
+                                    1,
+                                    rect.height
+                                )
+                            )
+                })
+            );
+        };
+
+    const handlePointerEnd =
+        (event) => {
+            pointersRef.current.delete(
+                event.pointerId
+            );
+
+            if (
+                pointersRef.current.size ===
+                0
+            ) {
+                gestureRef.current =
+                    null;
+
+                /*
+                 * Let a genuine seat click fire immediately.
+                 * After pan/pinch, keep click suppression briefly so
+                 * pointerup cannot accidentally select a chair.
+                 */
+                if (
+                    suppressClickRef.current
+                ) {
+                    window.setTimeout(
+                        () => {
+                            suppressClickRef.current =
+                                false;
+                        },
+                        80
+                    );
+                }
+
+                return;
+            }
+
+            if (
+                pointersRef.current.size ===
+                1
+            ) {
+                const [
+                    [
+                        pointerId,
+                        pointer
+                    ]
+                ] = [
+                    ...pointersRef.current.entries()
+                ];
+
+                gestureRef.current = {
+                    mode: "pan",
+                    pointerId,
+                    startClientX:
+                        pointer.clientX,
+                    startClientY:
+                        pointer.clientY,
+                    startViewBox: {
+                        ...viewBox
+                    },
+                    captured: false
+                };
+            }
+        };
+
+    const handleSeatSelect = (seat) => {
         const id =
             String(seat._id);
 
-        const selected =
-            internalSelectedIds.has(
-                id
-            );
-
         if (
-            busyIds.has(id) ||
-            (
-                !selected &&
-                !isSelectable(seat)
-            )
+            busyIds.has(id)
         ) {
             return;
         }
 
-        if (onSeatToggle) {
-            Promise.resolve(
-                onSeatToggle(
-                    seat,
-                    selected
-                )
-            ).catch(
-                (error) => {
-                    console.error(
-                        "Seat toggle error:",
-                        error
-                    );
-                }
-            );
+        const selected =
+            internalSelectedIds.has(id);
 
+        if (
+            !selected &&
+            !isSelectable(seat)
+        ) {
+            return;
+        }
+
+        if (
+            typeof onSeatToggle ===
+            "function"
+        ) {
+            /*
+             * Parent handleSeatToggle(seat, isSelected)
+             * needs the CURRENT selection state:
+             *
+             * false -> hold this seat
+             * true  -> release this seat
+             *
+             * V4 only passed `seat`, so isSelected was undefined
+             * and the parent always entered the HOLD branch.
+             */
+            onSeatToggle(
+                seat,
+                selected
+            );
             return;
         }
 
@@ -837,15 +1405,117 @@ const SeatMap = ({
                 </div>
             )}
 
-            <div className="seatmap-ui__viewport">
+            <div className="seatmap-ui__zoom-bar">
+                <div className="seatmap-ui__zoom-help">
+                    <strong>
+                        Phóng to sơ đồ
+                    </strong>
+                    <span>
+                        Chụm 2 ngón tay để zoom • kéo để di chuyển
+                    </span>
+                </div>
+
+                <div
+                    className="seatmap-ui__zoom-controls"
+                    role="group"
+                    aria-label="Điều khiển phóng to sơ đồ"
+                >
+                    <button
+                        type="button"
+                        onClick={() =>
+                            zoomTo(
+                                zoom -
+                                    ZOOM_STEP
+                            )
+                        }
+                        disabled={
+                            zoom <=
+                            MIN_ZOOM +
+                                0.001
+                        }
+                    >
+                        −
+                    </button>
+
+                    <output>
+                        {Math.round(
+                            zoom * 100
+                        )}
+                        %
+                    </output>
+
+                    <button
+                        type="button"
+                        onClick={() =>
+                            zoomTo(
+                                zoom +
+                                    ZOOM_STEP
+                            )
+                        }
+                        disabled={
+                            zoom >=
+                            MAX_ZOOM -
+                                0.001
+                        }
+                    >
+                        +
+                    </button>
+
+                    <button
+                        type="button"
+                        className="seatmap-ui__fit-button"
+                        onClick={resetZoom}
+                    >
+                        Vừa khung
+                    </button>
+                </div>
+            </div>
+
+            <div
+                className={`seatmap-ui__viewport ${
+                    isZoomed
+                        ? "seatmap-ui__viewport--zoomed"
+                        : ""
+                }`}
+            >
                 <svg
+                    ref={svgRef}
                     className="seatmap-ui__svg"
-                    width={CANVAS_WIDTH}
-                    height={CANVAS_HEIGHT}
-                    viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
+                    viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
                     preserveAspectRatio="xMidYMid meet"
                     role="img"
                     aria-label="Sơ đồ ghế FYCE"
+                    onPointerDown={
+                        handlePointerDown
+                    }
+                    onPointerMove={
+                        handlePointerMove
+                    }
+                    onPointerUp={
+                        handlePointerEnd
+                    }
+                    onPointerCancel={
+                        handlePointerEnd
+                    }
+                    onDoubleClick={(event) =>
+                        zoomTo(
+                            zoom + 0.75,
+                            {
+                                clientX:
+                                    event.clientX,
+                                clientY:
+                                    event.clientY
+                            }
+                        )
+                    }
+                    onClickCapture={(event) => {
+                        if (
+                            suppressClickRef.current
+                        ) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                    }}
                 >
                     <rect
                         className="hall-outline"

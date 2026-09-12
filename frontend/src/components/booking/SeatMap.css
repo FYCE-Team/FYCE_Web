@@ -34,11 +34,11 @@
 }
 
 .legend-swatch--vip {
-    background: #e24d57;
+    background: #f06a73;
 }
 
 .legend-swatch--standard {
-    background: #66a8f2;
+    background: #7db7f5;
 }
 
 .legend-swatch--selected {
@@ -46,16 +46,16 @@
 }
 
 .legend-swatch--sold {
-    background: #d5dbe3;
+    background: #d9e0e7;
 }
 
 .legend-swatch--held {
-    background: #8ea1b9;
+    background: #a8b6c8;
 }
 
 .seatmap-ui__viewport {
     width: 100%;
-    overflow: auto;
+    overflow: hidden;
     box-sizing: border-box;
     padding: 18px;
     background:
@@ -70,10 +70,27 @@
     display: block;
     width: 100%;
     height: auto !important;
-    min-width: 980px;
+    min-width: 0;
     aspect-ratio: 1456 / 1034;
     background: #ffffff;
     border-radius: 24px;
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    /* 100% vẫn cho phép vuốt dọc trang */
+    touch-action: pan-y;
+    cursor: default;
+}
+
+.seatmap-ui__viewport--zoomed .seatmap-ui__svg {
+    /* Khi zoom thì gesture được dùng để pan/zoom sơ đồ */
+    touch-action: none;
+    cursor: grab;
+}
+
+.seatmap-ui__viewport--zoomed .seatmap-ui__svg:active {
+    cursor: grabbing;
 }
 
 .hall-outline {
@@ -145,14 +162,8 @@
     outline: none;
 }
 
-.svg-seat:not(.svg-seat--sold):not(.svg-seat--held):not(.svg-seat--blocked),
-.svg-seat--selected:not(.svg-seat--busy) {
+.svg-seat:not(.svg-seat--sold):not(.svg-seat--held):not(.svg-seat--blocked) {
     cursor: pointer;
-}
-
-.svg-seat--busy {
-    opacity: 0.55;
-    pointer-events: none;
 }
 
 .svg-seat__back,
@@ -225,17 +236,6 @@
     fill: #ffffff;
 }
 
-.svg-seat--held.svg-seat--selected .svg-seat__back,
-.svg-seat--held.svg-seat--selected .svg-seat__base,
-.svg-seat--held.svg-seat--selected .svg-seat__arm {
-    fill: #f1b43d;
-    stroke: #9c6600;
-}
-
-.svg-seat--held.svg-seat--selected .svg-seat__number {
-    fill: #5a3600;
-}
-
 .svg-seat--blocked .svg-seat__back,
 .svg-seat--blocked .svg-seat__base,
 .svg-seat--blocked .svg-seat__arm {
@@ -300,4 +300,228 @@
         flex-direction: column;
         align-items: flex-start;
     }
+}
+
+/* ============================================================
+   ZOOM CONTROLS
+   ============================================================ */
+
+.seatmap-ui__zoom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    margin-bottom: 12px;
+}
+
+.seatmap-ui__zoom-help {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    color: #6a788c;
+}
+
+.seatmap-ui__zoom-help strong {
+    color: #30445b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.seatmap-ui__zoom-help span {
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.seatmap-ui__zoom-controls {
+    flex: 0 0 auto;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+
+    padding: 4px;
+
+    background: #ffffff;
+    border: 1px solid #d7e4f2;
+    border-radius: 14px;
+
+    box-shadow:
+        0 8px 22px
+        rgba(31, 72, 120, 0.07);
+}
+
+.seatmap-ui__zoom-controls button {
+    min-width: 40px;
+    height: 40px;
+
+    padding: 0 10px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 10px;
+
+    background: #f2f7fc;
+    color: #24537f;
+
+    cursor: pointer;
+
+    font-size: 18px;
+    font-weight: 800;
+
+    transition:
+        background-color 120ms ease,
+        color 120ms ease,
+        transform 120ms ease;
+}
+
+.seatmap-ui__zoom-controls button:hover:not(:disabled) {
+    background: #e4eef8;
+    color: #0f5f99;
+}
+
+.seatmap-ui__zoom-controls button:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.seatmap-ui__zoom-controls button:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+.seatmap-ui__zoom-controls output {
+    min-width: 52px;
+
+    color: #53657b;
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-align: center;
+}
+
+.seatmap-ui__zoom-controls .seatmap-ui__fit-button {
+    width: auto;
+    min-width: 82px;
+
+    font-size: 10px;
+}
+
+/* Request đang xử lý */
+.svg-seat--busy {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+/*
+ * Selected đặt cuối để ghế held của chính user
+ * vẫn hiển thị màu vàng khi nằm trong selectedSeatIds.
+ */
+.svg-seat--selected .svg-seat__back,
+.svg-seat--selected .svg-seat__base,
+.svg-seat--selected .svg-seat__arm,
+.svg-seat--held.svg-seat--selected .svg-seat__back,
+.svg-seat--held.svg-seat--selected .svg-seat__base,
+.svg-seat--held.svg-seat--selected .svg-seat__arm {
+    fill: #f1b43d;
+    stroke: #9c6600;
+}
+
+.svg-seat--selected .svg-seat__number,
+.svg-seat--held.svg-seat--selected .svg-seat__number {
+    fill: #5a3600;
+}
+
+@media (max-width: 720px) {
+    .seatmap-ui__legend {
+        gap: 8px 12px;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    .seatmap-ui__legend > span {
+        font-size: 10px;
+    }
+
+    .seatmap-ui__zoom-bar {
+        align-items: flex-end;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .seatmap-ui__zoom-help span {
+        max-width: 180px;
+        font-size: 9px;
+    }
+
+    .seatmap-ui__zoom-controls {
+        gap: 3px;
+        padding: 3px;
+        border-radius: 11px;
+    }
+
+    .seatmap-ui__zoom-controls button {
+        min-width: 42px;
+        height: 42px;
+        padding: 0 8px;
+    }
+
+    .seatmap-ui__zoom-controls output {
+        min-width: 44px;
+        font-size: 10px;
+    }
+
+    .seatmap-ui__fit-button {
+        display: none !important;
+    }
+
+    .seatmap-ui__viewport {
+        padding: 5px;
+        border-radius: 16px;
+    }
+
+    .seatmap-ui__svg {
+        border-radius: 12px;
+    }
+}
+
+@media (max-width: 460px) {
+    .seatmap-ui__zoom-help span {
+        display: none;
+    }
+
+    .seatmap-ui__zoom-help strong {
+        font-size: 10px;
+    }
+
+    .seatmap-ui__zoom-controls button {
+        min-width: 40px;
+        width: 40px;
+        padding: 0;
+    }
+
+    .seatmap-ui__zoom-controls output {
+        min-width: 42px;
+    }
+}
+
+
+/* ============================================================
+   SEAT CLICK RELIABILITY V4
+   ============================================================ */
+
+.svg-seat {
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.svg-seat--busy {
+    pointer-events: none;
 }

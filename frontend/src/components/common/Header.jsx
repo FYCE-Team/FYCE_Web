@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Search,
   Menu,
   X,
   User,
@@ -102,21 +101,49 @@ const Header = () => {
             Về chúng tôi
         </a>
 
+          {!user && (
+            <div className="site-navigation-mobile-auth">
+              <button
+                type="button"
+                className="site-navigation-mobile-login"
+                onClick={() => {
+                  closeMobileMenu();
+                  navigate("/login");
+                }}
+              >
+                Đăng nhập
+              </button>
+
+              <button
+                type="button"
+                className="site-navigation-mobile-register"
+                onClick={() => {
+                  closeMobileMenu();
+                  navigate("/register");
+                }}
+              >
+                Đăng ký
+              </button>
+            </div>
+          )}
+
+          {user?.role === "admin" && (
+            <button
+              type="button"
+              className="site-navigation-mobile-admin"
+              onClick={() => {
+                closeMobileMenu();
+                navigate("/admin/events");
+              }}
+            >
+              <LayoutDashboard size={17} />
+              <span>Trang quản trị</span>
+            </button>
+          )}
+
         </nav>
 
         <div className="site-header-actions">
-
-          <button
-            type="button"
-            className="site-search-button"
-            aria-label="Tìm kiếm"
-          >
-            <Search size={17} />
-
-            <span>
-              Tìm hòa nhạc, tác phẩm...
-            </span>
-          </button>
 
           <div
             className="site-language-switcher"
@@ -227,6 +254,24 @@ const Header = () => {
 
               {accountMenuOpen && (
                 <div className="site-account-dropdown">
+                  {user?.role === "admin" && (
+                    <>
+                      <button
+                        type="button"
+                        className="site-account-admin"
+                        onClick={() => {
+                          setAccountMenuOpen(false);
+                          closeMobileMenu();
+                          navigate("/admin/events");
+                        }}
+                      >
+                        <LayoutDashboard size={16} />
+                        <span>Trang quản trị</span>
+                      </button>
+
+                      <div className="site-account-divider" />
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
