@@ -1057,6 +1057,14 @@ const AdminEvents = () => {
                                                                 Sửa
                                                             </Link>
 
+                                                            <Link
+                                                                to={`/admin/events/${event._id}/seats`}
+                                                                className="admin-event-action admin-event-action-seats"
+                                                                title="Quản lý chỗ ngồi"
+                                                            >
+                                                                Ghế
+                                                            </Link>
+
                                                             {event.status ===
                                                                 "draft" && (
                                                                 <button

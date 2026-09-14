@@ -9,8 +9,11 @@ import {
     getMyHoldSession,
     hold,
     release,
+    getAdminSeats,
+    getAdminSeatHistory,
+    blockSeat,
+    unblockSeat,
     updateCategory,
-    updateStatus,
     removeSeats
 } from "../controllers/seat.controller.js";
 
@@ -121,6 +124,47 @@ router.get(
 */
 
 /*
+GET /api/admin/events/:eventId/seats
+*/
+router.get(
+    "/admin/events/:eventId/seats",
+    authenticateToken,
+    getAdminSeats
+);
+
+/*
+GET /api/admin/seats/:seatId/history
+*/
+router.get(
+    "/admin/seats/:seatId/history",
+    authenticateToken,
+    getAdminSeatHistory
+);
+
+/*
+POST /api/admin/seats/:seatId/block
+
+Body:
+{
+    "reason": "Ghế hư"
+}
+*/
+router.post(
+    "/admin/seats/:seatId/block",
+    authenticateToken,
+    blockSeat
+);
+
+/*
+POST /api/admin/seats/:seatId/unblock
+*/
+router.post(
+    "/admin/seats/:seatId/unblock",
+    authenticateToken,
+    unblockSeat
+);
+
+/*
 PATCH /api/seats/:seatId/category
 
 Body:
@@ -134,19 +178,6 @@ router.patch(
     updateCategory
 );
 
-/*
-PATCH /api/seats/:seatId/status
-
-Body:
-{
-    "status": "blocked"
-}
-*/
-router.patch(
-    "/seats/:seatId/status",
-    authenticateToken,
-    updateStatus
-);
 
 /*
 DELETE /api/events/:eventId/seats

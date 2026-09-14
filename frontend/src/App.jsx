@@ -31,6 +31,7 @@ import EventSeatBookingPage from "./pages/events/EventSeatBookingPage.jsx";
 import CheckoutPage from "./pages/booking/CheckoutPage.jsx";
 import AdminEventCreate from "./pages/admin/events/AdminEventCreate.jsx";
 import AdminEventEdit from "./pages/admin/events/AdminEventEdit.jsx";
+import AdminSeatManagementPage from "./pages/admin/events/AdminSeatManagementPage.jsx";
 import AdminEvents from "./pages/admin/events/AdminEvents.jsx";
 
 const GOOGLE_CLIENT_ID =
@@ -108,6 +109,13 @@ function App() {
                                     path="/admin/events/:id/edit"
                                     element={
                                         <AdminEventEdit />
+                                    }
+                                />
+
+                                <Route
+                                    path="/admin/events/:id/seats"
+                                    element={
+                                        <AdminSeatManagementPage />
                                     }
                                 />
 

@@ -1,0 +1,86 @@
+.admin-seat-page {
+    min-height: 100%;
+    padding: 34px 0 70px;
+    background: #f5f8fa;
+}
+
+.admin-seat-page__topbar {
+    width: min(100% - 32px, 1460px);
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.admin-seat-page__eyebrow {
+    color: #2a7a66;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.admin-seat-page__topbar h1 {
+    margin: 7px 0 8px;
+    color: #173f59;
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.05;
+}
+
+.admin-seat-page__topbar p {
+    max-width: 790px;
+    margin: 0;
+    color: #708896;
+    line-height: 1.65;
+}
+
+.admin-seat-page__actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.admin-seat-page__button {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 15px;
+    border: 1px solid #1977a8;
+    border-radius: 11px;
+    background: #1977a8;
+    color: #fff;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.admin-seat-page__button--secondary {
+    border-color: #cfdde5;
+    background: #fff;
+    color: #3a657b;
+}
+
+.admin-seat-page .admin-seat-manager {
+    margin-top: 26px;
+}
+
+@media (max-width: 760px) {
+    .admin-seat-page {
+        padding-top: 22px;
+    }
+
+    .admin-seat-page__topbar {
+        width: min(100% - 20px, 1460px);
+        flex-direction: column;
+    }
+
+    .admin-seat-page__actions {
+        width: 100%;
+    }
+
+    .admin-seat-page__button {
+        flex: 1 1 auto;
+    }
+}

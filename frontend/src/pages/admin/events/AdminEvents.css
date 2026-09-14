@@ -360,6 +360,12 @@
     color: #237db3;
 }
 
+.admin-event-action-seats {
+    border-color: #c8dfea;
+    background: #f0f8fc;
+    color: #176f98;
+}
+
 .admin-event-action-publish {
     border-color: #cce7d8;
     background: #f4fbf7;

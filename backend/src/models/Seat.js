@@ -77,6 +77,35 @@ const seatSchema = new mongoose.Schema(
             index: true
         },
 
+        blockedReason: {
+            type: String,
+            trim: true,
+            maxlength: 300,
+            default: null
+        },
+
+        blockedAt: {
+            type: Date,
+            default: null
+        },
+
+        blockedByUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
+
+        adminStatusUpdatedAt: {
+            type: Date,
+            default: null
+        },
+
+        adminStatusUpdatedByUserId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null
+        },
+
         position: {
             x: {
                 type: Number,

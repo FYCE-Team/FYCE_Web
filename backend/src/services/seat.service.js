@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 import { randomUUID } from "node:crypto";
 import Event from "../models/Event.js";
 import Seat from "../models/Seat.js";
+import {
+    createSeatHistoryEntry
+} from "./seatHistory.service.js";
 
 const normalizeSection = (
     value
@@ -78,8 +81,55 @@ const sanitizeSeatForClient = (
     delete clean.holdToken;
     delete clean.heldByUserId;
     delete clean.holdExpiresAt;
+    delete clean.blockedReason;
+    delete clean.blockedAt;
+    delete clean.blockedByUserId;
+    delete clean.adminStatusUpdatedAt;
+    delete clean.adminStatusUpdatedByUserId;
 
     return clean;
+};
+
+const sanitizeSeatForAdmin = (
+    seat
+) => {
+    const clean =
+        seat?.toObject
+            ? seat.toObject()
+            : {
+                  ...seat
+              };
+
+    // Never expose the hold token, even to the admin UI.
+    delete clean.holdToken;
+    delete clean.heldByUserId;
+
+    return clean;
+};
+
+const normalizeBlockReason = (
+    value
+) => {
+    const reason = String(
+        value || ""
+    ).trim();
+
+    if (!reason) {
+        throw new Error(
+            "SEAT_BLOCK_REASON_REQUIRED"
+        );
+    }
+
+    if (
+        reason.length < 3 ||
+        reason.length > 300
+    ) {
+        throw new Error(
+            "SEAT_BLOCK_REASON_INVALID"
+        );
+    }
+
+    return reason;
 };
 
 const normalizeSeatIds = (
@@ -482,6 +532,57 @@ export const getSeatsByEvent =
             seats:
                 seats.map(
                     sanitizeSeatForClient
+                )
+        };
+    };
+
+/*
+ * ============================================================
+ * ADMIN: GET ALL SEATS OF EVENT
+ * ============================================================
+ *
+ * Returns operational fields needed by the admin seat manager,
+ * but never exposes holdToken.
+ */
+
+export const getAdminSeatsByEvent =
+    async (
+        eventId
+    ) => {
+        const event =
+            await getEvent(
+                eventId
+            );
+
+        await releaseExpiredHolds(
+            event._id
+        );
+
+        const seats =
+            await Seat.find({
+                eventId:
+                    event._id,
+                isActive:
+                    true
+            })
+                .sort({
+                    section: 1,
+                    row: 1,
+                    number: 1
+                })
+                .lean();
+
+        return {
+            event: {
+                _id: event._id,
+                title: event.title,
+                status: event.status,
+                ticketCategories:
+                    event.ticketCategories || []
+            },
+            seats:
+                seats.map(
+                    sanitizeSeatForAdmin
                 )
         };
     };
@@ -1419,12 +1520,22 @@ export const updateSeatCategory =
  * ============================================================
  * ADMIN: BLOCK / UNBLOCK SEAT
  * ============================================================
+ *
+ * Only these transitions are allowed from the seat-management UI:
+ *
+ * available -> blocked
+ * blocked   -> available
+ *
+ * held/sold are protected by the query itself. This makes the
+ * operation atomic: if a customer holds the seat milliseconds
+ * before the admin clicks Block, the update simply cannot match.
  */
 
-export const updateSeatStatus =
+export const blockSeatForAdmin =
     async (
         seatId,
-        status
+        reason,
+        adminUserId
     ) => {
         const normalizedSeatId =
             ensureObjectId(
@@ -1432,61 +1543,242 @@ export const updateSeatStatus =
                 "SEAT_ID"
             );
 
-        const allowedStatuses =
-            new Set([
-                "available",
-                "blocked"
-            ]);
+        const normalizedAdminId =
+            ensureObjectId(
+                adminUserId,
+                "USER_ID"
+            );
 
-        if (
-            !allowedStatuses.has(
-                status
-            )
-        ) {
+        const normalizedReason =
+            normalizeBlockReason(
+                reason
+            );
+
+        const currentSeat =
+            await Seat.findById(
+                normalizedSeatId
+            ).lean();
+
+        if (!currentSeat) {
             throw new Error(
-                "SEAT_STATUS_INVALID"
+                "SEAT_NOT_FOUND"
             );
         }
 
+        if (!currentSeat.isActive) {
+            throw new Error(
+                "SEAT_INACTIVE"
+            );
+        }
+
+        // A hold may have expired since the admin loaded the page.
+        await releaseExpiredHolds(
+            currentSeat.eventId
+        );
+
+        const now = new Date();
+
         const seat =
-            await Seat.findById(
-                normalizedSeatId
+            await Seat.findOneAndUpdate(
+                {
+                    _id:
+                        normalizedSeatId,
+                    isActive:
+                        true,
+                    status:
+                        "available"
+                },
+                {
+                    $set: {
+                        status:
+                            "blocked",
+                        blockedReason:
+                            normalizedReason,
+                        blockedAt:
+                            now,
+                        blockedByUserId:
+                            normalizedAdminId,
+                        adminStatusUpdatedAt:
+                            now,
+                        adminStatusUpdatedByUserId:
+                            normalizedAdminId,
+                        holdToken:
+                            null,
+                        heldByUserId:
+                            null,
+                        holdExpiresAt:
+                            null
+                    }
+                },
+                {
+                    new: true
+                }
             );
 
-        if (!seat) {
+        if (seat) {
+            await createSeatHistoryEntry({
+                seat,
+                action: "blocked",
+                fromStatus: "available",
+                toStatus: "blocked",
+                actorType: "admin",
+                actorUserId:
+                    normalizedAdminId,
+                reason:
+                    normalizedReason
+            });
+
+            return sanitizeSeatForAdmin(
+                seat
+            );
+        }
+
+        const latest =
+            await Seat.findById(
+                normalizedSeatId
+            ).lean();
+
+        if (!latest) {
             throw new Error(
                 "SEAT_NOT_FOUND"
             );
         }
 
         if (
-            seat.status ===
-                "sold" ||
-            seat.status ===
-                "held"
+            latest.status ===
+            "blocked"
         ) {
-            throw new Error(
-                "SEAT_STATUS_CHANGE_NOT_ALLOWED"
+            throw createServiceError(
+                "SEAT_ALREADY_BLOCKED",
+                {
+                    seatLabel:
+                        latest.label,
+                    status:
+                        latest.status
+                }
             );
         }
 
-        seat.status =
-            status;
+        throw createServiceError(
+            "SEAT_ADMIN_STATUS_CONFLICT",
+            {
+                seatLabel:
+                    latest.label,
+                status:
+                    latest.status
+            }
+        );
+    };
 
-        if (
-            status ===
-            "available"
-        ) {
-            seat.holdToken =
-                null;
+export const unblockSeatForAdmin =
+    async (
+        seatId,
+        adminUserId
+    ) => {
+        const normalizedSeatId =
+            ensureObjectId(
+                seatId,
+                "SEAT_ID"
+            );
 
-            seat.holdExpiresAt =
-                null;
+        const normalizedAdminId =
+            ensureObjectId(
+                adminUserId,
+                "USER_ID"
+            );
+
+        const now = new Date();
+
+        const seat =
+            await Seat.findOneAndUpdate(
+                {
+                    _id:
+                        normalizedSeatId,
+                    isActive:
+                        true,
+                    status:
+                        "blocked"
+                },
+                {
+                    $set: {
+                        status:
+                            "available",
+                        blockedReason:
+                            null,
+                        blockedAt:
+                            null,
+                        blockedByUserId:
+                            null,
+                        adminStatusUpdatedAt:
+                            now,
+                        adminStatusUpdatedByUserId:
+                            normalizedAdminId,
+                        holdToken:
+                            null,
+                        heldByUserId:
+                            null,
+                        holdExpiresAt:
+                            null
+                    }
+                },
+                {
+                    new: true
+                }
+            );
+
+        if (seat) {
+            await createSeatHistoryEntry({
+                seat,
+                action: "unblocked",
+                fromStatus: "blocked",
+                toStatus: "available",
+                actorType: "admin",
+                actorUserId:
+                    normalizedAdminId,
+                reason:
+                    "Admin mở bán lại ghế"
+            });
+
+            return sanitizeSeatForAdmin(
+                seat
+            );
         }
 
-        await seat.save();
+        const latest =
+            await Seat.findById(
+                normalizedSeatId
+            ).lean();
 
-        return seat;
+        if (!latest) {
+            throw new Error(
+                "SEAT_NOT_FOUND"
+            );
+        }
+
+        if (
+            latest.status ===
+            "available"
+        ) {
+            throw createServiceError(
+                "SEAT_ALREADY_AVAILABLE",
+                {
+                    seatLabel:
+                        latest.label,
+                    status:
+                        latest.status
+                }
+            );
+        }
+
+        throw createServiceError(
+            "SEAT_ADMIN_STATUS_CONFLICT",
+            {
+                seatLabel:
+                    latest.label,
+                status:
+                    latest.status
+            }
+        );
     };
 
 /*

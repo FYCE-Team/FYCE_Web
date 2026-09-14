@@ -5,12 +5,18 @@ import {
     getAvailableSeats,
     getSeatSummary,
     getActiveHoldSession,
+    getAdminSeatsByEvent,
     holdSeats,
     releaseHeldSeats,
     updateSeatCategory,
-    updateSeatStatus,
+    blockSeatForAdmin,
+    unblockSeatForAdmin,
     deleteSeatsByEvent
 } from "../services/seat.service.js";
+
+import {
+    getSeatHistoryForAdmin
+} from "../services/seatHistory.service.js";
 
 const requireAdmin = (
     req,
@@ -240,6 +246,65 @@ const handleServiceError = (
                         error.details ||
                         null
                 });
+
+        case "SEAT_BLOCK_REASON_REQUIRED":
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    message:
+                        "Vui lòng nhập lý do khóa ghế"
+                });
+
+        case "SEAT_BLOCK_REASON_INVALID":
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    message:
+                        "Lý do khóa ghế phải từ 3 đến 300 ký tự"
+                });
+
+        case "SEAT_ALREADY_BLOCKED":
+            return res
+                .status(409)
+                .json({
+                    success: false,
+                    message:
+                        "Ghế này đã bị khóa",
+                    data:
+                        error.details ||
+                        null
+                });
+
+        case "SEAT_ALREADY_AVAILABLE":
+            return res
+                .status(409)
+                .json({
+                    success: false,
+                    message:
+                        "Ghế này đã ở trạng thái còn trống",
+                    data:
+                        error.details ||
+                        null
+                });
+
+        case "SEAT_ADMIN_STATUS_CONFLICT":
+            return res
+                .status(409)
+                .json({
+                    success: false,
+                    message:
+                        error.details?.status === "held"
+                            ? "Ghế vừa được khách giữ, không thể khóa hoặc mở bán lúc này"
+                            : error.details?.status === "sold"
+                            ? "Ghế đã bán. Chỉ được mở bán lại qua quy trình hoàn tiền"
+                            : "Trạng thái ghế vừa thay đổi. Vui lòng tải lại sơ đồ",
+                    data:
+                        error.details ||
+                        null
+                });
+
         default:
             return next(error);
     }
@@ -683,6 +748,202 @@ export const release =
 
 /*
 |--------------------------------------------------------------------------
+| ADMIN: GET SEAT MANAGEMENT DATA
+|--------------------------------------------------------------------------
+|
+| GET /api/admin/events/:eventId/seats
+|
+*/
+
+export const getAdminSeats =
+    async (
+        req,
+        res,
+        next
+    ) => {
+        try {
+            if (
+                !requireAdmin(
+                    req,
+                    res
+                )
+            ) {
+                return;
+            }
+
+            const data =
+                await getAdminSeatsByEvent(
+                    req.params.eventId
+                );
+
+            return res
+                .status(200)
+                .json({
+                    success: true,
+                    message:
+                        "Lấy dữ liệu quản lý ghế thành công",
+                    data
+                });
+        } catch (error) {
+            return handleServiceError(
+                error,
+                res,
+                next
+            );
+        }
+    };
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN: BLOCK SEAT
+|--------------------------------------------------------------------------
+|
+| POST /api/admin/seats/:seatId/block
+| Body: { "reason": "Ghế hư" }
+|
+*/
+
+export const blockSeat =
+    async (
+        req,
+        res,
+        next
+    ) => {
+        try {
+            if (
+                !requireAdmin(
+                    req,
+                    res
+                )
+            ) {
+                return;
+            }
+
+            const seat =
+                await blockSeatForAdmin(
+                    req.params.seatId,
+                    req.body?.reason,
+                    req.user.userId
+                );
+
+            return res
+                .status(200)
+                .json({
+                    success: true,
+                    message:
+                        `Đã khóa ghế ${seat.label}`,
+                    data: { seat }
+                });
+        } catch (error) {
+            return handleServiceError(
+                error,
+                res,
+                next
+            );
+        }
+    };
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN: UNBLOCK SEAT
+|--------------------------------------------------------------------------
+|
+| POST /api/admin/seats/:seatId/unblock
+|
+*/
+
+export const unblockSeat =
+    async (
+        req,
+        res,
+        next
+    ) => {
+        try {
+            if (
+                !requireAdmin(
+                    req,
+                    res
+                )
+            ) {
+                return;
+            }
+
+            const seat =
+                await unblockSeatForAdmin(
+                    req.params.seatId,
+                    req.user.userId
+                );
+
+            return res
+                .status(200)
+                .json({
+                    success: true,
+                    message:
+                        `Đã mở bán lại ghế ${seat.label}`,
+                    data: { seat }
+                });
+        } catch (error) {
+            return handleServiceError(
+                error,
+                res,
+                next
+            );
+        }
+    };
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN: GET ONE SEAT HISTORY
+|--------------------------------------------------------------------------
+|
+| GET /api/admin/seats/:seatId/history
+|
+*/
+
+export const getAdminSeatHistory =
+    async (
+        req,
+        res,
+        next
+    ) => {
+        try {
+            if (
+                !requireAdmin(
+                    req,
+                    res
+                )
+            ) {
+                return;
+            }
+
+            const data =
+                await getSeatHistoryForAdmin(
+                    req.params.seatId,
+                    {
+                        limit:
+                            req.query.limit
+                    }
+                );
+
+            return res
+                .status(200)
+                .json({
+                    success: true,
+                    message:
+                        "Lấy lịch sử ghế thành công",
+                    data
+                });
+        } catch (error) {
+            return handleServiceError(
+                error,
+                res,
+                next
+            );
+        }
+    };
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN: UPDATE SEAT CATEGORY
 |--------------------------------------------------------------------------
 |
@@ -731,81 +992,6 @@ export const updateCategory =
 
                     message:
                         "Cập nhật hạng vé của ghế thành công",
-
-                    data: {
-                        seat
-                    }
-                });
-        } catch (
-            error
-        ) {
-            return handleServiceError(
-                error,
-                res,
-                next
-            );
-        }
-    };
-
-/*
-|--------------------------------------------------------------------------
-| ADMIN: BLOCK / UNBLOCK SEAT
-|--------------------------------------------------------------------------
-|
-| PATCH /api/seats/:seatId/status
-|
-| Body:
-| {
-|     "status": "blocked"
-| }
-|
-| Hoặc:
-|
-| {
-|     "status": "available"
-| }
-|
-*/
-
-export const updateStatus =
-    async (
-        req,
-        res,
-        next
-    ) => {
-        try {
-            if (
-                !requireAdmin(
-                    req,
-                    res
-                )
-            ) {
-                return;
-            }
-
-            const {
-                status
-            } =
-                req.body || {};
-
-            const seat =
-                await updateSeatStatus(
-                    req.params
-                        .seatId,
-                    status
-                );
-
-            return res
-                .status(200)
-                .json({
-                    success:
-                        true,
-
-                    message:
-                        status ===
-                        "blocked"
-                            ? "Đã khóa ghế thành công"
-                            : "Đã mở khóa ghế thành công",
 
                     data: {
                         seat
