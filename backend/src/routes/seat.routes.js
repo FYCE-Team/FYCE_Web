@@ -6,6 +6,7 @@ import {
     getSummary,
     getOne,
     getByPosition,
+    getMyHoldSession,
     hold,
     release,
     updateCategory,
@@ -56,6 +57,19 @@ GET /api/events/:eventId/seats
 router.get(
     "/events/:eventId/seats",
     getSeats
+);
+
+/*
+GET /api/seats/hold-session?eventId=...
+Requires: Authorization: Bearer <accessToken>
+
+Returns the current account's active hold session so another
+browser/device logged into the same account can resume it.
+*/
+router.get(
+    "/seats/hold-session",
+    authenticateToken,
+    getMyHoldSession
 );
 
 /*

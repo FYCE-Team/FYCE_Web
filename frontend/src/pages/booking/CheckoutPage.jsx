@@ -247,55 +247,6 @@ const CheckoutPage = () => {
             }
         }, [storageKey]);
 
-    const readHoldSession =
-        useCallback(() => {
-            if (!storageKey) {
-                return null;
-            }
-
-            try {
-                const raw =
-                    sessionStorage.getItem(
-                        storageKey
-                    );
-
-                if (!raw) {
-                    return null;
-                }
-
-                const saved =
-                    JSON.parse(raw);
-
-                const expiresAt =
-                    new Date(
-                        saved.holdExpiresAt
-                    );
-
-                if (
-                    !saved.holdToken ||
-                    !Array.isArray(
-                        saved.selectedSeats
-                    ) ||
-                    saved.selectedSeats.length === 0 ||
-                    !Number.isFinite(
-                        expiresAt.getTime()
-                    ) ||
-                    expiresAt <= new Date()
-                ) {
-                    clearHoldSession();
-                    return null;
-                }
-
-                return saved;
-            } catch {
-                clearHoldSession();
-                return null;
-            }
-        }, [
-            storageKey,
-            clearHoldSession
-        ]);
-
     const loadCheckout =
         useCallback(async () => {
             if (
@@ -310,12 +261,54 @@ const CheckoutPage = () => {
                 setError("");
                 setExpired(false);
 
-                const hold =
-                    readHoldSession();
+                /*
+                 * MongoDB is the source of truth for the hold session.
+                 * Do not depend on sessionStorage because another browser
+                 * logged into the same account has a different storage area.
+                 */
+                const holdData =
+                    await authenticatedRequest(
+                        `/seats/hold-session?eventId=${encodeURIComponent(
+                            eventId
+                        )}`,
+                        {
+                            method: "GET"
+                        }
+                    );
 
-                if (!hold) {
+                const serverHold =
+                    holdData?.holdSession ||
+                    null;
+
+                if (
+                    !serverHold ||
+                    !serverHold.holdToken ||
+                    !Array.isArray(
+                        serverHold.seats
+                    ) ||
+                    serverHold.seats.length ===
+                        0
+                ) {
+                    clearHoldSession();
+
                     throw new Error(
                         "Không tìm thấy phiên giữ ghế còn hiệu lực. Vui lòng chọn lại ghế."
+                    );
+                }
+
+                const hold = {
+                    holdToken:
+                        serverHold.holdToken,
+                    holdExpiresAt:
+                        serverHold.holdExpiresAt,
+                    selectedSeats:
+                        serverHold.seats
+                };
+
+                if (storageKey) {
+                    sessionStorage.setItem(
+                        storageKey,
+                        JSON.stringify(hold)
                     );
                 }
 
@@ -362,9 +355,9 @@ const CheckoutPage = () => {
         }, [
             eventId,
             currentUserId,
-            readHoldSession,
             authenticatedRequest,
-            clearHoldSession
+            clearHoldSession,
+            storageKey
         ]);
 
     useEffect(() => {

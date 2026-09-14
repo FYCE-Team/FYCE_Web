@@ -195,6 +195,196 @@ export const releaseExpiredHolds =
 
 /*
  * ============================================================
+ * ACTIVE HOLD SESSION OF CURRENT USER
+ * ============================================================
+ *
+ * Hold state is stored in MongoDB, not in the browser.
+ * This lets the same account resume the same hold from another
+ * browser/device without exposing another user's hold token.
+ *
+ * Legacy safety: older code could create more than one holdToken
+ * for the same user + event. We collapse those active holds into
+ * one canonical token and one deadline (the earliest deadline),
+ * so every browser sees one shared hold session.
+ */
+
+const loadCanonicalUserHoldSession =
+    async (
+        eventObjectId,
+        userObjectId
+    ) => {
+        const now = new Date();
+
+        const heldSeats =
+            await Seat.find({
+                eventId:
+                    eventObjectId,
+
+                status:
+                    "held",
+
+                heldByUserId:
+                    userObjectId,
+
+                holdExpiresAt: {
+                    $ne: null,
+                    $gt: now
+                },
+
+                isActive:
+                    true
+            })
+                .sort({
+                    holdExpiresAt: 1,
+                    createdAt: 1,
+                    _id: 1
+                });
+
+        if (
+            heldSeats.length === 0
+        ) {
+            return null;
+        }
+
+        const firstTokenSeat =
+            heldSeats.find(
+                (seat) =>
+                    normalizeHoldToken(
+                        seat.holdToken
+                    )
+            );
+
+        const canonicalToken =
+            normalizeHoldToken(
+                firstTokenSeat
+                    ?.holdToken
+            ) ||
+            randomUUID();
+
+        const canonicalExpiresAt =
+            heldSeats.reduce(
+                (earliest, seat) => {
+                    if (
+                        !seat.holdExpiresAt
+                    ) {
+                        return earliest;
+                    }
+
+                    if (
+                        !earliest ||
+                        seat.holdExpiresAt <
+                            earliest
+                    ) {
+                        return seat.holdExpiresAt;
+                    }
+
+                    return earliest;
+                },
+                null
+            );
+
+        if (
+            !canonicalExpiresAt ||
+            canonicalExpiresAt <=
+                now
+        ) {
+            return null;
+        }
+
+        const needsRepair =
+            heldSeats.some(
+                (seat) =>
+                    seat.holdToken !==
+                        canonicalToken ||
+                    !seat.holdExpiresAt ||
+                    seat.holdExpiresAt.getTime() !==
+                        canonicalExpiresAt.getTime()
+            );
+
+        if (needsRepair) {
+            await Seat.updateMany(
+                {
+                    _id: {
+                        $in:
+                            heldSeats.map(
+                                (seat) =>
+                                    seat._id
+                            )
+                    },
+
+                    eventId:
+                        eventObjectId,
+
+                    status:
+                        "held",
+
+                    heldByUserId:
+                        userObjectId,
+
+                    holdExpiresAt: {
+                        $gt: now
+                    }
+                },
+                {
+                    $set: {
+                        holdToken:
+                            canonicalToken,
+
+                        holdExpiresAt:
+                            canonicalExpiresAt
+                    }
+                }
+            );
+        }
+
+        return {
+            eventId:
+                eventObjectId,
+
+            holdToken:
+                canonicalToken,
+
+            holdExpiresAt:
+                canonicalExpiresAt,
+
+            holdMinutes:
+                SEAT_HOLD_MINUTES,
+
+            seats:
+                heldSeats.map(
+                    sanitizeSeatForClient
+                )
+        };
+    };
+
+export const getActiveHoldSession =
+    async (
+        eventId,
+        userId
+    ) => {
+        const event =
+            await getEvent(
+                eventId
+            );
+
+        const normalizedUserId =
+            ensureObjectId(
+                userId,
+                "USER_ID"
+            );
+
+        await releaseExpiredHolds(
+            event._id
+        );
+
+        return loadCanonicalUserHoldSession(
+            event._id,
+            normalizedUserId
+        );
+    };
+
+/*
+ * ============================================================
  * LOAD EVENT
  * ============================================================
  */
@@ -647,7 +837,37 @@ export const holdSeats =
         let holdExpiresAt =
             null;
 
-        if (requestedToken) {
+        /*
+         * First priority: if this ACCOUNT already has an active
+         * hold for the event, every browser/device must reuse it.
+         * sessionStorage is intentionally not the source of truth.
+         */
+        const accountHoldSession =
+            await loadCanonicalUserHoldSession(
+                event._id,
+                normalizedUserId
+            );
+
+        if (accountHoldSession) {
+            effectiveToken =
+                accountHoldSession
+                    .holdToken;
+
+            holdExpiresAt =
+                accountHoldSession
+                    .holdExpiresAt;
+        }
+
+        /*
+         * Backward-compatible token path. This is mainly useful
+         * when the caller has a token but there are no active seats
+         * visible for the account yet. A token owned by another
+         * account is still rejected.
+         */
+        if (
+            !effectiveToken &&
+            requestedToken
+        ) {
             const existingHold =
                 await Seat.findOne({
                     eventId:
@@ -873,6 +1093,23 @@ export const holdSeats =
             throw error;
         }
 
+        /*
+         * Re-read the account session after the atomic seat updates.
+         * This closes the small race where two browsers start holding
+         * different seats at almost the same moment and initially create
+         * different tokens. The response always converges to one account
+         * session and returns ALL seats currently held by that account.
+         */
+        const canonicalSession =
+            await loadCanonicalUserHoldSession(
+                event._id,
+                normalizedUserId
+            );
+
+        if (canonicalSession) {
+            return canonicalSession;
+        }
+
         return {
             eventId:
                 event._id,
@@ -931,6 +1168,22 @@ export const releaseHeldSeats =
                 }
             );
 
+        /*
+         * Resolve the account's canonical session first. If another
+         * browser still has an older token from a legacy split hold,
+         * the authenticated account can still release its own seats.
+         */
+        const accountHoldSession =
+            await loadCanonicalUserHoldSession(
+                event._id,
+                normalizedUserId
+            );
+
+        const effectiveHoldToken =
+            accountHoldSession
+                ?.holdToken ||
+            normalizedHoldToken;
+
         const normalizedSeatIds =
             normalizeSeatIds(
                 seatIds
@@ -965,7 +1218,7 @@ export const releaseHeldSeats =
                     seat.status !==
                         "held" ||
                     seat.holdToken !==
-                        normalizedHoldToken ||
+                        effectiveHoldToken ||
                     String(
                         seat.heldByUserId ||
                             ""
@@ -1008,7 +1261,7 @@ export const releaseHeldSeats =
                         "held",
 
                     holdToken:
-                        normalizedHoldToken,
+                        effectiveHoldToken,
 
                     heldByUserId:
                         normalizedUserId
@@ -1030,6 +1283,12 @@ export const releaseHeldSeats =
                 }
             );
 
+        const remainingHoldSession =
+            await loadCanonicalUserHoldSession(
+                event._id,
+                normalizedUserId
+            );
+
         return {
             eventId:
                 event._id,
@@ -1042,7 +1301,10 @@ export const releaseHeldSeats =
 
             releasedCount:
                 result.modifiedCount ||
-                0
+                0,
+
+            holdSession:
+                remainingHoldSession
         };
     };
 

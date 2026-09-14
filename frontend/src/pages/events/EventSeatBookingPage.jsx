@@ -288,6 +288,56 @@ const requestSeatAction = async (
     return result.data;
 };
 
+const requestAuthenticatedGet = async (
+    path,
+    accessToken
+) => {
+    const response =
+        await fetch(
+            `${API_BASE_URL}${path}`,
+            {
+                method: "GET",
+                headers: {
+                    Authorization:
+                        `Bearer ${accessToken}`
+                },
+                credentials:
+                    "include"
+            }
+        );
+
+    let result = null;
+
+    try {
+        result =
+            await response.json();
+    } catch {
+        result = null;
+    }
+
+    if (
+        !response.ok ||
+        !result?.success
+    ) {
+        const error =
+            new Error(
+                result?.message ||
+                    "Không thể đồng bộ phiên giữ ghế"
+            );
+
+        error.status =
+            response.status;
+        error.data =
+            result?.data || null;
+        error.code =
+            result?.code || null;
+
+        throw error;
+    }
+
+    return result.data;
+};
+
 const EventSeatBookingPage = () => {
     const { slug } = useParams();
     const navigate = useNavigate();
@@ -374,6 +424,67 @@ const EventSeatBookingPage = () => {
             ]
         );
 
+    const authorizedGet =
+        useCallback(
+            async (path) => {
+                let token =
+                    accessToken;
+
+                if (!token) {
+                    const refreshed =
+                        await refreshSession();
+
+                    token =
+                        refreshed?.accessToken ||
+                        null;
+                }
+
+                if (!token) {
+                    const authError =
+                        new Error(
+                            "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                        );
+
+                    authError.status = 401;
+                    throw authError;
+                }
+
+                try {
+                    return await requestAuthenticatedGet(
+                        path,
+                        token
+                    );
+                } catch (error) {
+                    if (
+                        error.status !==
+                        401
+                    ) {
+                        throw error;
+                    }
+
+                    const refreshed =
+                        await refreshSession();
+
+                    const nextToken =
+                        refreshed?.accessToken ||
+                        null;
+
+                    if (!nextToken) {
+                        throw error;
+                    }
+
+                    return requestAuthenticatedGet(
+                        path,
+                        nextToken
+                    );
+                }
+            },
+            [
+                accessToken,
+                refreshSession
+            ]
+        );
+
     const [event, setEvent] =
         useState(null);
     const [loading, setLoading] =
@@ -422,6 +533,12 @@ const [
 
 
     const holdRequestLock =
+        useRef(false);
+
+    const lastServerHoldSignatureRef =
+        useRef("");
+
+    const initialServerSyncDoneRef =
         useRef(false);
 
     useEffect(() => {
@@ -476,78 +593,6 @@ const [
             mounted = false;
         };
     }, [slug]);
-
-    useEffect(() => {
-        if (
-            !event?._id ||
-            !currentUserId
-        ) {
-            return;
-        }
-
-        const storageKey =
-            getHoldStorageKey(
-                event._id,
-                currentUserId
-            );
-
-        try {
-            const raw =
-                sessionStorage.getItem(
-                    storageKey
-                );
-
-            if (!raw) {
-                return;
-            }
-
-            const saved =
-                JSON.parse(raw);
-
-            const expiresAt =
-                new Date(
-                    saved.holdExpiresAt
-                );
-
-            if (
-                !saved.holdToken ||
-                !Number.isFinite(
-                    expiresAt.getTime()
-                ) ||
-                expiresAt <=
-                    new Date()
-            ) {
-                sessionStorage.removeItem(
-                    storageKey
-                );
-
-                return;
-            }
-
-            setHoldToken(
-                saved.holdToken
-            );
-
-            setHoldExpiresAt(
-                saved.holdExpiresAt
-            );
-
-            setSelectedSeats(
-                Array.isArray(
-                    saved.selectedSeats
-                )
-                    ? saved.selectedSeats
-                    : []
-            );
-        } catch {
-            sessionStorage.removeItem(
-                storageKey
-            );
-        }
-    }, [
-        event?._id,
-        currentUserId
-    ]);
 
     useEffect(() => {
         if (!holdExpiresAt) {
@@ -677,6 +722,247 @@ const [
         }
     };
 
+    const syncHoldSessionFromServer =
+        useCallback(
+            async ({
+                allowLocalFallback = false
+            } = {}) => {
+                if (
+                    !event?._id ||
+                    !currentUserId ||
+                    holdRequestLock.current
+                ) {
+                    return;
+                }
+
+                try {
+                    const data =
+                        await authorizedGet(
+                            `/seats/hold-session?eventId=${encodeURIComponent(
+                                event._id
+                            )}`
+                        );
+
+                    initialServerSyncDoneRef.current =
+                        true;
+
+                    const session =
+                        data?.holdSession ||
+                        null;
+
+                    if (!session) {
+                        if (
+                            lastServerHoldSignatureRef.current !==
+                            "__none__"
+                        ) {
+                            setSelectedSeats([]);
+                            setHoldToken(null);
+                            setHoldExpiresAt(null);
+                            clearHoldSession();
+                            setSeatMapRefreshKey(
+                                (value) =>
+                                    value + 1
+                            );
+                        }
+
+                        lastServerHoldSignatureRef.current =
+                            "__none__";
+                        return;
+                    }
+
+                    const sessionSeats =
+                        Array.isArray(
+                            session.seats
+                        )
+                            ? session.seats
+                            : [];
+
+                    const signature =
+                        [
+                            session.holdToken,
+                            session.holdExpiresAt,
+                            ...sessionSeats
+                                .map(
+                                    (seat) =>
+                                        String(
+                                            seat._id
+                                        )
+                                )
+                                .sort()
+                        ].join("|");
+
+                    if (
+                        lastServerHoldSignatureRef.current ===
+                        signature
+                    ) {
+                        return;
+                    }
+
+                    lastServerHoldSignatureRef.current =
+                        signature;
+
+                    setHoldToken(
+                        session.holdToken
+                    );
+                    setHoldExpiresAt(
+                        session.holdExpiresAt
+                    );
+                    setSelectedSeats(
+                        sessionSeats
+                    );
+
+                    saveHoldSession(
+                        session.holdToken,
+                        session.holdExpiresAt,
+                        sessionSeats
+                    );
+
+                    setSeatMapRefreshKey(
+                        (value) =>
+                            value + 1
+                    );
+                } catch (syncError) {
+                    /*
+                     * Network/API error should not destroy a valid local
+                     * session. On the first failed sync only, fall back to
+                     * sessionStorage so offline/transient errors remain usable.
+                     */
+                    if (
+                        !allowLocalFallback ||
+                        initialServerSyncDoneRef.current ||
+                        !event?._id ||
+                        !currentUserId
+                    ) {
+                        return;
+                    }
+
+                    const storageKey =
+                        getHoldStorageKey(
+                            event._id,
+                            currentUserId
+                        );
+
+                    try {
+                        const raw =
+                            sessionStorage.getItem(
+                                storageKey
+                            );
+
+                        if (!raw) {
+                            return;
+                        }
+
+                        const saved =
+                            JSON.parse(raw);
+
+                        const expiresAt =
+                            new Date(
+                                saved.holdExpiresAt
+                            );
+
+                        if (
+                            !saved.holdToken ||
+                            !Number.isFinite(
+                                expiresAt.getTime()
+                            ) ||
+                            expiresAt <= new Date()
+                        ) {
+                            sessionStorage.removeItem(
+                                storageKey
+                            );
+                            return;
+                        }
+
+                        setHoldToken(
+                            saved.holdToken
+                        );
+                        setHoldExpiresAt(
+                            saved.holdExpiresAt
+                        );
+                        setSelectedSeats(
+                            Array.isArray(
+                                saved.selectedSeats
+                            )
+                                ? saved.selectedSeats
+                                : []
+                        );
+                    } catch {
+                        sessionStorage.removeItem(
+                            storageKey
+                        );
+                    }
+                }
+            },
+            [
+                event?._id,
+                currentUserId,
+                authorizedGet
+            ]
+        );
+
+    useEffect(() => {
+        if (
+            !event?._id ||
+            !currentUserId
+        ) {
+            return;
+        }
+
+        lastServerHoldSignatureRef.current =
+            "";
+        initialServerSyncDoneRef.current =
+            false;
+
+        syncHoldSessionFromServer({
+            allowLocalFallback:
+                true
+        });
+
+        const timer =
+            window.setInterval(
+                () => {
+                    syncHoldSessionFromServer();
+                },
+                2500
+            );
+
+        const handleVisibilityChange = () => {
+            if (
+                document.visibilityState ===
+                "visible"
+            ) {
+                syncHoldSessionFromServer();
+            }
+        };
+
+        window.addEventListener(
+            "focus",
+            syncHoldSessionFromServer
+        );
+        document.addEventListener(
+            "visibilitychange",
+            handleVisibilityChange
+        );
+
+        return () => {
+            window.clearInterval(
+                timer
+            );
+            window.removeEventListener(
+                "focus",
+                syncHoldSessionFromServer
+            );
+            document.removeEventListener(
+                "visibilitychange",
+                handleVisibilityChange
+            );
+        };
+    }, [
+        event?._id,
+        currentUserId,
+        syncHoldSessionFromServer
+    ]);
+
     const handleSeatToggle =
         async (
             seat,
@@ -709,38 +995,50 @@ const [
                         );
                     }
 
-                    await authorizedSeatAction(
-                        "/seats/release",
-                        {
-                            eventId:
-                                event._id,
+                    const releaseResult =
+                        await authorizedSeatAction(
+                            "/seats/release",
+                            {
+                                eventId:
+                                    event._id,
 
-                            seatIds: [
-                                seatId
-                            ],
+                                seatIds: [
+                                    seatId
+                                ],
 
-                            holdToken
-                        }
-                    );
+                                holdToken
+                            }
+                        );
+
+                    const serverSession =
+                        releaseResult
+                            ?.holdSession ||
+                        null;
 
                     const nextSeats =
-                        selectedSeats.filter(
-                            (
-                                selectedSeat
-                            ) =>
-                                String(
-                                    selectedSeat._id
-                                ) !==
-                                seatId
-                        );
+                        serverSession &&
+                        Array.isArray(
+                            serverSession.seats
+                        )
+                            ? serverSession.seats
+                            : selectedSeats.filter(
+                                  (
+                                      selectedSeat
+                                  ) =>
+                                      String(
+                                          selectedSeat._id
+                                      ) !==
+                                      seatId
+                              );
 
                     setSelectedSeats(
                         nextSeats
                     );
 
                     if (
+                        !serverSession ||
                         nextSeats.length ===
-                        0
+                            0
                     ) {
                         setHoldToken(
                             null
@@ -751,12 +1049,35 @@ const [
                         );
 
                         clearHoldSession();
+                        lastServerHoldSignatureRef.current =
+                            "__none__";
                     } else {
+                        setHoldToken(
+                            serverSession.holdToken
+                        );
+                        setHoldExpiresAt(
+                            serverSession.holdExpiresAt
+                        );
+
                         saveHoldSession(
-                            holdToken,
-                            holdExpiresAt,
+                            serverSession.holdToken,
+                            serverSession.holdExpiresAt,
                             nextSeats
                         );
+
+                        lastServerHoldSignatureRef.current =
+                            [
+                                serverSession.holdToken,
+                                serverSession.holdExpiresAt,
+                                ...nextSeats
+                                    .map(
+                                        (item) =>
+                                            String(
+                                                item._id
+                                            )
+                                    )
+                                    .sort()
+                            ].join("|");
                     }
                 } else {
                     const result =
@@ -775,18 +1096,23 @@ const [
                         );
 
                     const nextSeats =
-                        [
-                            ...selectedSeats.filter(
-                                (
-                                    selectedSeat
-                                ) =>
-                                    String(
-                                        selectedSeat._id
-                                    ) !==
-                                    seatId
-                            ),
-                            seat
-                        ];
+                        Array.isArray(
+                            result.seats
+                        ) &&
+                        result.seats.length > 0
+                            ? result.seats
+                            : [
+                                  ...selectedSeats.filter(
+                                      (
+                                          selectedSeat
+                                      ) =>
+                                          String(
+                                              selectedSeat._id
+                                          ) !==
+                                              seatId
+                                  ),
+                                  seat
+                              ];
 
                     setHoldToken(
                         result.holdToken
@@ -805,6 +1131,20 @@ const [
                         result.holdExpiresAt,
                         nextSeats
                     );
+
+                    lastServerHoldSignatureRef.current =
+                        [
+                            result.holdToken,
+                            result.holdExpiresAt,
+                            ...nextSeats
+                                .map(
+                                    (item) =>
+                                        String(
+                                            item._id
+                                        )
+                                )
+                                .sort()
+                        ].join("|");
                 }
 
                 setSeatMapRefreshKey(

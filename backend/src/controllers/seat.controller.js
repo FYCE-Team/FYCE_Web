@@ -4,6 +4,7 @@ import {
     getSeatByPosition,
     getAvailableSeats,
     getSeatSummary,
+    getActiveHoldSession,
     holdSeats,
     releaseHeldSeats,
     updateSeatCategory,
@@ -494,6 +495,57 @@ export const getByPosition =
 
                     data: {
                         seat
+                    }
+                });
+        } catch (
+            error
+        ) {
+            return handleServiceError(
+                error,
+                res,
+                next
+            );
+        }
+    };
+
+/*
+ |--------------------------------------------------------------------------
+ | AUTHENTICATED: GET MY ACTIVE HOLD SESSION
+ |--------------------------------------------------------------------------
+ |
+ | GET /api/seats/hold-session?eventId=...
+ |
+ | Returns ONLY the current authenticated user's hold token/seats.
+ | This is what allows the same account to continue from another browser.
+ |
+ */
+
+export const getMyHoldSession =
+    async (
+        req,
+        res,
+        next
+    ) => {
+        try {
+            const holdSession =
+                await getActiveHoldSession(
+                    req.query.eventId,
+                    req.user?.userId
+                );
+
+            return res
+                .status(200)
+                .json({
+                    success:
+                        true,
+
+                    message:
+                        holdSession
+                            ? "Lấy phiên giữ ghế hiện tại thành công"
+                            : "Tài khoản chưa có phiên giữ ghế đang hoạt động",
+
+                    data: {
+                        holdSession
                     }
                 });
         } catch (

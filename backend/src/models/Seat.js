@@ -146,6 +146,13 @@ seatSchema.index({
     holdExpiresAt: 1
 });
 
+seatSchema.index({
+    eventId: 1,
+    heldByUserId: 1,
+    status: 1,
+    holdExpiresAt: 1
+});
+
 export default mongoose.model(
     "Seat",
     seatSchema
