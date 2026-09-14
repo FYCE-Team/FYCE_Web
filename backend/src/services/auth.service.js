@@ -671,3 +671,100 @@ export const loginWithGoogle = async ({
         }
     };
 };
+
+/* ============================================================
+ * UPDATE CURRENT USER PROFILE
+ * ============================================================
+ * Dùng tại Checkout/Profile để người dùng bổ sung họ tên và
+ * số điện thoại. Email không được cập nhật qua endpoint này vì
+ * email là định danh đã được xác thực của tài khoản.
+ */
+const PROFILE_PHONE_REGEX = /^(0|\+84)[0-9]{9}$/;
+
+const sanitizeProfilePhone = (value) =>
+    String(value ?? "")
+        .trim()
+        .replace(/[\s.-]/g, "");
+
+export const updateUserProfile = async ({
+    userId,
+    fullName,
+    phone
+}) => {
+    const user = await User.findById(userId);
+
+    if (!user) {
+        throw new Error("USER_NOT_FOUND");
+    }
+
+    if (!user.isActive) {
+        throw new Error("ACCOUNT_NOT_ACTIVE");
+    }
+
+    if (
+        typeof fullName === "undefined" &&
+        typeof phone === "undefined"
+    ) {
+        throw new Error("PROFILE_FIELDS_REQUIRED");
+    }
+
+    if (typeof fullName !== "undefined") {
+        if (typeof fullName !== "string") {
+            throw new Error("FULL_NAME_INVALID");
+        }
+
+        const normalizedFullName =
+            fullName.trim();
+
+        if (
+            normalizedFullName.length < 2 ||
+            normalizedFullName.length > 150
+        ) {
+            throw new Error("FULL_NAME_INVALID");
+        }
+
+        user.fullName =
+            normalizedFullName;
+    }
+
+    if (typeof phone !== "undefined") {
+        if (typeof phone !== "string") {
+            throw new Error("PHONE_INVALID");
+        }
+
+        const normalizedPhone =
+            sanitizeProfilePhone(phone);
+
+        /*
+         * User.phone là optional để Google login có thể tạo tài khoản
+         * trước khi người dùng bổ sung số điện thoại. Checkout frontend
+         * vẫn bắt buộc phone hợp lệ trước bước thanh toán.
+         */
+        if (
+            normalizedPhone &&
+            !PROFILE_PHONE_REGEX.test(
+                normalizedPhone
+            )
+        ) {
+            throw new Error("PHONE_INVALID");
+        }
+
+        user.phone =
+            normalizedPhone;
+    }
+
+    await user.save();
+
+    return {
+        id: user._id.toString(),
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone || "",
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+    };
+};
+

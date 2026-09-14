@@ -2,7 +2,8 @@ import {
     registerUser,
     verifyRegistrationOtp,
     resendRegistrationOtp,
-    loginWithGoogle
+    loginWithGoogle,
+    updateUserProfile
 } from "../services/auth.service.js";
 
 import {
@@ -501,6 +502,88 @@ export const getProfile = async (
         });
     } catch (error) {
         next(error);
+    }
+};
+
+
+export const updateProfile = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const {
+            fullName,
+            phone
+        } = req.body || {};
+
+        if (
+            typeof fullName === "undefined" &&
+            typeof phone === "undefined"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Không có thông tin hồ sơ cần cập nhật"
+            });
+        }
+
+        const user =
+            await updateUserProfile({
+                userId:
+                    req.user.userId,
+                fullName,
+                phone
+            });
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Cập nhật thông tin thành công",
+            data: {
+                user
+            }
+        });
+    } catch (error) {
+        switch (error.message) {
+            case "PROFILE_FIELDS_REQUIRED":
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Không có thông tin hồ sơ cần cập nhật"
+                });
+
+            case "FULL_NAME_INVALID":
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Họ và tên phải có từ 2 đến 150 ký tự"
+                });
+
+            case "PHONE_INVALID":
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Số điện thoại không hợp lệ. Vui lòng dùng dạng 0xxxxxxxxx hoặc +84xxxxxxxxx"
+                });
+
+            case "USER_NOT_FOUND":
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "Tài khoản không tồn tại"
+                });
+
+            case "ACCOUNT_NOT_ACTIVE":
+                return res.status(403).json({
+                    success: false,
+                    message:
+                        "Tài khoản chưa được kích hoạt"
+                });
+
+            default:
+                next(error);
+        }
     }
 };
 

@@ -10,7 +10,8 @@ import {
     login as loginRequest,
     loginWithGoogle as googleLoginRequest,
     refresh as refreshRequest,
-    logout as logoutRequest
+    logout as logoutRequest,
+    updateProfile as updateProfileRequest
 } from "../src/services/auth.service.js";
 
 const AuthContext = createContext(null);
@@ -124,6 +125,93 @@ export const AuthProvider = ({
             return refreshSession();
         }, [refreshSession]);
 
+
+    const updateProfile =
+        useCallback(
+            async (profile) => {
+                let token = accessToken;
+
+                if (!token) {
+                    const refreshed =
+                        await refreshSession();
+
+                    token =
+                        refreshed?.accessToken ||
+                        null;
+                }
+
+                if (!token) {
+                    const authError =
+                        new Error(
+                            "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+                        );
+
+                    authError.status = 401;
+                    throw authError;
+                }
+
+                const makeRequest =
+                    async (
+                        currentToken
+                    ) =>
+                        updateProfileRequest(
+                            profile,
+                            currentToken
+                        );
+
+                let result = null;
+
+                try {
+                    result =
+                        await makeRequest(
+                            token
+                        );
+                } catch (error) {
+                    if (
+                        error.status !==
+                        401
+                    ) {
+                        throw error;
+                    }
+
+                    const refreshed =
+                        await refreshSession();
+
+                    const nextToken =
+                        refreshed
+                            ?.accessToken ||
+                        null;
+
+                    if (!nextToken) {
+                        throw error;
+                    }
+
+                    result =
+                        await makeRequest(
+                            nextToken
+                        );
+                }
+
+                const currentUser =
+                    result?.data?.user ||
+                    null;
+
+                if (!currentUser) {
+                    throw new Error(
+                        "Không nhận được thông tin tài khoản sau khi cập nhật."
+                    );
+                }
+
+                setUser(currentUser);
+
+                return result;
+            },
+            [
+                accessToken,
+                refreshSession
+            ]
+        );
+
     const logout = useCallback(
         async () => {
             try {
@@ -149,6 +237,7 @@ export const AuthProvider = ({
         loginWithGoogle,
         refreshSession:
             refreshSessionToken,
+        updateProfile,
         logout
     };
 

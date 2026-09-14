@@ -75,6 +75,58 @@ const formatCountdown = (
     )}`;
 };
 
+
+const EMPTY_CUSTOMER_FORM = {
+    fullName: "",
+    email: "",
+    phone: ""
+};
+
+const normalizePhone = (value) =>
+    String(value || "")
+        .trim()
+        .replace(/[\s.-]/g, "");
+
+const validateCustomer = (customer) => {
+    const errors = {};
+
+    const fullName = String(
+        customer?.fullName || ""
+    ).trim();
+
+    const email = String(
+        customer?.email || ""
+    ).trim();
+
+    const phone = normalizePhone(
+        customer?.phone
+    );
+
+    if (
+        fullName.length < 2 ||
+        fullName.length > 150
+    ) {
+        errors.fullName =
+            "Họ và tên phải có từ 2 đến 150 ký tự.";
+    }
+
+    if (!email) {
+        errors.email =
+            "Tài khoản chưa có email hợp lệ.";
+    }
+
+    if (
+        !/^(0|\+84)[0-9]{9}$/.test(
+            phone
+        )
+    ) {
+        errors.phone =
+            "Nhập số điện thoại dạng 0xxxxxxxxx hoặc +84xxxxxxxxx.";
+    }
+
+    return errors;
+};
+
 const CheckoutPage = () => {
     const params = useParams();
 
@@ -93,7 +145,8 @@ const CheckoutPage = () => {
     const {
         accessToken,
         user,
-        refreshSession
+        refreshSession,
+        updateProfile
     } = useAuth();
 
     const currentUserId = String(
@@ -115,6 +168,17 @@ const CheckoutPage = () => {
         useState(false);
     const [expired, setExpired] =
         useState(false);
+
+    const [customerForm, setCustomerForm] =
+        useState(
+            EMPTY_CUSTOMER_FORM
+        );
+    const [customerErrors, setCustomerErrors] =
+        useState({});
+    const [savingCustomer, setSavingCustomer] =
+        useState(false);
+    const [customerMessage, setCustomerMessage] =
+        useState("");
 
     const storageKey = useMemo(
         () =>
@@ -330,9 +394,29 @@ const CheckoutPage = () => {
                         }
                     );
 
+                const nextCheckout =
+                    data.checkout;
+
                 setCheckout(
-                    data.checkout
+                    nextCheckout
                 );
+
+                setCustomerForm({
+                    fullName:
+                        nextCheckout?.customer
+                            ?.fullName ||
+                        "",
+                    email:
+                        nextCheckout?.customer
+                            ?.email ||
+                        "",
+                    phone:
+                        nextCheckout?.customer
+                            ?.phone ||
+                        ""
+                });
+                setCustomerErrors({});
+                setCustomerMessage("");
             } catch (err) {
                 if (
                     err.code ===
@@ -428,6 +512,162 @@ const CheckoutPage = () => {
             checkout?.items || [],
         [checkout]
     );
+
+
+    const customerValidation =
+        useMemo(
+            () =>
+                validateCustomer(
+                    customerForm
+                ),
+            [customerForm]
+        );
+
+    const customerReady =
+        Object.keys(
+            customerValidation
+        ).length === 0;
+
+    const customerDirty =
+        useMemo(() => {
+            const saved =
+                checkout?.customer ||
+                EMPTY_CUSTOMER_FORM;
+
+            return (
+                String(
+                    customerForm.fullName ||
+                        ""
+                ).trim() !==
+                    String(
+                        saved.fullName ||
+                            ""
+                    ).trim() ||
+                normalizePhone(
+                    customerForm.phone
+                ) !==
+                    normalizePhone(
+                        saved.phone
+                    )
+            );
+        }, [
+            checkout?.customer,
+            customerForm.fullName,
+            customerForm.phone
+        ]);
+
+    const handleCustomerChange =
+        (event) => {
+            const {
+                name,
+                value
+            } = event.target;
+
+            setCustomerForm(
+                (current) => ({
+                    ...current,
+                    [name]: value
+                })
+            );
+
+            setCustomerErrors(
+                (current) => ({
+                    ...current,
+                    [name]: ""
+                })
+            );
+            setCustomerMessage("");
+        };
+
+    const handleSaveCustomer =
+        async (event) => {
+            event.preventDefault();
+
+            const errors =
+                validateCustomer(
+                    customerForm
+                );
+
+            setCustomerErrors(
+                errors
+            );
+            setCustomerMessage("");
+
+            if (
+                Object.keys(errors)
+                    .length > 0
+            ) {
+                return;
+            }
+
+            try {
+                setSavingCustomer(true);
+
+                const normalizedPhone =
+                    normalizePhone(
+                        customerForm.phone
+                    );
+
+                const result =
+                    await updateProfile({
+                        fullName:
+                            customerForm.fullName.trim(),
+                        phone:
+                            normalizedPhone
+                    });
+
+                const updatedUser =
+                    result?.data?.user ||
+                    null;
+
+                if (!updatedUser) {
+                    throw new Error(
+                        "Không nhận được thông tin người dùng sau khi cập nhật."
+                    );
+                }
+
+                const nextCustomer = {
+                    fullName:
+                        updatedUser.fullName ||
+                        "",
+                    email:
+                        updatedUser.email ||
+                        customerForm.email,
+                    phone:
+                        updatedUser.phone ||
+                        ""
+                };
+
+                setCustomerForm(
+                    nextCustomer
+                );
+
+                setCheckout(
+                    (current) =>
+                        current
+                            ? {
+                                  ...current,
+                                  customer:
+                                      nextCustomer
+                              }
+                            : current
+                );
+
+                setCustomerErrors({});
+                setCustomerMessage(
+                    "Thông tin người đặt vé đã được lưu vào tài khoản."
+                );
+            } catch (err) {
+                setCustomerMessage("");
+                setCustomerErrors({
+                    form:
+                        err.message ||
+                        "Không thể cập nhật thông tin. Vui lòng thử lại."
+                });
+            } finally {
+                setSavingCustomer(false);
+            }
+        };
 
     const handleCancel = async () => {
         if (
@@ -652,33 +892,140 @@ const CheckoutPage = () => {
                             </h3>
                         </div>
 
-                        <div className="checkout-customer">
-                            <div>
-                                <small>
+                        <form
+                            className="checkout-customer-form"
+                            onSubmit={
+                                handleSaveCustomer
+                            }
+                            noValidate
+                        >
+                            <label className="checkout-field">
+                                <span>
                                     Họ và tên
+                                </span>
+                                <input
+                                    type="text"
+                                    name="fullName"
+                                    value={
+                                        customerForm.fullName
+                                    }
+                                    onChange={
+                                        handleCustomerChange
+                                    }
+                                    autoComplete="name"
+                                    maxLength={150}
+                                    disabled={
+                                        savingCustomer
+                                    }
+                                />
+                                {customerErrors.fullName && (
+                                    <small className="checkout-field-error">
+                                        {
+                                            customerErrors.fullName
+                                        }
+                                    </small>
+                                )}
+                            </label>
+
+                            <label className="checkout-field">
+                                <span>Email</span>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    value={
+                                        customerForm.email
+                                    }
+                                    readOnly
+                                    aria-readonly="true"
+                                    className="checkout-input--readonly"
+                                    autoComplete="email"
+                                />
+                                <small className="checkout-field-note">
+                                    Email gắn với tài khoản và không chỉnh tại checkout.
                                 </small>
-                                <strong>
-                                    {checkout.customer.fullName}
-                                </strong>
-                            </div>
+                                {customerErrors.email && (
+                                    <small className="checkout-field-error">
+                                        {
+                                            customerErrors.email
+                                        }
+                                    </small>
+                                )}
+                            </label>
 
-                            <div>
-                                <small>Email</small>
-                                <strong>
-                                    {checkout.customer.email}
-                                </strong>
-                            </div>
-
-                            <div>
-                                <small>
+                            <label className="checkout-field">
+                                <span>
                                     Số điện thoại
-                                </small>
-                                <strong>
-                                    {checkout.customer.phone ||
-                                        "Chưa cập nhật"}
-                                </strong>
-                            </div>
-                        </div>
+                                </span>
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    value={
+                                        customerForm.phone
+                                    }
+                                    onChange={
+                                        handleCustomerChange
+                                    }
+                                    placeholder="0901234567"
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    disabled={
+                                        savingCustomer
+                                    }
+                                />
+                                {customerErrors.phone && (
+                                    <small className="checkout-field-error">
+                                        {
+                                            customerErrors.phone
+                                        }
+                                    </small>
+                                )}
+                            </label>
+
+                            {customerErrors.form && (
+                                <div className="checkout-profile-error">
+                                    {
+                                        customerErrors.form
+                                    }
+                                </div>
+                            )}
+
+                            {customerMessage && (
+                                <div className="checkout-profile-success">
+                                    {customerMessage}
+                                </div>
+                            )}
+
+                            {!customerReady &&
+                                !customerErrors.form && (
+                                <div className="checkout-profile-hint">
+                                    Hãy cập nhật họ tên và số điện thoại hợp lệ trước khi thanh toán.
+                                </div>
+                            )}
+
+                            {customerReady &&
+                                customerDirty &&
+                                !customerErrors.form && (
+                                <div className="checkout-profile-hint">
+                                    Bạn đã thay đổi thông tin. Hãy lưu trước khi sang bước thanh toán.
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                className="checkout-profile-save-button"
+                                disabled={
+                                    savingCustomer ||
+                                    !customerReady ||
+                                    !customerDirty
+                                }
+                            >
+                                {savingCustomer
+                                    ? "Đang lưu..."
+                                    : customerDirty
+                                    ? "Lưu thông tin người đặt vé"
+                                    : "Thông tin đã được lưu"}
+                            </button>
+                        </form>
 
                         <div className="checkout-divider" />
 
@@ -706,7 +1053,13 @@ const CheckoutPage = () => {
                             type="button"
                             className="checkout-pay-button"
                             disabled
-                            title="Payment chưa được tích hợp"
+                            title={
+                                !customerReady
+                                    ? "Vui lòng cập nhật đầy đủ thông tin người đặt vé"
+                                    : customerDirty
+                                    ? "Vui lòng lưu thông tin người đặt vé trước"
+                                    : "Payment chưa được tích hợp"
+                            }
                         >
                             Thanh toán — bước tiếp theo
                         </button>

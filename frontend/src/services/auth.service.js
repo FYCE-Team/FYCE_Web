@@ -301,3 +301,49 @@ export const resetPassword = async ({
 
   return result;
 };
+
+export const updateProfile = async (
+    data,
+    accessToken
+) => {
+    const response = await fetch(
+        `${API_URL}/auth/me`,
+        {
+            method: "PATCH",
+            headers: {
+                "Content-Type":
+                    "application/json",
+                Authorization:
+                    `Bearer ${accessToken}`
+            },
+            credentials: "include",
+            body: JSON.stringify(data)
+        }
+    );
+
+    let result = null;
+
+    try {
+        result = await response.json();
+    } catch {
+        result = null;
+    }
+
+    if (
+        !response.ok ||
+        !result?.success
+    ) {
+        const error = new Error(
+            result?.message ||
+                "Không thể cập nhật thông tin tài khoản"
+        );
+
+        error.status = response.status;
+        error.data = result?.data || null;
+
+        throw error;
+    }
+
+    return result;
+};
+

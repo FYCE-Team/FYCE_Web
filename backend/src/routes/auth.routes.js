@@ -7,6 +7,7 @@ import {
   login,
   logout,
   getProfile,
+  updateProfile,
   refresh,
   googleLogin,
   forgotPassword,
@@ -84,6 +85,12 @@ router.get(
   "/me",
   authenticateToken,
   getProfile
+);
+
+router.patch(
+  "/me",
+  authenticateToken,
+  updateProfile
 );
 
 router.post(
