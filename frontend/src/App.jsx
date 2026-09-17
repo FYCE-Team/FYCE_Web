@@ -29,6 +29,7 @@ import Home from "./pages/Home.jsx";
 import EventDetail from "./pages/events/EventDetail.jsx";
 import EventSeatBookingPage from "./pages/events/EventSeatBookingPage.jsx";
 import CheckoutPage from "./pages/booking/CheckoutPage.jsx";
+import BookingDetailsPage from "./pages/booking/BookingDetailsPage.jsx";
 import AdminEventCreate from "./pages/admin/events/AdminEventCreate.jsx";
 import AdminEventEdit from "./pages/admin/events/AdminEventEdit.jsx";
 import AdminEvents from "./pages/admin/events/AdminEvents.jsx";
@@ -153,6 +154,13 @@ function App() {
                                     path="/checkout/:bookingCode"
                                     element={
                                         <CheckoutPage />
+                                    }
+                                />
+
+                                <Route
+                                    path="/bookings/:bookingCode"
+                                    element={
+                                        <BookingDetailsPage />
                                     }
                                 />
                             </Route>
