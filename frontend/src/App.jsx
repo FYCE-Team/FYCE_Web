@@ -30,6 +30,7 @@ import EventDetail from "./pages/events/EventDetail.jsx";
 import EventSeatBookingPage from "./pages/events/EventSeatBookingPage.jsx";
 import CheckoutPage from "./pages/booking/CheckoutPage.jsx";
 import BookingDetailsPage from "./pages/booking/BookingDetailsPage.jsx";
+import MyTicketsPage from "./pages/booking/MyTicketsPage.jsx";
 import AdminEventCreate from "./pages/admin/events/AdminEventCreate.jsx";
 import AdminEventEdit from "./pages/admin/events/AdminEventEdit.jsx";
 import AdminEvents from "./pages/admin/events/AdminEvents.jsx";
@@ -161,6 +162,13 @@ function App() {
                                     path="/bookings/:bookingCode"
                                     element={
                                         <BookingDetailsPage />
+                                    }
+                                />
+
+                                <Route
+                                    path="/my-tickets"
+                                    element={
+                                        <MyTicketsPage />
                                     }
                                 />
                             </Route>
