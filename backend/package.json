@@ -24,6 +24,7 @@
     "mongoose": "^9.9.5",
     "multer": "^2.3.0",
     "nodemailer": "^10.0.1",
+    "sepay-pg-node": "^1.0.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {

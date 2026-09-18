@@ -6,6 +6,7 @@ import {
     getActiveBookingByEvent,
     cancelBooking
 } from "../services/booking.service.js";
+import { SePayPgClient } from "sepay-pg-node";
 
 const handleBookingError = (
     error,
@@ -230,12 +231,46 @@ export const create = async (
                 req.user.userId
             );
 
+        let sepayCheckout = null;
+
+        // Initialize SePay Payment Gateway if credentials exist
+        if (process.env.SEPAY_MERCHANT_ID && process.env.SEPAY_SECRET_KEY) {
+            const client = new SePayPgClient({
+                env: "sandbox", // Use "production" for real environment
+                merchant_id: process.env.SEPAY_MERCHANT_ID,
+                secret_key: process.env.SEPAY_SECRET_KEY
+            });
+
+            const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+            const successUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=success`;
+            const cancelUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=cancel`;
+            const errorUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=error`;
+
+            const checkoutFormFields = client.checkout.initOneTimePaymentFields({
+                operation: "PURCHASE",
+                payment_method: "BANK_TRANSFER", // Using BANK_TRANSFER to default to VietQR
+                order_invoice_number: booking.bookingCode,
+                order_amount: booking.totalAmount,
+                currency: "VND",
+                order_description: booking.bookingCode,
+                success_url: successUrl,
+                error_url: errorUrl,
+                cancel_url: cancelUrl
+            });
+
+            sepayCheckout = {
+                checkoutURL: client.checkout.initCheckoutUrl(),
+                formFields: checkoutFormFields
+            };
+        }
+
         return res.status(201).json({
             success: true,
             message:
                 "Tạo đơn đặt vé thành công",
             data: {
-                booking
+                booking,
+                sepayCheckout
             }
         });
     } catch (error) {
@@ -376,6 +411,80 @@ export const cancel = async (
                 "Hủy đơn đặt vé thành công",
             data: {
                 booking
+            }
+        });
+    } catch (error) {
+        return handleBookingError(
+            error,
+            res,
+            next
+        );
+    }
+};
+
+export const pay = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const booking = await getBookingByCode(
+            req.params.bookingCode,
+            req.user.userId
+        );
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy đơn đặt vé"
+            });
+        }
+
+        if (booking.paymentStatus === "paid") {
+            return res.status(400).json({
+                success: false,
+                message: "Đơn đặt vé đã được thanh toán"
+            });
+        }
+
+        let sepayCheckout = null;
+
+        // Initialize SePay Payment Gateway if credentials exist
+        if (process.env.SEPAY_MERCHANT_ID && process.env.SEPAY_SECRET_KEY) {
+            const client = new SePayPgClient({
+                env: "sandbox",
+                merchant_id: process.env.SEPAY_MERCHANT_ID,
+                secret_key: process.env.SEPAY_SECRET_KEY
+            });
+
+            const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+            const successUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=success`;
+            const cancelUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=cancel`;
+            const errorUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=error`;
+
+            const checkoutFormFields = client.checkout.initOneTimePaymentFields({
+                operation: "PURCHASE",
+                payment_method: "BANK_TRANSFER",
+                order_invoice_number: booking.bookingCode,
+                order_amount: booking.totalAmount,
+                currency: "VND",
+                order_description: booking.bookingCode,
+                success_url: successUrl,
+                error_url: errorUrl,
+                cancel_url: cancelUrl
+            });
+
+            sepayCheckout = {
+                checkoutURL: client.checkout.initCheckoutUrl(),
+                formFields: checkoutFormFields
+            };
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Tạo link thanh toán thành công",
+            data: {
+                sepayCheckout
             }
         });
     } catch (error) {

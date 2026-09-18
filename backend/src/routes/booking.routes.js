@@ -6,7 +6,8 @@ import {
     getOne,
     getMine,
     getActive,
-    cancel
+    cancel,
+    pay
 } from "../controllers/booking.controller.js";
 
 import {
@@ -75,6 +76,14 @@ POST /api/bookings/:bookingCode/cancel
 router.post(
     "/:bookingCode/cancel",
     cancel
+);
+
+/*
+POST /api/bookings/:bookingCode/pay
+*/
+router.post(
+    "/:bookingCode/pay",
+    pay
 );
 
 export default router;

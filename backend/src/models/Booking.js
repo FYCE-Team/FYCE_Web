@@ -56,6 +56,13 @@ const bookingItemSchema = new mongoose.Schema(
             type: Number,
             required: true,
             min: 0
+        },
+
+        ticketCode: {
+            type: String,
+            required: true,
+            unique: true,
+            index: true
         }
     },
     {

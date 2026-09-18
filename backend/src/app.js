@@ -16,6 +16,7 @@ import videoRoutes from "./routes/video.routes.js";
 import imageRoutes from "./routes/image.routes.js";
 import seatRoutes from "./routes/seat.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -121,6 +122,11 @@ app.use(
 app.use(
     "/api/bookings",
     bookingRoutes
+);
+
+app.use(
+    "/api/payments",
+    paymentRoutes
 );
 
 app.use(

@@ -1129,7 +1129,8 @@ export const createBooking = async (
                 unitPrice:
                     Number(
                         category.price
-                    ) || 0
+                    ) || 0,
+                ticketCode: `TKT-${randomBytes(6).toString("hex").toUpperCase()}`
             };
         })
         .sort((a, b) => {

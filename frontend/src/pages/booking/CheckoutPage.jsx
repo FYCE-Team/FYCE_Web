@@ -180,6 +180,10 @@ const CheckoutPage = () => {
     const [customerMessage, setCustomerMessage] =
         useState("");
 
+    const [bookingInProgress, setBookingInProgress] = useState(false);
+    const [createdBookingCode, setCreatedBookingCode] = useState(null);
+    const [paymentStatus, setPaymentStatus] = useState("unpaid");
+
     const storageKey = useMemo(
         () =>
             eventId && currentUserId
@@ -669,6 +673,77 @@ const CheckoutPage = () => {
             }
         };
 
+    const handleCreateBooking = async () => {
+        if (!checkout || !customerReady || customerDirty) return;
+
+        try {
+            setBookingInProgress(true);
+            setError("");
+
+            const data = await authenticatedRequest("/bookings", {
+                method: "POST",
+                body: JSON.stringify({
+                    eventId,
+                    seatIds: checkout.items.map((item) => item.seatId),
+                    holdToken: checkout.holdToken
+                })
+            });
+
+            if (data?.sepayCheckout) {
+                // Dynamically create form and redirect to SePay Checkout
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = data.sepayCheckout.checkoutURL;
+                
+                Object.keys(data.sepayCheckout.formFields).forEach(key => {
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = key;
+                    input.value = data.sepayCheckout.formFields[key];
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                form.submit();
+            } else if (data?.booking?.bookingCode) {
+                setCreatedBookingCode(data.booking.bookingCode);
+                setPaymentStatus(data.booking.paymentStatus);
+            }
+        } catch (err) {
+            setError(err.message || "Không thể tạo đơn đặt vé. Vui lòng thử lại.");
+        } finally {
+            setBookingInProgress(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!createdBookingCode || paymentStatus === "paid") return;
+
+        const pollInterval = setInterval(async () => {
+            try {
+                const data = await authenticatedRequest(`/bookings/${createdBookingCode}`, {
+                    method: "GET"
+                });
+
+                if (data?.booking?.paymentStatus === "paid") {
+                    setPaymentStatus("paid");
+                    clearInterval(pollInterval);
+                    // Redirect to success page after a short delay
+                    setTimeout(() => {
+                        navigate(`/bookings/${createdBookingCode}`, { replace: true });
+                    }, 2000);
+                } else if (data?.booking?.status === "expired" || data?.booking?.status === "cancelled") {
+                    clearInterval(pollInterval);
+                    setError("Đơn đặt vé đã bị hủy hoặc hết hạn.");
+                }
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }, 5000);
+
+        return () => clearInterval(pollInterval);
+    }, [createdBookingCode, paymentStatus, authenticatedRequest, navigate]);
+
     const handleCancel = async () => {
         if (
             !checkout ||
@@ -1049,20 +1124,52 @@ const CheckoutPage = () => {
                             </strong>
                         </div>
 
-                        <button
-                            type="button"
-                            className="checkout-pay-button"
-                            disabled
-                            title={
-                                !customerReady
-                                    ? "Vui lòng cập nhật đầy đủ thông tin người đặt vé"
-                                    : customerDirty
-                                    ? "Vui lòng lưu thông tin người đặt vé trước"
-                                    : "Payment chưa được tích hợp"
-                            }
-                        >
-                            Thanh toán — bước tiếp theo
-                        </button>
+                        {createdBookingCode ? (
+                            <div className="checkout-payment-section">
+                                {paymentStatus === "paid" ? (
+                                    <div className="checkout-message checkout-message--success" style={{textAlign: "center", marginTop: 20}}>
+                                        <h3>Thanh toán thành công!</h3>
+                                        <p>Đang chuyển hướng đến vé của bạn...</p>
+                                    </div>
+                                ) : (
+                                    <div className="checkout-qr-container" style={{textAlign: "center", marginTop: 20}}>
+                                        <h3>Quét mã QR để thanh toán</h3>
+                                        <p style={{fontSize: "0.9rem", color: "#666", marginBottom: 15}}>
+                                            Sử dụng ứng dụng ngân hàng của bạn để quét mã.
+                                        </p>
+                                        <img 
+                                            src={`https://qr.sepay.vn/img?acc=${import.meta.env.VITE_SEPAY_BANK_ACC}&bank=${import.meta.env.VITE_SEPAY_BANK_NAME}&amount=${checkout.totalAmount}&des=${createdBookingCode}`}
+                                            alt="SePay QR Code"
+                                            style={{width: "100%", maxWidth: "250px", borderRadius: "8px"}}
+                                        />
+                                        <p style={{marginTop: 15, fontWeight: "bold", color: "#e84c3d"}}>
+                                            Mã đơn: {createdBookingCode}
+                                        </p>
+                                        <p style={{fontSize: "0.85rem", color: "#999", marginTop: 10}}>
+                                            Hệ thống sẽ tự động xác nhận sau khi bạn chuyển khoản thành công.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                className="checkout-pay-button"
+                                onClick={handleCreateBooking}
+                                disabled={
+                                    !customerReady || customerDirty || bookingInProgress
+                                }
+                                title={
+                                    !customerReady
+                                        ? "Vui lòng cập nhật đầy đủ thông tin người đặt vé"
+                                        : customerDirty
+                                        ? "Vui lòng lưu thông tin người đặt vé trước"
+                                        : "Tạo đơn và thanh toán"
+                                }
+                            >
+                                {bookingInProgress ? "Đang xử lý..." : "Thanh toán — bước tiếp theo"}
+                            </button>
+                        )}
 
                         {holdActive ? (
                             <>
