@@ -35,6 +35,7 @@ import AdminEventCreate from "./pages/admin/events/AdminEventCreate.jsx";
 import AdminEventEdit from "./pages/admin/events/AdminEventEdit.jsx";
 import AdminSeatManagementPage from "./pages/admin/events/AdminSeatManagementPage.jsx";
 import AdminEvents from "./pages/admin/events/AdminEvents.jsx";
+import AdminCheckInPage from "./pages/admin/checkin/AdminCheckInPage.jsx";
 
 const GOOGLE_CLIENT_ID =
     import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -121,6 +122,13 @@ function App() {
                                     }
                                 />
 
+                                <Route
+                                    path="/admin/check-in"
+                                    element={
+                                        <AdminCheckInPage />
+                                    }
+                                />
+
                             </Route>
                         </Route>
 
@@ -160,7 +168,7 @@ function App() {
                                 />
 
                                 <Route
-                                    path="/checkout/:bookingCode"
+                                    path="/checkout/:eventId"
                                     element={
                                         <CheckoutPage />
                                     }

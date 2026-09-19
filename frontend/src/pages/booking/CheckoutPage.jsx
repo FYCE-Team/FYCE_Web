@@ -727,14 +727,17 @@ const CheckoutPage = () => {
 
                 if (data?.booking?.paymentStatus === "paid") {
                     setPaymentStatus("paid");
+                    clearHoldSession();
                     clearInterval(pollInterval);
-                    // Redirect to success page after a short delay
+                    // Redirect to the issued ticket after a short success state.
                     setTimeout(() => {
                         navigate(`/bookings/${createdBookingCode}`, { replace: true });
-                    }, 2000);
+                    }, 1200);
                 } else if (data?.booking?.status === "expired" || data?.booking?.status === "cancelled") {
+                    clearHoldSession();
+                    setExpired(true);
                     clearInterval(pollInterval);
-                    setError("Đơn đặt vé đã bị hủy hoặc hết hạn.");
+                    setError("Đơn đặt vé đã bị hủy hoặc hết hạn. Ghế đã được nhả lại hệ thống.");
                 }
             } catch (err) {
                 console.error("Polling error:", err);
@@ -742,7 +745,7 @@ const CheckoutPage = () => {
         }, 5000);
 
         return () => clearInterval(pollInterval);
-    }, [createdBookingCode, paymentStatus, authenticatedRequest, navigate]);
+    }, [createdBookingCode, paymentStatus, authenticatedRequest, navigate, clearHoldSession]);
 
     const handleCancel = async () => {
         if (
@@ -769,22 +772,31 @@ const CheckoutPage = () => {
             setCancelling(true);
             setError("");
 
-            await authenticatedRequest(
-                "/seats/release",
-                {
-                    method: "POST",
-                    body: JSON.stringify({
-                        eventId,
-                        seatIds:
-                            checkout.items.map(
-                                (item) =>
-                                    item.seatId
-                            ),
-                        holdToken:
-                            checkout.holdToken
-                    })
-                }
-            );
+            if (createdBookingCode) {
+                await authenticatedRequest(
+                    `/bookings/${createdBookingCode}/cancel`,
+                    {
+                        method: "POST"
+                    }
+                );
+            } else {
+                await authenticatedRequest(
+                    "/seats/release",
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            eventId,
+                            seatIds:
+                                checkout.items.map(
+                                    (item) =>
+                                        item.seatId
+                                ),
+                            holdToken:
+                                checkout.holdToken
+                        })
+                    }
+                );
+            }
 
             clearHoldSession();
 
@@ -858,7 +870,9 @@ const CheckoutPage = () => {
                             Xác nhận thông tin vé
                         </h1>
                         <p>
-                            Đây mới là phiên giữ ghế tạm thời. Chưa có Booking nào được lưu vào MongoDB.
+                            {createdBookingCode
+                                ? "Đơn đã được tạo và đang chờ thanh toán."
+                                : "Ghế đang được giữ tạm thời. Đơn chỉ được tạo khi bạn bấm Thanh toán."}
                         </p>
                     </div>
 
@@ -1132,21 +1146,10 @@ const CheckoutPage = () => {
                                         <p>Đang chuyển hướng đến vé của bạn...</p>
                                     </div>
                                 ) : (
-                                    <div className="checkout-qr-container" style={{textAlign: "center", marginTop: 20}}>
-                                        <h3>Quét mã QR để thanh toán</h3>
-                                        <p style={{fontSize: "0.9rem", color: "#666", marginBottom: 15}}>
-                                            Sử dụng ứng dụng ngân hàng của bạn để quét mã.
-                                        </p>
-                                        <img 
-                                            src={`https://qr.sepay.vn/img?acc=${import.meta.env.VITE_SEPAY_BANK_ACC}&bank=${import.meta.env.VITE_SEPAY_BANK_NAME}&amount=${checkout.totalAmount}&des=${createdBookingCode}`}
-                                            alt="SePay QR Code"
-                                            style={{width: "100%", maxWidth: "250px", borderRadius: "8px"}}
-                                        />
-                                        <p style={{marginTop: 15, fontWeight: "bold", color: "#e84c3d"}}>
-                                            Mã đơn: {createdBookingCode}
-                                        </p>
-                                        <p style={{fontSize: "0.85rem", color: "#999", marginTop: 10}}>
-                                            Hệ thống sẽ tự động xác nhận sau khi bạn chuyển khoản thành công.
+                                    <div className="checkout-message checkout-message--warning" style={{textAlign: "center", marginTop: 20}}>
+                                        <h3>Chưa thể mở cổng thanh toán</h3>
+                                        <p>
+                                            Đơn <strong>{createdBookingCode}</strong> đã được tạo, nhưng backend chưa trả về phiên SePay Checkout. Vui lòng kiểm tra cấu hình SePay trước khi thanh toán.
                                         </p>
                                     </div>
                                 )}
@@ -1157,7 +1160,7 @@ const CheckoutPage = () => {
                                 className="checkout-pay-button"
                                 onClick={handleCreateBooking}
                                 disabled={
-                                    !customerReady || customerDirty || bookingInProgress
+                                    !customerReady || customerDirty || bookingInProgress || !holdActive
                                 }
                                 title={
                                     !customerReady
@@ -1167,7 +1170,7 @@ const CheckoutPage = () => {
                                         : "Tạo đơn và thanh toán"
                                 }
                             >
-                                {bookingInProgress ? "Đang xử lý..." : "Thanh toán — bước tiếp theo"}
+                                {bookingInProgress ? "Đang xử lý..." : "Thanh toán"}
                             </button>
                         )}
 
@@ -1192,6 +1195,8 @@ const CheckoutPage = () => {
                                 >
                                     {cancelling
                                         ? "Đang nhả ghế..."
+                                        : createdBookingCode
+                                        ? "Hủy đơn & chọn lại"
                                         : "Hủy giữ ghế & chọn lại"}
                                 </button>
                             </>

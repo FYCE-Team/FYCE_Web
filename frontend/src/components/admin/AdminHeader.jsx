@@ -1,4 +1,5 @@
 import {
+    useLocation,
     useNavigate
 } from "react-router-dom";
 
@@ -12,6 +13,7 @@ import "./AdminHeader.css";
 
 const AdminHeader = () => {
     const navigate = useNavigate();
+    const location = useLocation();
 
     const {
         user,
@@ -59,12 +61,33 @@ const AdminHeader = () => {
 
                     <button
                         type="button"
-                        className="admin-header-nav-item admin-header-nav-active"
+                        className={`admin-header-nav-item ${
+                            location.pathname.startsWith(
+                                "/admin/events"
+                            )
+                                ? "admin-header-nav-active"
+                                : ""
+                        }`}
                         onClick={() =>
                             navigate("/admin/events")
                         }
                     >
                         Sự kiện
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`admin-header-nav-item ${
+                            location.pathname ===
+                            "/admin/check-in"
+                                ? "admin-header-nav-active"
+                                : ""
+                        }`}
+                        onClick={() =>
+                            navigate("/admin/check-in")
+                        }
+                    >
+                        Check-in
                     </button>
 
                     <button

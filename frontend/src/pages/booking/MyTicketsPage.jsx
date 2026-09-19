@@ -1,111 +1,352 @@
-import { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../../context/AuthContext.jsx";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState
+} from "react";
+import { Link } from "react-router-dom";
+import {
+    CalendarDays,
+    CheckCircle2,
+    Clock3,
+    MapPin,
+    Ticket,
+    Tickets,
+    WalletCards
+} from "lucide-react";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+import { useAuth } from "../../../context/AuthContext.jsx";
+import "./TicketPages.css";
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    "http://localhost:3000/api";
+
+const formatPrice = (value) =>
+    `${new Intl.NumberFormat("vi-VN").format(
+        Number(value) || 0
+    )}đ`;
+
+const formatDateTime = (value) => {
+    if (!value) {
+        return "Đang cập nhật";
+    }
+
+    return new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    }).format(new Date(value));
+};
+
+const getVisibleBookingState = (booking) => {
+    if (
+        booking?.status === "confirmed" &&
+        booking?.paymentStatus === "paid"
+    ) {
+        return {
+            key: "confirmed",
+            label: "Đã thanh toán",
+            actionLabel: "Xem vé",
+            Icon: CheckCircle2
+        };
+    }
+
+    return {
+        key: "pending",
+        label: "Chờ thanh toán",
+        actionLabel: "Thanh toán",
+        Icon: Clock3
+    };
+};
 
 const MyTicketsPage = () => {
-    const { accessToken, refreshSession } = useAuth();
-    const navigate = useNavigate();
-    
-    const [bookings, setBookings] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const {
+        accessToken,
+        refreshSession
+    } = useAuth();
 
-    const loadBookings = useCallback(async () => {
-        try {
-            setLoading(true);
-            let token = accessToken;
+    const [bookings, setBookings] =
+        useState([]);
+    const [loading, setLoading] =
+        useState(true);
+    const [error, setError] =
+        useState("");
 
-            if (!token) {
-                const refreshed = await refreshSession();
-                token = refreshed?.accessToken;
-            }
+    const loadBookings = useCallback(
+        async () => {
+            try {
+                setLoading(true);
+                setError("");
 
-            if (!token) throw new Error("Chưa đăng nhập");
+                let token = accessToken;
 
-            const response = await fetch(`${API_BASE_URL}/bookings/my`, {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
+                if (!token) {
+                    const refreshed =
+                        await refreshSession();
+                    token =
+                        refreshed?.accessToken ||
+                        null;
                 }
-            });
 
-            const result = await response.json();
+                if (!token) {
+                    throw new Error(
+                        "Phiên đăng nhập đã hết hạn."
+                    );
+                }
 
-            if (!response.ok || !result.success) {
-                throw new Error(result.message || "Không thể tải danh sách vé");
+                const response = await fetch(
+                    `${API_BASE_URL}/bookings/my`,
+                    {
+                        headers: {
+                            "Content-Type":
+                                "application/json",
+                            Authorization:
+                                `Bearer ${token}`
+                        },
+                        credentials: "include"
+                    }
+                );
+
+                const result =
+                    await response.json();
+
+                if (
+                    !response.ok ||
+                    !result.success
+                ) {
+                    throw new Error(
+                        result.message ||
+                            "Không thể tải danh sách vé"
+                    );
+                }
+
+                setBookings(
+                    result.data.bookings || []
+                );
+            } catch (err) {
+                setError(
+                    err.message ||
+                        "Đã xảy ra lỗi"
+                );
+            } finally {
+                setLoading(false);
             }
-
-            setBookings(result.data.bookings || []);
-        } catch (err) {
-            setError(err.message || "Đã xảy ra lỗi");
-        } finally {
-            setLoading(false);
-        }
-    }, [accessToken, refreshSession]);
+        },
+        [accessToken, refreshSession]
+    );
 
     useEffect(() => {
         loadBookings();
     }, [loadBookings]);
 
-    if (loading) return <div style={{padding: 40, textAlign: "center"}}>Đang tải danh sách vé...</div>;
-    if (error) return <div style={{padding: 40, textAlign: "center", color: "red"}}>{error}</div>;
+    const activeBookings = useMemo(
+        () =>
+            bookings.filter(
+                (booking) =>
+                    booking.status ===
+                        "confirmed" ||
+                    booking.status ===
+                        "pending_payment"
+            ),
+        [bookings]
+    );
+
+    const hiddenInactiveCount =
+        bookings.length -
+        activeBookings.length;
+
+    if (loading) {
+        return (
+            <section className="ticket-state">
+                <div className="ticket-state-card">
+                    <div className="ticket-spinner" />
+                    <h2>
+                        Đang tải vé của bạn
+                    </h2>
+                    <p>
+                        FYCE đang đồng bộ trạng thái các đơn đặt vé.
+                    </p>
+                </div>
+            </section>
+        );
+    }
+
+    if (error) {
+        return (
+            <section className="ticket-state">
+                <div className="ticket-state-card">
+                    <Tickets
+                        size={38}
+                        strokeWidth={1.7}
+                    />
+                    <h2>
+                        Không thể tải vé
+                    </h2>
+                    <p>{error}</p>
+                    <button
+                        type="button"
+                        className="ticket-action ticket-action--primary"
+                        onClick={loadBookings}
+                    >
+                        Thử lại
+                    </button>
+                </div>
+            </section>
+        );
+    }
 
     return (
-        <main style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px" }}>
-            <div style={{ marginBottom: 40 }}>
-                <h1 style={{ marginBottom: 10 }}>Vé của tôi</h1>
-                <p>Danh sách các đơn đặt vé và sự kiện bạn đã tham gia.</p>
-            </div>
+        <main className="ticket-page">
+            <div className="ticket-shell">
+                <header className="ticket-page-header">
+                    <div>
+                        <span className="ticket-page-kicker">
+                            <WalletCards
+                                size={15}
+                            />
+                            FYCE WALLET
+                        </span>
+                        <h1>Vé của tôi</h1>
+                        <p>
+                            Quản lý các vé đã thanh toán và các đơn vẫn còn thời gian để hoàn tất thanh toán.
+                        </p>
+                    </div>
 
-            {bookings.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "40px 20px", background: "#f9f9f9", borderRadius: 8 }}>
-                    <p style={{ color: "#666", marginBottom: 20 }}>Bạn chưa có đơn đặt vé nào.</p>
-                    <Link to="/" style={{ background: "#333", color: "#fff", padding: "10px 20px", borderRadius: 4, textDecoration: "none" }}>
+                    <Link
+                        className="ticket-back-link"
+                        to="/"
+                    >
                         Khám phá sự kiện
                     </Link>
-                </div>
-            ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                    {bookings.map((booking) => (
-                        <div key={booking._id} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div>
-                                <h3 style={{ margin: "0 0 10px 0" }}>{booking.eventSnapshot.title}</h3>
-                                <p style={{ margin: "0 0 5px 0", fontSize: "0.9rem", color: "#666" }}>
-                                    Mã đơn: <strong>{booking.bookingCode}</strong>
-                                </p>
-                                <p style={{ margin: "0 0 5px 0", fontSize: "0.9rem", color: "#666" }}>
-                                    Ngày đặt: {new Date(booking.createdAt).toLocaleString("vi-VN")}
-                                </p>
-                                <div style={{ marginTop: 10 }}>
-                                    {booking.paymentStatus === "paid" ? (
-                                        <span style={{ background: "#d4edda", color: "#155724", padding: "4px 8px", borderRadius: 4, fontSize: "0.8rem", fontWeight: "bold" }}>
-                                            Đã thanh toán
-                                        </span>
-                                    ) : (
-                                        <span style={{ background: "#f8d7da", color: "#721c24", padding: "4px 8px", borderRadius: 4, fontSize: "0.8rem", fontWeight: "bold" }}>
-                                            Chưa thanh toán
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div>
-                                <button 
-                                    onClick={() => navigate(`/bookings/${booking.bookingCode}`)}
-                                    style={{
-                                        background: "#e84c3d", color: "#fff", border: "none", 
-                                        padding: "10px 20px", borderRadius: 4, cursor: "pointer", 
-                                        fontWeight: "bold"
-                                    }}
-                                >
-                                    Xem chi tiết
-                                </button>
-                            </div>
+                </header>
+
+                {hiddenInactiveCount > 0 && (
+                    <div className="ticket-alert ticket-alert--info">
+                        <Ticket size={18} />
+                        <span>
+                            {hiddenInactiveCount} đơn đã hủy hoặc hết hạn không được hiển thị ở “Vé của tôi” vì các ghế đó đã được nhả lại hệ thống.
+                        </span>
+                    </div>
+                )}
+
+                {activeBookings.length ===
+                0 ? (
+                    <section className="ticket-card ticket-empty">
+                        <div className="ticket-empty-icon">
+                            <Tickets
+                                size={30}
+                            />
                         </div>
-                    ))}
-                </div>
-            )}
+                        <h2>
+                            Bạn chưa có vé nào
+                        </h2>
+                        <p>
+                            Khi bạn thanh toán thành công hoặc đang có một đơn còn hiệu lực, vé sẽ xuất hiện tại đây.
+                        </p>
+                        <Link
+                            className="ticket-action ticket-action--primary"
+                            to="/"
+                        >
+                            Khám phá sự kiện
+                        </Link>
+                    </section>
+                ) : (
+                    <section className="ticket-list">
+                        {activeBookings.map(
+                            (booking) => {
+                                const state =
+                                    getVisibleBookingState(
+                                        booking
+                                    );
+                                const StateIcon =
+                                    state.Icon;
+
+                                return (
+                                    <article
+                                        key={
+                                            booking._id
+                                        }
+                                        className="ticket-card ticket-list-card"
+                                    >
+                                        <div className="ticket-list-main">
+                                            <div className="ticket-list-title-row">
+                                                <h2>
+                                                    {
+                                                        booking
+                                                            .eventSnapshot
+                                                            .title
+                                                    }
+                                                </h2>
+                                                <span
+                                                    className={`ticket-status ticket-status--${state.key}`}
+                                                >
+                                                    <StateIcon
+                                                        size={14}
+                                                    />
+                                                    {
+                                                        state.label
+                                                    }
+                                                </span>
+                                            </div>
+
+                                            <div className="ticket-list-meta">
+                                                <span>
+                                                    <CalendarDays
+                                                        size={14}
+                                                    />
+                                                    {formatDateTime(
+                                                        booking
+                                                            .eventSnapshot
+                                                            .startAt
+                                                    )}
+                                                </span>
+                                                <span>
+                                                    <MapPin
+                                                        size={14}
+                                                    />
+                                                    {booking
+                                                        .eventSnapshot
+                                                        .venue ||
+                                                        "Đang cập nhật"}
+                                                </span>
+                                                <span>
+                                                    Mã đơn: {booking.bookingCode}
+                                                </span>
+                                            </div>
+
+                                            <div className="ticket-list-bottom">
+                                                <span className="ticket-list-price">
+                                                    {formatPrice(
+                                                        booking.totalAmount
+                                                    )}
+                                                </span>
+                                                <span className="ticket-list-seat-count">
+                                                    {booking
+                                                        .items
+                                                        ?.length ||
+                                                        0}{" "}
+                                                    ghế
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <Link
+                                            className="ticket-action ticket-action--primary"
+                                            to={`/bookings/${booking.bookingCode}`}
+                                        >
+                                            {state.actionLabel}
+                                        </Link>
+                                    </article>
+                                );
+                            }
+                        )}
+                    </section>
+                )}
+            </div>
         </main>
     );
 };

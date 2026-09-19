@@ -51,3 +51,15 @@ export const resendOtpRateLimit = rateLimit({
             "Bạn đã yêu cầu gửi lại OTP quá nhiều lần. Vui lòng thử lại sau."
     }
 });
+
+export const ticketScanRateLimit = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 120,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message:
+            "Quá nhiều yêu cầu quét vé. Vui lòng thử lại sau."
+    }
+});

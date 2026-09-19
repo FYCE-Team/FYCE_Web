@@ -7,6 +7,12 @@ import {
     cancelBooking
 } from "../services/booking.service.js";
 import { SePayPgClient } from "sepay-pg-node";
+import { reconcileSePayPayment } from "../services/payment.service.js";
+
+const getSePayEnvironment = () =>
+    process.env.SEPAY_ENV === "production"
+        ? "production"
+        : "sandbox";
 
 const handleBookingError = (
     error,
@@ -185,6 +191,29 @@ const handleBookingError = (
                     "Không thể hủy đơn đặt vé ở trạng thái hiện tại"
             });
 
+        case "SEPAY_RECONCILIATION_NOT_CONFIGURED":
+            return res.status(503).json({
+                success: false,
+                message:
+                    "Cổng thanh toán SePay chưa được cấu hình đầy đủ"
+            });
+
+        case "SEPAY_RECONCILIATION_AMOUNT_MISMATCH":
+            return res.status(409).json({
+                success: false,
+                code:
+                    "SEPAY_RECONCILIATION_AMOUNT_MISMATCH",
+                message:
+                    "Số tiền SePay xác nhận không khớp với đơn đặt vé. Vui lòng kiểm tra giao dịch."
+            });
+
+        case "SEPAY_RECONCILIATION_REQUEST_FAILED":
+            return res.status(502).json({
+                success: false,
+                message:
+                    "Chưa thể đối chiếu trạng thái với SePay. Vui lòng thử lại sau."
+            });
+
         default:
             return next(error);
     }
@@ -236,7 +265,7 @@ export const create = async (
         // Initialize SePay Payment Gateway if credentials exist
         if (process.env.SEPAY_MERCHANT_ID && process.env.SEPAY_SECRET_KEY) {
             const client = new SePayPgClient({
-                env: "sandbox", // Use "production" for real environment
+                env: getSePayEnvironment(),
                 merchant_id: process.env.SEPAY_MERCHANT_ID,
                 secret_key: process.env.SEPAY_SECRET_KEY
             });
@@ -422,6 +451,50 @@ export const cancel = async (
     }
 };
 
+export const syncPayment = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        const result =
+            await reconcileSePayPayment(
+                req.params.bookingCode,
+                req.user.userId
+            );
+
+        const booking =
+            await getBookingByCode(
+                req.params.bookingCode,
+                req.user.userId
+            );
+
+        return res.status(200).json({
+            success: true,
+            message: result.success
+                ? "Đã đối chiếu thanh toán với SePay"
+                : "SePay chưa xác nhận thanh toán cho đơn này",
+            data: {
+                synced: Boolean(
+                    result.success
+                ),
+                pending: Boolean(
+                    result.pending
+                ),
+                reconcileMessage:
+                    result.message || null,
+                booking
+            }
+        });
+    } catch (error) {
+        return handleBookingError(
+            error,
+            res,
+            next
+        );
+    }
+};
+
 export const pay = async (
     req,
     res,
@@ -441,9 +514,34 @@ export const pay = async (
         }
 
         if (booking.paymentStatus === "paid") {
-            return res.status(400).json({
+            return res.status(409).json({
                 success: false,
+                code: "BOOKING_ALREADY_PAID",
                 message: "Đơn đặt vé đã được thanh toán"
+            });
+        }
+
+        if (booking.status !== "pending_payment") {
+            return res.status(409).json({
+                success: false,
+                code: "BOOKING_PAYMENT_NOT_ALLOWED",
+                message:
+                    booking.status === "cancelled"
+                        ? "Đơn đặt vé đã bị hủy và ghế đã được nhả"
+                        : booking.status === "expired"
+                        ? "Đơn đặt vé đã hết hạn và ghế đã được nhả"
+                        : "Đơn đặt vé không thể thanh toán ở trạng thái hiện tại"
+            });
+        }
+
+        if (
+            !booking.holdExpiresAt ||
+            booking.holdExpiresAt <= new Date()
+        ) {
+            return res.status(409).json({
+                success: false,
+                code: "BOOKING_ALREADY_EXPIRED",
+                message: "Đơn đặt vé đã hết hạn"
             });
         }
 
@@ -452,7 +550,7 @@ export const pay = async (
         // Initialize SePay Payment Gateway if credentials exist
         if (process.env.SEPAY_MERCHANT_ID && process.env.SEPAY_SECRET_KEY) {
             const client = new SePayPgClient({
-                env: "sandbox",
+                env: getSePayEnvironment(),
                 merchant_id: process.env.SEPAY_MERCHANT_ID,
                 secret_key: process.env.SEPAY_SECRET_KEY
             });

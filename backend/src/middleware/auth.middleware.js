@@ -1,6 +1,7 @@
 import {
     verifyAccessToken
 } from "../utils/token.js";
+import User from "../models/User.js";
 
 const extractBearerToken = (
     authorization
@@ -89,6 +90,47 @@ export const authenticateToken = (
             });
         }
 
+        next(error);
+    }
+};
+
+export const requireAdmin = async (
+    req,
+    res,
+    next
+) => {
+    try {
+        if (!req.user?.userId) {
+            return res.status(401).json({
+                success: false,
+                message:
+                    "Bạn chưa đăng nhập"
+            });
+        }
+
+        const user =
+            await User.findById(
+                req.user.userId
+            )
+                .select(
+                    "role isActive"
+                )
+                .lean();
+
+        if (
+            !user ||
+            user.isActive === false ||
+            user.role !== "admin"
+        ) {
+            return res.status(403).json({
+                success: false,
+                message:
+                    "Bạn không có quyền thực hiện thao tác này"
+            });
+        }
+
+        next();
+    } catch (error) {
         next(error);
     }
 };
