@@ -247,6 +247,34 @@ const handleServiceError = (
                         null
                 });
 
+        case "SEAT_RELEASE_BOOKING_PAYMENT_IN_PROGRESS":
+            return res
+                .status(409)
+                .json({
+                    success: false,
+                    code:
+                        "SEAT_RELEASE_BOOKING_PAYMENT_IN_PROGRESS",
+                    message:
+                        "Đơn đặt vé đang được xử lý thanh toán nên không thể nhả ghế lúc này. Vui lòng kiểm tra trạng thái thanh toán trước.",
+                    data:
+                        error.details ||
+                        null
+                });
+
+        case "SEAT_RELEASE_BOOKING_STATE_CHANGED":
+            return res
+                .status(409)
+                .json({
+                    success: false,
+                    code:
+                        "SEAT_RELEASE_BOOKING_STATE_CHANGED",
+                    message:
+                        "Trạng thái đơn đặt vé vừa thay đổi. Vui lòng tải lại trang trước khi nhả ghế.",
+                    data:
+                        error.details ||
+                        null
+                });
+
         case "SEAT_BLOCK_REASON_REQUIRED":
             return res
                 .status(400)

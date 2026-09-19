@@ -1015,11 +1015,31 @@ const [
                             ?.holdSession ||
                         null;
 
+                    const bookingCancelled =
+                        Boolean(
+                            releaseResult
+                                ?.bookingCancelled
+                        );
+
+                    /*
+                     * If this seat belonged to an unpaid booking, the backend
+                     * cancels the whole booking and releases all seats that
+                     * were frozen in that order. Always trust the returned
+                     * server hold session here instead of removing only the
+                     * clicked seat locally.
+                     */
                     const nextSeats =
-                        serverSession &&
-                        Array.isArray(
-                            serverSession.seats
-                        )
+                        bookingCancelled
+                            ? Array.isArray(
+                                  serverSession
+                                      ?.seats
+                              )
+                                ? serverSession.seats
+                                : []
+                            : serverSession &&
+                              Array.isArray(
+                                  serverSession.seats
+                              )
                             ? serverSession.seats
                             : selectedSeats.filter(
                                   (
@@ -1034,6 +1054,15 @@ const [
                     setSelectedSeats(
                         nextSeats
                     );
+
+                    if (bookingCancelled) {
+                        setHoldMessage(
+                            releaseResult
+                                ?.cancelledBookingCode
+                                ? `Đã hủy đơn ${releaseResult.cancelledBookingCode} và nhả toàn bộ ghế chưa thanh toán của đơn.`
+                                : "Đã hủy đơn chờ thanh toán và nhả toàn bộ ghế của đơn."
+                        );
+                    }
 
                     if (
                         !serverSession ||

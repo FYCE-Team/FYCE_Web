@@ -7,7 +7,8 @@ import {
     getMine,
     getActive,
     cancel,
-    pay
+    pay,
+    syncPayment
 } from "../controllers/booking.controller.js";
 
 import {
@@ -76,6 +77,16 @@ POST /api/bookings/:bookingCode/cancel
 router.post(
     "/:bookingCode/cancel",
     cancel
+);
+
+/*
+POST /api/bookings/:bookingCode/sync-payment
+Server-side reconciliation against SePay. Useful when an IPN is delayed or
+when developing locally and SePay cannot reach a localhost webhook URL.
+*/
+router.post(
+    "/:bookingCode/sync-payment",
+    syncPayment
 );
 
 /*

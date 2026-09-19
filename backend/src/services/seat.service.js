@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { randomUUID } from "node:crypto";
 import Event from "../models/Event.js";
 import Seat from "../models/Seat.js";
+import Booking from "../models/Booking.js";
 import {
     createSeatHistoryEntry
 } from "./seatHistory.service.js";
@@ -1347,12 +1348,122 @@ export const releaseHeldSeats =
             );
         }
 
+        /*
+         * A pending booking freezes the exact seat list and amount sent to
+         * SePay. Releasing one of those booked seats without cancelling the
+         * booking creates an orphan booking: the seat becomes available, but
+         * "My tickets" still shows an unpaid order for that seat.
+         *
+         * Business rule:
+         * - If the released seat belongs to an UNPAID pending booking, cancel
+         *   the whole booking and release every seat of that booking.
+         * - If payment is already being processed/paid, do not let the seat
+         *   map mutate the booking.
+         *
+         * This keeps Booking <-> Seat <-> SePay amount immutable once a
+         * booking document exists.
+         */
+        const linkedBooking =
+            await Booking.findOne({
+                eventId:
+                    event._id,
+                userId:
+                    normalizedUserId,
+                status:
+                    "pending_payment",
+                "items.seatId": {
+                    $in:
+                        normalizedSeatIds
+                }
+            });
+
+        if (
+            linkedBooking &&
+            linkedBooking.paymentStatus !==
+                "unpaid"
+        ) {
+            throw createServiceError(
+                "SEAT_RELEASE_BOOKING_PAYMENT_IN_PROGRESS",
+                {
+                    bookingCode:
+                        linkedBooking.bookingCode,
+                    paymentStatus:
+                        linkedBooking.paymentStatus
+                }
+            );
+        }
+
+        let cancelledBooking =
+            null;
+
+        let seatIdsToRelease =
+            normalizedSeatIds;
+
+        if (linkedBooking) {
+            cancelledBooking =
+                await Booking.findOneAndUpdate(
+                    {
+                        _id:
+                            linkedBooking._id,
+                        status:
+                            "pending_payment",
+                        paymentStatus:
+                            "unpaid"
+                    },
+                    {
+                        $set: {
+                            status:
+                                "cancelled",
+                            cancelledAt:
+                                new Date()
+                        }
+                    },
+                    {
+                        new: true
+                    }
+                );
+
+            if (!cancelledBooking) {
+                throw createServiceError(
+                    "SEAT_RELEASE_BOOKING_STATE_CHANGED",
+                    {
+                        bookingCode:
+                            linkedBooking.bookingCode
+                    }
+                );
+            }
+
+            const bookingSeatIds =
+                linkedBooking.items.map(
+                    (item) =>
+                        item.seatId
+                );
+
+            const uniqueReleaseIds =
+                new Map();
+
+            [
+                ...bookingSeatIds,
+                ...normalizedSeatIds
+            ].forEach((seatId) => {
+                uniqueReleaseIds.set(
+                    String(seatId),
+                    seatId
+                );
+            });
+
+            seatIdsToRelease =
+                [
+                    ...uniqueReleaseIds.values()
+                ];
+        }
+
         const result =
             await Seat.updateMany(
                 {
                     _id: {
                         $in:
-                            normalizedSeatIds
+                            seatIdsToRelease
                     },
 
                     eventId:
@@ -1395,7 +1506,7 @@ export const releaseHeldSeats =
                 event._id,
 
             releasedSeatIds:
-                normalizedSeatIds.map(
+                seatIdsToRelease.map(
                     (seatId) =>
                         String(seatId)
                 ),
@@ -1403,6 +1514,16 @@ export const releaseHeldSeats =
             releasedCount:
                 result.modifiedCount ||
                 0,
+
+            bookingCancelled:
+                Boolean(
+                    cancelledBooking
+                ),
+
+            cancelledBookingCode:
+                cancelledBooking
+                    ?.bookingCode ||
+                null,
 
             holdSession:
                 remainingHoldSession

@@ -389,6 +389,140 @@ export const expirePendingBookings =
         };
     };
 
+/*
+ * Repair legacy/orphan unpaid bookings created by older seat-release logic.
+ *
+ * A valid pending booking must still own every booked seat as an active hold.
+ * If at least one seat is no longer held by this booking, the order must not
+ * remain payable. We deliberately skip candidates that already have a SOLD
+ * seat because that can be the very short transition window while a payment
+ * confirmation is moving the booking to confirmed.
+ */
+const cancelOrphanedPendingBookings =
+    async ({
+        userId = null,
+        eventId = null
+    } = {}) => {
+        const now = new Date();
+
+        const query = {
+            status:
+                "pending_payment",
+            paymentStatus:
+                "unpaid",
+            holdExpiresAt: {
+                $gt: now
+            }
+        };
+
+        if (userId) {
+            query.userId =
+                ensureObjectId(
+                    userId,
+                    "USER_ID"
+                );
+        }
+
+        if (eventId) {
+            query.eventId =
+                ensureObjectId(
+                    eventId,
+                    "EVENT_ID"
+                );
+        }
+
+        const bookings =
+            await Booking.find(query);
+
+        let cancelledCount = 0;
+
+        for (const booking of bookings) {
+            const seatIds =
+                booking.items.map(
+                    (item) =>
+                        item.seatId
+                );
+
+            const validHeldCount =
+                await Seat.countDocuments({
+                    _id: {
+                        $in: seatIds
+                    },
+                    eventId:
+                        booking.eventId,
+                    status:
+                        "held",
+                    holdToken:
+                        booking.holdToken,
+                    heldByUserId:
+                        booking.userId,
+                    holdExpiresAt: {
+                        $gt: now
+                    }
+                });
+
+            if (
+                validHeldCount ===
+                seatIds.length
+            ) {
+                continue;
+            }
+
+            const soldSeatCount =
+                await Seat.countDocuments({
+                    _id: {
+                        $in: seatIds
+                    },
+                    eventId:
+                        booking.eventId,
+                    status:
+                        "sold"
+                });
+
+            // Do not race the payment confirmation path.
+            if (soldSeatCount > 0) {
+                continue;
+            }
+
+            const cancelledBooking =
+                await Booking.findOneAndUpdate(
+                    {
+                        _id:
+                            booking._id,
+                        status:
+                            "pending_payment",
+                        paymentStatus:
+                            "unpaid"
+                    },
+                    {
+                        $set: {
+                            status:
+                                "cancelled",
+                            cancelledAt:
+                                now
+                        }
+                    },
+                    {
+                        new: true
+                    }
+                );
+
+            if (!cancelledBooking) {
+                continue;
+            }
+
+            await releaseBookingSeats(
+                cancelledBooking
+            );
+
+            cancelledCount += 1;
+        }
+
+        return {
+            cancelledCount
+        };
+    };
+
 export const getActiveBookingByEvent =
     async (
         eventId,
@@ -407,6 +541,13 @@ export const getActiveBookingByEvent =
             );
 
         await expirePendingBookings({
+            userId:
+                normalizedUserId,
+            eventId:
+                normalizedEventId
+        });
+
+        await cancelOrphanedPendingBookings({
             userId:
                 normalizedUserId,
             eventId:
@@ -1316,6 +1457,11 @@ export const getMyBookings =
             );
 
         await expirePendingBookings({
+            userId:
+                normalizedUserId
+        });
+
+        await cancelOrphanedPendingBookings({
             userId:
                 normalizedUserId
         });
