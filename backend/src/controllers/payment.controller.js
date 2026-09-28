@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, createHmac } from "node:crypto";
 
 import { processSePayPayment } from "../services/payment.service.js";
 
@@ -62,35 +62,45 @@ const authorizeGatewayIpn = (req) => {
           };
 };
 
-const authorizeBalanceWebhook = (
-    req
-) => {
-    const webhookToken =
-        process.env.SEPAY_WEBHOOK_TOKEN;
+const authorizeBalanceWebhook = (req) => {
+    const webhookToken = process.env.SEPAY_WEBHOOK_TOKEN;
 
     if (!webhookToken) {
         return {
             ok: false,
             status: 503,
-            message:
-                "SEPAY_WEBHOOK_TOKEN is required for balance webhooks"
+            message: "SEPAY_WEBHOOK_TOKEN is required for balance webhooks"
         };
     }
 
-    const authorization =
-        req.get("Authorization") || "";
+    // Try HMAC-SHA256 signature verification first (Recommended)
+    const signature = req.get("x-sepay-signature");
+    const timestamp = req.get("x-sepay-timestamp");
 
+    if (signature && timestamp) {
+        const payload = JSON.stringify(req.body);
+        const expected = "sha256=" + createHmac("sha256", webhookToken)
+            .update(timestamp + "." + payload)
+            .digest("hex");
+
+        return safeSecretEquals(signature, expected)
+            ? { ok: true }
+            : {
+                  ok: false,
+                  status: 401,
+                  message: "Unauthorized: invalid SePay HMAC signature"
+              };
+    }
+
+    // Fallback to legacy API Key verification
+    const authorization = req.get("Authorization") || "";
     const acceptedHeaders = [
         `Apikey ${webhookToken}`,
         `Bearer ${webhookToken}`
     ];
 
-    const ok = acceptedHeaders.some(
-        (value) =>
-            safeSecretEquals(
-                authorization,
-                value
-            )
+    const ok = acceptedHeaders.some((value) =>
+        safeSecretEquals(authorization, value)
     );
 
     return ok
@@ -98,8 +108,7 @@ const authorizeBalanceWebhook = (
         : {
               ok: false,
               status: 401,
-              message:
-                  "Unauthorized: invalid SePay webhook token"
+              message: "Unauthorized: invalid SePay webhook token"
           };
 };
 
