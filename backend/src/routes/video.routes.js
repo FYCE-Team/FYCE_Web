@@ -7,7 +7,8 @@ import {
 } from "../controllers/video.controller.js";
 
 import {
-    authenticateToken
+    authenticateToken,
+    requireAdmin
 } from "../middleware/auth.middleware.js";
 
 import {
@@ -32,6 +33,7 @@ router.head(
 router.post(
     "/upload",
     authenticateToken,
+    requireAdmin,
     (req, res, next) => {
         uploadVideo.single("video")(
             req,

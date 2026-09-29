@@ -229,6 +229,8 @@ const bookingSchema = new mongoose.Schema(
             index: true
         },
 
+        refundedAmount: { type: Number, default: 0, min: 0 },
+
         cancelledAt: {
             type: Date,
             default: null

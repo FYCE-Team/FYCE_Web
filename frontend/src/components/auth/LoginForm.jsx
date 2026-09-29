@@ -63,7 +63,7 @@ const LoginForm = () => {
             redirectTarget =
                 currentUser.role ===
                 "admin"
-                    ? "/admin/events"
+                    ? "/admin"
                     : "/";
         }
 

@@ -7,7 +7,8 @@ import {
 } from "../controllers/image.controller.js";
 
 import {
-    authenticateToken
+    authenticateToken,
+    requireAdmin
 } from "../middleware/auth.middleware.js";
 
 import {
@@ -27,6 +28,7 @@ router.get(
 router.post(
     "/upload",
     authenticateToken,
+    requireAdmin,
     (req, res, next) => {
         uploadImage.single("image")(
             req,

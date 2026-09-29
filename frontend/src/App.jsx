@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import {
     BrowserRouter,
     Routes,
@@ -31,11 +32,16 @@ import EventSeatBookingPage from "./pages/events/EventSeatBookingPage.jsx";
 import CheckoutPage from "./pages/booking/CheckoutPage.jsx";
 import BookingDetailsPage from "./pages/booking/BookingDetailsPage.jsx";
 import MyTicketsPage from "./pages/booking/MyTicketsPage.jsx";
-import AdminEventCreate from "./pages/admin/events/AdminEventCreate.jsx";
-import AdminEventEdit from "./pages/admin/events/AdminEventEdit.jsx";
-import AdminSeatManagementPage from "./pages/admin/events/AdminSeatManagementPage.jsx";
-import AdminEvents from "./pages/admin/events/AdminEvents.jsx";
-import AdminCheckInPage from "./pages/admin/checkin/AdminCheckInPage.jsx";
+const AdminEventCreate = lazy(() => import("./pages/admin/events/AdminEventCreate.jsx"));
+const AdminEventEdit = lazy(() => import("./pages/admin/events/AdminEventEdit.jsx"));
+const AdminSeatManagementPage = lazy(() => import("./pages/admin/events/AdminSeatManagementPage.jsx"));
+const AdminEvents = lazy(() => import("./pages/admin/events/AdminEvents.jsx"));
+const AdminCheckInPage = lazy(() => import("./pages/admin/checkin/AdminCheckInPage.jsx"));
+
+const AdminDashboard = lazy(() => import("./pages/admin/management/AdminDashboard.jsx"));
+const AdminRecords = lazy(() => import("./pages/admin/management/AdminRecords.jsx"));
+const AdminHomepage = lazy(() => import("./pages/admin/management/AdminHomepage.jsx"));
+import "./pages/admin/management/AdminManagement.css";
 
 const GOOGLE_CLIENT_ID =
     import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -47,6 +53,7 @@ function App() {
         >
             <AuthProvider>
                 <BrowserRouter>
+                    <Suspense fallback={<p role="status" style={{ padding: 32 }}>Đang tải trang…</p>}>
                     <Routes>
 
                         {/* =================================================
@@ -93,6 +100,13 @@ function App() {
                             <Route
                                 element={<AdminLayout />}
                             >
+
+                                <Route path="/admin" element={<AdminDashboard />} />
+                                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                <Route path="/admin/users" element={<AdminRecords key="users" kind="users" />} />
+                                <Route path="/admin/bookings" element={<AdminRecords key="bookings" kind="bookings" />} />
+                                <Route path="/admin/tickets" element={<AdminRecords key="tickets" kind="tickets" />} />
+                                <Route path="/admin/homepage" element={<AdminHomepage />} />
 
                                 <Route
                                     path="/admin/events"
@@ -204,6 +218,7 @@ function App() {
                         />
 
                     </Routes>
+                    </Suspense>
                 </BrowserRouter>
             </AuthProvider>
         </GoogleOAuthProvider>

@@ -678,7 +678,7 @@ const [
         currentUserId
     ]);
 
-    const saveHoldSession = (
+    const saveHoldSession = useCallback((
         nextToken,
         nextExpiresAt,
         nextSeats
@@ -706,9 +706,9 @@ const [
                     nextSeats
             })
         );
-    };
+    }, [event, currentUserId]);
 
-    const clearHoldSession = () => {
+    const clearHoldSession = useCallback(() => {
         if (
             event?._id &&
             currentUserId
@@ -720,7 +720,7 @@ const [
                 )
             );
         }
-    };
+    }, [event, currentUserId]);
 
     const syncHoldSessionFromServer =
         useCallback(
@@ -821,7 +821,7 @@ const [
                         (value) =>
                             value + 1
                     );
-                } catch (syncError) {
+                } catch {
                     /*
                      * Network/API error should not destroy a valid local
                      * session. On the first failed sync only, fall back to
@@ -894,9 +894,11 @@ const [
                 }
             },
             [
-                event?._id,
+                event,
                 currentUserId,
-                authorizedGet
+                authorizedGet,
+                clearHoldSession,
+                saveHoldSession
             ]
         );
 

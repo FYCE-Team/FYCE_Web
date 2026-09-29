@@ -1,4 +1,3 @@
-import fs from "fs";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -6,6 +5,7 @@ import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import adminRoutes from "./routes/admin.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import eventRoutes from "./routes/event.routes.js";
 import heroRoutes from "./routes/hero.routes.js";
@@ -28,36 +28,6 @@ const uploadsPath = path.resolve(
     "../uploads"
 );
 
-console.log(
-    "DEBUG process.cwd():",
-    process.cwd()
-);
-
-console.log(
-    "DEBUG __dirname:",
-    __dirname
-);
-
-console.log(
-    "DEBUG uploadsPath:",
-    uploadsPath
-);
-
-console.log(
-    "DEBUG uploads exists:",
-    fs.existsSync(uploadsPath)
-);
-
-console.log(
-    "DEBUG videos exists:",
-    fs.existsSync(
-        path.join(
-            uploadsPath,
-            "videos"
-        )
-    )
-);
-
 const app = express();
 
 app.use(
@@ -73,7 +43,14 @@ app.use(
 
 app.use(
     cors({
-        origin: process.env.CLIENT_URL,
+        origin(origin, callback) {
+            const allowed = new Set([process.env.CLIENT_URL, ...(process.env.CLIENT_URLS || "").split(",")].map(value => value?.trim()).filter(Boolean));
+            if (process.env.NODE_ENV === "development") {
+                allowed.add("http://localhost:5173");
+                allowed.add("http://127.0.0.1:5173");
+            }
+            callback(null, !origin || allowed.has(origin));
+        },
         credentials: true
     })
 );
@@ -167,6 +144,8 @@ app.use(
     "/api/homepage",
     homepageRoutes
 );
+
+app.use("/api/admin", adminRoutes);
 
 app.use(errorHandler);
 

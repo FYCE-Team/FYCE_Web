@@ -285,12 +285,23 @@ const loadTicketFromQr = async (
     return ticket;
 };
 
+
+const assertAdmission = async (ticket, eventId) => {
+    if (eventId && String(ticket.eventId) !== String(ensureObjectId(eventId, "EVENT_ID"))) {
+        throw new Error("TICKET_EVENT_MISMATCH");
+    }
+    const paidBooking = await Booking.exists({ _id: ticket.bookingId, eventId: ticket.eventId, status: "confirmed", paymentStatus: "paid" });
+    if (!paidBooking) throw new Error("TICKET_NOT_VALID");
+};
+
 export const verifyTicketForAdmin =
-    async (qrPayload) => {
+    async (qrPayload, eventId) => {
         const ticket =
             await loadTicketFromQr(
                 qrPayload
             );
+
+        await assertAdmission(ticket, eventId);
 
         const holder =
             await User.findById(
@@ -336,7 +347,8 @@ export const verifyTicketForAdmin =
 export const checkInTicketForAdmin =
     async (
         qrPayload,
-        adminUserId
+        adminUserId,
+        eventId
     ) => {
         const {
             ticketId,
@@ -355,6 +367,8 @@ export const checkInTicketForAdmin =
                 ticketId,
                 "TICKET_ID"
             );
+        const currentTicket = await loadTicketFromQr(qrPayload);
+        await assertAdmission(currentTicket, eventId);
         const now = new Date();
 
         const ticket =
@@ -375,7 +389,7 @@ export const checkInTicketForAdmin =
                     }
                 },
                 {
-                    new: true
+                    returnDocument: "after"
                 }
             );
 

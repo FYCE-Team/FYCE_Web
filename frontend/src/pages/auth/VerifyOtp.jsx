@@ -39,14 +39,14 @@ const handleBackToRegister = () => {
 };
   const inputRefs = useRef([]);
 
-  const [userId, setUserId] = useState(
+  const [userId] = useState(
     () =>
       sessionStorage.getItem(
         "fyce_pending_user_id"
       ) || ""
   );
 
-  const [email, setEmail] = useState(
+  const [email] = useState(
     () =>
       sessionStorage.getItem(
         "fyce_pending_email"

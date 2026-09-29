@@ -43,13 +43,16 @@ const formatDateTime = (value) => {
 };
 
 const getVisibleBookingState = (booking) => {
+    if (booking?.paymentStatus === "refunded") {
+        return { key: "cancelled", label: "Đã hoàn tiền · Vé đã hủy", actionLabel: "Xem lịch sử", Icon: Clock3 };
+    }
     if (
         booking?.status === "confirmed" &&
         booking?.paymentStatus === "paid"
     ) {
         return {
             key: "confirmed",
-            label: "Đã thanh toán",
+            label: booking.refundedAmount > 0 ? "Đã hoàn một phần" : "Đã thanh toán",
             actionLabel: "Xem vé",
             Icon: CheckCircle2
         };
@@ -150,7 +153,8 @@ const MyTicketsPage = () => {
                     booking.status ===
                         "confirmed" ||
                     booking.status ===
-                        "pending_payment"
+                        "pending_payment" ||
+                    booking.paymentStatus === "refunded"
             ),
         [bookings]
     );
@@ -212,7 +216,7 @@ const MyTicketsPage = () => {
                         </span>
                         <h1>Vé của tôi</h1>
                         <p>
-                            Quản lý các vé đã thanh toán và các đơn vẫn còn thời gian để hoàn tất thanh toán.
+                            Quản lý vé, đơn đang chờ thanh toán và lịch sử hoàn vé.
                         </p>
                     </div>
 

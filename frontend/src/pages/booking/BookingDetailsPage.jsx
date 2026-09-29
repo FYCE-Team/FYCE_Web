@@ -54,13 +54,14 @@ const formatDateTime = (value) => {
 };
 
 const getBookingState = (booking) => {
+    if (booking?.paymentStatus === "refunded") return { key: "cancelled", label: "Đã hoàn tiền · Vé đã hủy", Icon: XCircle };
     if (
         booking?.status === "confirmed" &&
         booking?.paymentStatus === "paid"
     ) {
         return {
             key: "confirmed",
-            label: "Đã thanh toán",
+            label: booking.refundedAmount > 0 ? "Đã hoàn một phần" : "Đã thanh toán",
             Icon: CheckCircle2
         };
     }
@@ -111,6 +112,12 @@ const BookingDetailsPage = () => {
         accessToken,
         refreshSession
     } = useAuth();
+
+    const [clockNow, setClockNow] = useState(() => Date.now());
+    useEffect(() => {
+        const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
 
     const [booking, setBooking] =
         useState(null);
@@ -598,7 +605,7 @@ const BookingDetailsPage = () => {
         (!booking.holdExpiresAt ||
             new Date(
                 booking.holdExpiresAt
-            ).getTime() > Date.now());
+            ).getTime() > clockNow);
 
     return (
         <main className="ticket-page">
@@ -849,8 +856,13 @@ const BookingDetailsPage = () => {
                                     : "Đơn đã hết hạn — không còn vé hợp lệ"}
                             </h3>
                             <p>
-                                Các ghế của đơn chưa thanh toán này đã được trả lại hệ thống để người khác có thể đặt. Vì vậy FYCE không hiển thị nút thanh toán hoặc mã QR cho đơn này.
+                                {booking.paymentStatus === "refunded"
+                                    ? "Các vé đã hủy sau hoàn tiền thủ công. Ghế được mở bán lại, QR cũ không còn hiệu lực."
+                                    : "Đơn không còn hiệu lực. Các ghế đã được trả lại hệ thống để người khác có thể đặt."}
                             </p>
+                            <h4>Lịch sử ghế trong đơn</h4>
+                            <ul>{booking.items.map(item => <li key={item.ticketCode}>{item.seatLabel} · {item.ticketCode} · {formatPrice(item.unitPrice)}</li>)}</ul>
+                            {booking.refundedAmount > 0 && <p>Đã ghi nhận hoàn: {formatPrice(booking.refundedAmount)}</p>}
                         </div>
                     </section>
                 ) : (
@@ -952,6 +964,10 @@ const BookingDetailsPage = () => {
                                                 );
                                             }
 
+                                            if (["refunded", "cancelled"].includes(issuedTicket?.status)) {
+                                                return <div className="ticket-qr-wrap ticket-qr-used"><strong>Vé đã hủy sau hoàn tiền</strong><span>QR cũ đã vô hiệu. Lịch sử mua ghế vẫn được lưu.</span></div>;
+                                            }
+
                                             if (issuedTicket?.qrPayload) {
                                                 return (
                                                     <div className="ticket-qr-wrap">
@@ -997,10 +1013,10 @@ const BookingDetailsPage = () => {
                                             <div className="ticket-qr-wrap">
                                                 <div className="ticket-payment-copy">
                                                     <strong>
-                                                        QR chưa được phát hành
+                                                        {booking.paymentStatus === "refunded" ? "Vé đã hủy sau hoàn tiền" : "QR chưa được phát hành"}
                                                     </strong>
                                                     <span>
-                                                        Mã vào cửa chỉ xuất hiện sau khi thanh toán được xác nhận.
+                                                        {booking.paymentStatus === "refunded" ? "QR cũ đã vô hiệu. Lịch sử mua ghế được giữ nguyên." : "Mã vào cửa chỉ xuất hiện sau khi thanh toán được xác nhận."}
                                                     </span>
                                                 </div>
                                             </div>

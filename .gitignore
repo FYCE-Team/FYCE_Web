@@ -11,3 +11,5 @@ backend/.env
 frontend/.env
 
 backend/uploads/
+# Local database dumps must never be committed.
+fyce_backup/

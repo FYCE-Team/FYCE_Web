@@ -133,7 +133,7 @@ const Header = () => {
               className="site-navigation-mobile-admin"
               onClick={() => {
                 closeMobileMenu();
-                navigate("/admin/events");
+                navigate("/admin");
               }}
             >
               <LayoutDashboard size={17} />
@@ -171,7 +171,7 @@ const Header = () => {
               onClick={() => {
                 setAccountMenuOpen(false);
                 closeMobileMenu();
-                navigate("/admin/events");
+                navigate("/admin");
               }}
               aria-label="Về trang quản trị"
             >
@@ -262,7 +262,7 @@ const Header = () => {
                         onClick={() => {
                           setAccountMenuOpen(false);
                           closeMobileMenu();
-                          navigate("/admin/events");
+                          navigate("/admin");
                         }}
                       >
                         <LayoutDashboard size={16} />

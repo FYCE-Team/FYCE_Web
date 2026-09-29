@@ -546,15 +546,15 @@ const AdminSeatManager = ({
     ]);
 
     useEffect(() => {
-        if (!selectedSeat) {
+        if (!selectedSeat?._id) {
             setReason("");
             return;
         }
 
         setReason(
-            selectedSeat.status ===
+            selectedSeat?.status ===
                 "blocked"
-                ? selectedSeat.blockedReason ||
+                ? selectedSeat?.blockedReason ||
                       ""
                 : ""
         );

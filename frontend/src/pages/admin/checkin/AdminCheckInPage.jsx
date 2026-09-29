@@ -52,6 +52,9 @@ const AdminCheckInPage = () => {
         refreshSession
     } = useAuth();
 
+    const [eventId, setEventId] = useState("");
+    const [events, setEvents] = useState([]);
+
     const videoRef = useRef(null);
     const streamRef = useRef(null);
     const intervalRef = useRef(null);
@@ -181,6 +184,12 @@ const AdminCheckInPage = () => {
             ]
         );
 
+    useEffect(() => {
+        let active = true;
+        authenticatedRequest("/events/admin/all").then(data => { if (active) setEvents(data.events || []); }).catch(error => { if (active) setError(error.message); });
+        return () => { active = false; };
+    }, [authenticatedRequest]);
+
     const stopCamera = useCallback(
         () => {
             if (intervalRef.current) {
@@ -244,7 +253,7 @@ const AdminCheckInPage = () => {
                         {
                             method: "POST",
                             body: JSON.stringify({
-                                qrPayload
+                                qrPayload, eventId: eventId || undefined
                             })
                         }
                     );
@@ -264,6 +273,7 @@ const AdminCheckInPage = () => {
         },
         [
             authenticatedRequest,
+            eventId,
             stopCamera
         ]
     );
@@ -410,7 +420,8 @@ const AdminCheckInPage = () => {
                         method: "POST",
                         body: JSON.stringify({
                             qrPayload:
-                                currentQr
+                                currentQr,
+                            eventId: eventId || undefined
                         })
                     }
                 );
@@ -503,6 +514,14 @@ const AdminCheckInPage = () => {
                 </div>
             </section>
 
+            <section className="admin-checkin-panel" style={{ marginBottom: 24 }}>
+                <label htmlFor="checkin-event">Sự kiện tại cổng check-in</label>
+                <select id="checkin-event" disabled={loading || cameraActive} value={eventId} onChange={event => { setEventId(event.target.value); setVerification(null); setCurrentQr(""); }} style={{ display: "block", padding: 12, marginTop: 10, maxWidth: "100%" }}>
+                    <option value="">Kiểm tra tất cả sự kiện</option>
+                    {events.map(event => <option key={event._id} value={event._id}>{event.title}</option>)}
+                </select>
+                <p>Chọn sự kiện để từ chối vé của buổi diễn khác.</p>
+            </section>
             <div className="admin-checkin-grid">
                 <section className="admin-checkin-panel">
                     <div className="admin-checkin-panel-heading">

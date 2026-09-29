@@ -133,6 +133,9 @@ const ticketSchema = new mongoose.Schema(
             default: Date.now,
             required: true
         },
+        refundedAt: { type: Date, default: null },
+        refundedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+        refundReason: { type: String, maxlength: 500, default: null },
         checkedInAt: {
             type: Date,
             default: null

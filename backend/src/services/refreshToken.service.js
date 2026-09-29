@@ -66,7 +66,7 @@ export const refreshAccessToken = async (
         );
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.isBlocked) {
         await RefreshToken.deleteOne({
             _id: storedToken._id
         });

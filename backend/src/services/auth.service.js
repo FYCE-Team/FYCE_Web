@@ -56,11 +56,13 @@ export const loginUser = async ({
         );
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.isBlocked) {
         throw new Error(
             "ACCOUNT_NOT_ACTIVE"
         );
     }
+
+    if (!user.password) throw new Error("INVALID_CREDENTIALS");
 
     const isPasswordCorrect =
         await bcrypt.compare(
@@ -509,6 +511,7 @@ export const loginWithGoogle = async ({
      * ------------------------------------------------
      */
     if (user) {
+        if (user.isBlocked) throw new Error("ACCOUNT_NOT_ACTIVE");
         user.isActive = true;
 
         if (
@@ -544,6 +547,7 @@ export const loginWithGoogle = async ({
                 );
             }
 
+            if (user.isBlocked) throw new Error("ACCOUNT_NOT_ACTIVE");
             user.googleId = googleId;
             user.isActive = true;
 
@@ -697,7 +701,7 @@ export const updateUserProfile = async ({
         throw new Error("USER_NOT_FOUND");
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.isBlocked) {
         throw new Error("ACCOUNT_NOT_ACTIVE");
     }
 

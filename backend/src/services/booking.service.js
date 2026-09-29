@@ -332,16 +332,10 @@ const expireBookingDocument = async (
         return booking;
     }
 
-    await releaseBookingSeats(
-        booking
-    );
-
-    booking.status = "expired";
-    booking.expiredAt = new Date();
-
-    await booking.save();
-
-    return booking;
+    const expired = await Booking.findOneAndUpdate({ _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" }, holdExpiresAt: { $lte: new Date() } }, { $set: { status: "expired", expiredAt: new Date() } }, { returnDocument: "after" });
+    if (!expired) return Booking.findById(booking._id);
+    await releaseBookingSeats(expired);
+    return expired;
 };
 
 export const expirePendingBookings =
@@ -1543,14 +1537,8 @@ export const cancelBooking = async (
         );
     }
 
-    await releaseBookingSeats(
-        booking
-    );
-
-    booking.status = "cancelled";
-    booking.cancelledAt = new Date();
-
-    await booking.save();
-
-    return booking;
+    const cancelled = await Booking.findOneAndUpdate({ _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" } }, { $set: { status: "cancelled", cancelledAt: new Date() } }, { returnDocument: "after" });
+    if (!cancelled) throw new Error("BOOKING_CANCEL_NOT_ALLOWED");
+    await releaseBookingSeats(cancelled);
+    return cancelled;
 };

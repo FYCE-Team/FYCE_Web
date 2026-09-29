@@ -10,6 +10,10 @@ const handleTicketError = (
     next
 ) => {
     switch (error.message) {
+        case "EVENT_ID_INVALID":
+            return res.status(400).json({ success: false, message: "Sự kiện không hợp lệ." });
+        case "TICKET_EVENT_MISMATCH":
+            return res.status(409).json({ success: false, code: error.message, message: "Vé này thuộc sự kiện khác. Không thể check-in tại cổng này." });
         case "BOOKING_CODE_REQUIRED":
             return res.status(400).json({
                 success: false,
@@ -99,7 +103,8 @@ export const getBookingTickets =
             const tickets =
                 await getTicketsForBooking(
                     req.params.bookingCode,
-                    req.user.userId
+                    req.user.userId,
+                    req.body?.eventId
                 );
 
             res.set(
@@ -131,7 +136,8 @@ export const verifyForAdmin =
         try {
             const result =
                 await verifyTicketForAdmin(
-                    req.body?.qrPayload
+                    req.body?.qrPayload,
+                    req.body?.eventId
                 );
 
             res.set(
@@ -162,7 +168,8 @@ export const checkInForAdmin =
             const result =
                 await checkInTicketForAdmin(
                     req.body?.qrPayload,
-                    req.user.userId
+                    req.user.userId,
+                    req.body?.eventId
                 );
 
             res.set(

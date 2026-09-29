@@ -28,7 +28,7 @@ const extractBearerToken = (
     return token;
 };
 
-export const authenticateToken = (
+export const authenticateToken = async (
     req,
     res,
     next
@@ -61,10 +61,11 @@ export const authenticateToken = (
             });
         }
 
-        req.user = {
-            userId: payload.sub,
-            role: payload.role
-        };
+        const currentUser = await User.findById(payload.sub).select("role isActive isBlocked").lean();
+        if (!currentUser?.isActive || currentUser.isBlocked) {
+            return res.status(401).json({ success: false, message: "Tài khoản không còn hoạt động." });
+        }
+        req.user = { userId: payload.sub, role: currentUser.role };
 
         next();
     } catch (error) {
@@ -113,13 +114,14 @@ export const requireAdmin = async (
                 req.user.userId
             )
                 .select(
-                    "role isActive"
+                    "role isActive isBlocked"
                 )
                 .lean();
 
         if (
             !user ||
             user.isActive === false ||
+            user.isBlocked === true ||
             user.role !== "admin"
         ) {
             return res.status(403).json({

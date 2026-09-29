@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import PaymentReview from "../models/PaymentReview.js";
 import Booking from "../models/Booking.js";
 import Seat from "../models/Seat.js";
 import { SePayPgClient } from "sepay-pg-node";
@@ -184,12 +186,12 @@ const extractBalanceWebhookPayment = (
             0
     );
     const transferType = String(
-        payload?.transfer_type || ""
+        payload?.transferType || payload?.transfer_type || ""
     ).toLowerCase();
 
     if (
         transferType &&
-        transferType !== "credit"
+        !["credit", "in"].includes(transferType)
     ) {
         return {
             accepted: false,
@@ -227,41 +229,23 @@ const extractBalanceWebhookPayment = (
     };
 };
 
-const releaseExpiredBooking = async (
-    booking,
-    now
-) => {
-    const seatIds = booking.items.map(
-        (item) => item.seatId
-    );
+const releaseExpiredBooking = async (booking, now) => {
+    const expired = await Booking.findOneAndUpdate({ _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" }, holdExpiresAt: { $lte: now } }, { $set: { status: "expired", expiredAt: now } }, { returnDocument: "after" });
+    if (!expired) return;
+    await Seat.updateMany({ _id: { $in: booking.items.map(item => item.seatId) }, eventId: booking.eventId, status: "held", holdToken: booking.holdToken, heldByUserId: booking.userId }, { $set: { status: "available", holdToken: null, heldByUserId: null, holdExpiresAt: null } });
+};
 
-    await Seat.updateMany(
-        {
-            _id: {
-                $in: seatIds
-            },
-            eventId: booking.eventId,
-            status: "held",
-            holdToken:
-                booking.holdToken,
-            heldByUserId:
-                booking.userId
-        },
-        {
-            $set: {
-                status: "available",
-                holdToken: null,
-                heldByUserId: null,
-                holdExpiresAt: null
-            }
-        }
-    );
-
-    booking.status = "expired";
-    booking.expiredAt =
-        booking.expiredAt || now;
-
-    await booking.save();
+// Roll back only seats sold by this booking; never touch seats owned by another order.
+const rollbackSoldSeats = async (booking, claimToken) => {
+    const current = await Booking.findById(booking._id).lean();
+    if (current?.status === "confirmed" && current.paymentStatus === "paid") return;
+    const restoreHold = current?.status === "pending_payment" && current.holdExpiresAt > new Date();
+    await Seat.updateMany({ soldBookingId: booking._id, saleClaimToken: claimToken, status: "sold" }, { $set: {
+        status: restoreHold ? "held" : "available", soldBookingId: null, saleClaimToken: null,
+        holdToken: restoreHold ? booking.holdToken : null,
+        heldByUserId: restoreHold ? booking.userId : null,
+        holdExpiresAt: restoreHold ? booking.holdExpiresAt : null
+    } });
 };
 
 /**
@@ -269,7 +253,7 @@ const releaseExpiredBooking = async (
  * The booking is only confirmed while its seat hold is still valid.
  * Confirmed seats are permanently moved from `held` to `sold`.
  */
-export const processSePayPayment =
+const applySePayPayment =
     async (payload) => {
         const isGatewayFormat =
             Boolean(
@@ -412,12 +396,15 @@ export const processSePayPayment =
             };
         }
 
+        const claimToken = randomUUID();
         const soldResult =
             await Seat.updateMany(
                 validHoldFilter,
                 {
                     $set: {
                         status: "sold",
+                        soldBookingId: booking._id,
+                        saleClaimToken: claimToken,
                         holdToken: null,
                         heldByUserId: null,
                         holdExpiresAt: null
@@ -429,6 +416,7 @@ export const processSePayPayment =
             soldResult.modifiedCount !==
             seatIds.length
         ) {
+            await rollbackSoldSeats(booking, claimToken);
             return {
                 success: false,
                 message: `Could not lock all seats for booking ${bookingCode}; manual reconciliation is required`
@@ -436,38 +424,16 @@ export const processSePayPayment =
         }
 
         try {
-            booking.paymentStatus =
-                "paid";
-            booking.status =
-                "confirmed";
-            booking.confirmedAt = now;
-
-            await booking.save();
+            const confirmed = await Booking.findOneAndUpdate({
+                _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" }, holdExpiresAt: { $gt: new Date() }
+            }, { $set: { paymentStatus: "paid", status: "confirmed", confirmedAt: now } }, { returnDocument: "after" });
+            if (!confirmed) {
+                await rollbackSoldSeats(booking, claimToken);
+                return { success: false, message: `Booking ${bookingCode} changed during payment; manual reconciliation is required` };
+            }
+            Object.assign(booking, { paymentStatus: "paid", status: "confirmed", confirmedAt: now });
         } catch (error) {
-            // Best-effort rollback if confirming the Booking document fails
-            // after seats were marked sold.
-            await Seat.updateMany(
-                {
-                    _id: {
-                        $in: seatIds
-                    },
-                    eventId:
-                        booking.eventId,
-                    status: "sold"
-                },
-                {
-                    $set: {
-                        status: "held",
-                        holdToken:
-                            booking.holdToken,
-                        heldByUserId:
-                            booking.userId,
-                        holdExpiresAt:
-                            booking.holdExpiresAt
-                    }
-                }
-            );
-
+            await rollbackSoldSeats(booking, claimToken);
             throw error;
         }
 
@@ -483,6 +449,21 @@ export const processSePayPayment =
             message: `Booking ${bookingCode} successfully confirmed`
         };
     };
+
+// Persist only normalized reconciliation facts; never store webhook secrets or raw personal data.
+export const processSePayPayment = async payload => {
+    const payment = payload?.order?.order_invoice_number ? extractGatewayPayment(payload) : extractBalanceWebhookPayment(payload);
+    if (!payment.accepted) return { success: false, message: payment.message };
+    const review = await PaymentReview.create({ bookingCode: payment.bookingCode, amountReceived: Number.isFinite(payment.amountReceived) ? payment.amountReceived : null, outcome: "review_required", message: "Payment processing started; review if this attempt remains incomplete." });
+    try {
+        const result = await applySePayPayment(payload);
+        await PaymentReview.updateOne({ _id: review._id }, { $set: { outcome: result.success ? "accepted" : "review_required", message: result.message.slice(0, 1000) } });
+        return result;
+    } catch (error) {
+        await PaymentReview.updateOne({ _id: review._id }, { $set: { outcome: "error", message: "Payment processing failed; inspect booking, seats and payment provider before retrying." } });
+        throw error;
+    }
+};
 
 /**
  * Fallback reconciliation for local development / missed IPNs.

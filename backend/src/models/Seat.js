@@ -59,6 +59,10 @@ const seatSchema = new mongoose.Schema(
             index: true
         },
 
+        saleClaimToken: { type: String, default: null, select: false },
+
+        soldBookingId: { type: mongoose.Schema.Types.ObjectId, ref: "Booking", default: null, index: true },
+
         holdToken: {
             type: String,
             default: null

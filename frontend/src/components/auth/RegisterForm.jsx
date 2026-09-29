@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  ArrowLeft,
   ArrowRight,
   AtSign,
   Check,
@@ -16,7 +15,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { register } from "../../services/auth.service";
-import AuthLayout from "../../components/auth/AuthLayout";
 
 const RegisterForm = () => {
   const navigate = useNavigate();

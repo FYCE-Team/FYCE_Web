@@ -150,7 +150,7 @@ const AdminEvents = () => {
     const eventsPerPage = 10;
 
     const loadEvents = useCallback(
-        async (token = accessToken) => {
+        async function fetchEvents(token = accessToken, retried = false) {
             if (!token) {
                 return;
             }
@@ -184,10 +184,10 @@ const AdminEvents = () => {
                         await refreshSession();
 
                     if (
-                        refreshed?.accessToken
+                        refreshed?.accessToken && !retried
                     ) {
-                        return loadEvents(
-                            refreshed.accessToken
+                        return fetchEvents(
+                            refreshed.accessToken, true
                         );
                     }
 

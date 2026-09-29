@@ -1,15 +1,5 @@
 import nodemailer from "nodemailer";
 
-console.log("SMTP CONFIG:", {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: process.env.SMTP_SECURE,
-    user: process.env.SMTP_USER,
-    passwordExists: Boolean(
-        process.env.SMTP_PASSWORD
-    )
-});
-
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT),
@@ -95,18 +85,7 @@ export const sendVerificationEmail = async ({
     }
 };
 
-transporter.verify((error) => {
-    if (error) {
-        console.error(
-            "SMTP connection failed:",
-            error
-        );
-    } else {
-        console.log(
-            "SMTP server is ready"
-        );
-    }
-});
+
 export const sendPasswordResetOtpEmail = async ({
   to,
   otp,
