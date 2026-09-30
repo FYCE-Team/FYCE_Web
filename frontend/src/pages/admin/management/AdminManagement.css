@@ -36,6 +36,7 @@
   flex-wrap: wrap;
 }
 .am-page button,
+.am-page .am-actions > a,
 .am-page .am-primary,
 .am-tabs button {
   border: 1px solid #dce4de;
@@ -497,3 +498,7 @@
 .am-field { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
 .am-detail { scroll-margin-top: 24px; }
 .am-detail:focus-visible { outline: 2px solid var(--fyce-primary); outline-offset: 3px; }
+
+.am-page .am-actions > a:hover { background: #eef5fb; border-color: var(--fyce-primary); }
+.am-page button, .am-page .am-actions > a { min-height: 40px; transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease; }
+.am-page button:focus-visible, .am-page a:focus-visible { outline: 3px solid #84bceb; outline-offset: 3px; }

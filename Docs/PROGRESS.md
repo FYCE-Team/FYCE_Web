@@ -77,3 +77,10 @@ Commit chức năng `f50887f` đã push vào `FYCE-Team/FYCE_Web` nhánh main. L
 - Hai ảnh GridFS bị thiếu đã khôi phục đúng ID và bytes gốc từ riêng images.files/images.chunks trong backup; kiểm tra sequence/chunk length/JPEG trước transaction, không overwrite, không phục hồi collection khác. Cả hai URL production trả JPEG 200. Backup không dùng làm fixture, không thay đổi và không commit.
 - Người dùng xác nhận riêng cho phép đối chiếu/cấp vé đơn được cung cấp. Kết quả: confirmed/paid, 1 vé ghế K02; retry không nhân đôi. Chrome local reload giữ phiên, hiển thị QR. Email job sent lúc 08:41:28; chưa chứng minh inbox delivery.
 - 47/47 tests, build/cú pháp/diff đạt; lint 0 lỗi/16 warning. Render dashboard chưa đăng nhập, chưa đọc được log để kết luận nguyên nhân riêng của 502 trước đó. Code phân biệt 401/403 cấu hình và 429 giới hạn thay vì gộp mọi lỗi thành thông báo chung.
+
+## Checkout, Back/Forward và giao diện vé
+
+- Thay hàm ký checkout của SDK bằng hàm chung createSePayCheckout theo thứ tự canonical tài liệu SePay: order_amount, merchant, currency, operation, order_description, order_invoice_number, payment_method, success_url, error_url, cancel_url. Cả tạo đơn và trả tiền lại dùng cùng hợp đồng. Không ghi secret/signature vào log.
+- AuthContext xử lý pageshow.persisted: khôi phục phiên khi trở lại từ BFCache, hiển thị loading trong lúc refresh, giữ HttpOnly cookie và access token trong memory.
+- Bỏ pseudo-element nét đứt trên ticket-pass, không che QR. Link hành động trong admin có border/padding/hover/focus tương đương button, giới hạn trong am-page; không đổi footer.
+- 48/48 integration tests đạt; build và lint đạt (16 warning cũ). Cần tiếp tục nghiệm thu checkout tại provider với đơn mới; không tự tạo giao dịch tiền thật để test. Lỗi PUT About legacy đã có test đúng dữ liệu thiếu createdBy; nếu production còn lỗi cần xác minh Render đang chạy commit mới.

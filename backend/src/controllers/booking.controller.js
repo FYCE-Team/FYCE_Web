@@ -6,13 +6,9 @@ import {
     getActiveBookingByEvent,
     cancelBooking
 } from "../services/booking.service.js";
-import { SePayPgClient } from "sepay-pg-node";
+import { createSePayCheckout } from "../services/sepayCheckout.service.js";
 import { reconcileSePayPayment } from "../services/payment.service.js";
 
-const getSePayEnvironment = () =>
-    process.env.SEPAY_ENV === "production"
-        ? "production"
-        : "sandbox";
 
 export const paymentReturnOrigin = (req) => {
     const configured = process.env.CLIENT_URL || "http://localhost:5173";
@@ -270,36 +266,7 @@ export const create = async (
 
         let sepayCheckout = null;
 
-        // Initialize SePay Payment Gateway if credentials exist
-        if (process.env.SEPAY_MERCHANT_ID && process.env.SEPAY_SECRET_KEY) {
-            const client = new SePayPgClient({
-                env: getSePayEnvironment(),
-                merchant_id: process.env.SEPAY_MERCHANT_ID,
-                secret_key: process.env.SEPAY_SECRET_KEY
-            });
-
-            const clientUrl = paymentReturnOrigin(req);
-            const successUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=success`;
-            const cancelUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=cancel`;
-            const errorUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=error`;
-
-            const checkoutFormFields = client.checkout.initOneTimePaymentFields({
-                operation: "PURCHASE",
-                payment_method: "BANK_TRANSFER", // Using BANK_TRANSFER to default to VietQR
-                order_invoice_number: booking.bookingCode,
-                order_amount: booking.totalAmount,
-                currency: "VND",
-                order_description: booking.bookingCode,
-                success_url: successUrl,
-                error_url: errorUrl,
-                cancel_url: cancelUrl
-            });
-
-            sepayCheckout = {
-                checkoutURL: client.checkout.initCheckoutUrl(),
-                formFields: checkoutFormFields
-            };
-        }
+        sepayCheckout = createSePayCheckout(booking, paymentReturnOrigin(req));
 
         return res.status(201).json({
             success: true,
@@ -555,36 +522,7 @@ export const pay = async (
 
         let sepayCheckout = null;
 
-        // Initialize SePay Payment Gateway if credentials exist
-        if (process.env.SEPAY_MERCHANT_ID && process.env.SEPAY_SECRET_KEY) {
-            const client = new SePayPgClient({
-                env: getSePayEnvironment(),
-                merchant_id: process.env.SEPAY_MERCHANT_ID,
-                secret_key: process.env.SEPAY_SECRET_KEY
-            });
-
-            const clientUrl = paymentReturnOrigin(req);
-            const successUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=success`;
-            const cancelUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=cancel`;
-            const errorUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=error`;
-
-            const checkoutFormFields = client.checkout.initOneTimePaymentFields({
-                operation: "PURCHASE",
-                payment_method: "BANK_TRANSFER",
-                order_invoice_number: booking.bookingCode,
-                order_amount: booking.totalAmount,
-                currency: "VND",
-                order_description: booking.bookingCode,
-                success_url: successUrl,
-                error_url: errorUrl,
-                cancel_url: cancelUrl
-            });
-
-            sepayCheckout = {
-                checkoutURL: client.checkout.initCheckoutUrl(),
-                formFields: checkoutFormFields
-            };
-        }
+        sepayCheckout = createSePayCheckout(booking, paymentReturnOrigin(req));
 
         return res.status(200).json({
             success: true,

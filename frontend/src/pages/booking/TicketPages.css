@@ -362,15 +362,6 @@
     padding: 20px;
 }
 
-.ticket-pass::after {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 118px;
-    border-left: 1px dashed #d8e4ec;
-    content: "";
-}
-
 .ticket-pass-seat {
     display: flex;
     align-items: center;
@@ -659,10 +650,6 @@
 
     .ticket-pass {
         padding: 16px;
-    }
-
-    .ticket-pass::after {
-        display: none;
     }
 
     .ticket-pass-content {

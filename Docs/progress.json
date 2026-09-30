@@ -6,11 +6,11 @@
     "total": 10,
     "percent": 80
   },
-  "status": "deployed_health_verified_pending_live_provider_acceptance",
+  "status": "checkout_and_bfcache_fix_verified_locally_pending_deploy_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 47,
-    "integrationPassed": 47,
+    "integrationWritten": 48,
+    "integrationPassed": 48,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,

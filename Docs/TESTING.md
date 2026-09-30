@@ -63,3 +63,5 @@ Xem `LOCAL_SETUP.md` để chạy frontend/backend đúng cổng, xử lý Googl
 - Live read-only trước deploy: Vercel /api/health trả HTML index (proxy chưa triển khai), Render /api/health trả JSON 200. Chưa có mã đơn lỗi từ người dùng để kết luận nguyên nhân của riêng giao dịch đó.
 
 Ca hồi quy mới: sửa About raw legacy không author/trùng sortOrder; CAPTURED không transactions chỉ nhận qua REST, không tin IPN thiếu transaction hoặc sai currency; bank webhook tham chiếu PAY...; HMAC raw JSON và timestamp replay. Đơn thật và ảnh khôi phục là xử lý nghiệp vụ được cho phép riêng, không phải fixture test.
+
+Checkout canonical signing regression: đối chiếu chuỗi thứ tự trường cố định và HMAC với expected độc lập; cả 48 ca đạt.

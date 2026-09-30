@@ -975,3 +975,19 @@ test("HMAC webhook verifies raw bytes and rejects replay timestamps", async () =
     assert.equal(result.status, 200); assert.equal((await result.json()).success, true);
   } finally { if (previous === undefined) delete process.env.SEPAY_WEBHOOK_SECRET; else process.env.SEPAY_WEBHOOK_SECRET = previous; }
 });
+
+test("checkout signature and form order match SePay canonical protocol", async () => {
+  const { createSePayCheckout } = await import("../src/services/sepayCheckout.service.js");
+  const { createHmac } = await import("node:crypto");
+  const old = { merchant: process.env.SEPAY_MERCHANT_ID, secret: process.env.SEPAY_SECRET_KEY, env: process.env.SEPAY_ENV };
+  Object.assign(process.env, { SEPAY_MERCHANT_ID: "QA_MERCHANT", SEPAY_SECRET_KEY: "qa-only", SEPAY_ENV: "production" });
+  try {
+    const result = createSePayCheckout({ bookingCode: "FYCE-20260930-ABCDEF01", totalAmount: 10000 }, "https://fyce-web.vercel.app");
+    const expected = "order_amount=10000,merchant=QA_MERCHANT,currency=VND,operation=PURCHASE,order_description=FYCE-20260930-ABCDEF01,order_invoice_number=FYCE-20260930-ABCDEF01,payment_method=BANK_TRANSFER,success_url=https://fyce-web.vercel.app/bookings/FYCE-20260930-ABCDEF01?payment=success,error_url=https://fyce-web.vercel.app/bookings/FYCE-20260930-ABCDEF01?payment=error,cancel_url=https://fyce-web.vercel.app/bookings/FYCE-20260930-ABCDEF01?payment=cancel";
+    const { signature, ...fields } = result.formFields;
+    assert.equal(Object.entries(fields).map(([k,v]) => `${k}=${v}`).join(","), expected);
+    assert.equal(signature, createHmac("sha256", "qa-only").update(expected).digest("base64"));
+    assert.equal(result.checkoutURL, "https://pay.sepay.vn/v1/checkout/init");
+    assert.throws(() => createSePayCheckout({ totalAmount: 0 }, "https://example.test"), /BOOKING_AMOUNT_INVALID/);
+  } finally { for (const [key,value] of Object.entries({ SEPAY_MERCHANT_ID: old.merchant, SEPAY_SECRET_KEY: old.secret, SEPAY_ENV: old.env })) { if (value === undefined) delete process.env[key]; else process.env[key] = value; } }
+});

@@ -81,6 +81,16 @@ export const AuthProvider = ({
         bootstrap();
     }, [refreshSession]);
 
+    useEffect(() => {
+        const restore = event => {
+            if (!event.persisted) return;
+            setLoading(true);
+            void refreshSession().finally(() => setLoading(false));
+        };
+        window.addEventListener("pageshow", restore);
+        return () => window.removeEventListener("pageshow", restore);
+    }, [refreshSession]);
+
     const login = useCallback(
         async ({
             identifier,
