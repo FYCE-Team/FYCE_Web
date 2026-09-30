@@ -1,6 +1,6 @@
 # Kiến trúc FYCEweb — bản ghi từ mã nguồn
 
-Cập nhật: 2026-09-29. Checkout ban đầu không có thư mục Docs, AGENTS.md hay tài liệu kiến trúc riêng; chỉ có README mặc định của Vite. Tài liệu này mô tả hệ thống thực tế, không giả định các quy tắc thiết kế chưa được cung cấp.
+Cập nhật: 2026-09-30. Checkout ban đầu không có thư mục Docs, AGENTS.md hay tài liệu kiến trúc riêng; chỉ có README mặc định của Vite. Tài liệu này mô tả hệ thống thực tế, không giả định các quy tắc thiết kế chưa được cung cấp.
 
 ## Các lớp và thư mục
 
@@ -17,7 +17,7 @@ Cập nhật: 2026-09-29. Checkout ban đầu không có thư mục Docs, AGENTS
 | `backend/src/routes/`                    | Định tuyến, middleware xác thực và phân quyền. Có 13 file routes sau cập nhật.                                           |
 | `backend/src/controllers/`               | Chuyển HTTP request/response và ánh xạ lỗi. Admin trả `{ success, data }`.                                               |
 | `backend/src/services/`                  | Nghiệp vụ và truy vấn; không đưa logic thanh toán vào frontend.                                                          |
-| `backend/src/models/`                    | 16 Mongoose models sau cập nhật. Không đổi tên collection/enum đã có.                                                    |
+| `backend/src/models/`                    | 17 Mongoose models sau cập nhật. Không đổi tên collection/enum đã có.                                                    |
 | `backend/src/scripts/`                   | Seed/migration ghế, ảnh/video GridFS. Không tự chạy trên DB thật.                                                        |
 | `backend/test/admin.integration.test.js` | Kiểm thử HTTP + MongoDB riêng; không đọc `.env`.                                                                         |
 | `fyce_backup/`                           | Bản dump tồn tại trước phiên làm việc, chứa dữ liệu nhạy cảm. Không dùng làm fixture, không sửa và không đưa vào commit. |
@@ -68,6 +68,18 @@ API cũ giữ nguyên đường dẫn/response. `/api/tickets/admin/verify` và 
 
 ## Giới hạn kiến trúc còn lại
 
-Luồng hoàn vé mới dùng transaction nhiều document trên replica set (snapshot/majority). Luồng thanh toán cũ chưa dùng transaction/outbox. Các kiểm thử xác nhận các tình huống tranh chấp được bổ sung, nhưng không thể bảo đảm crash-consistency khi process/DB ngắt giữa bước cập nhật ghế và xác nhận booking. PaymentReview ghi nhận lần xử lý dở để đối soát; phải kiểm tra booking/seat/provider trước khi sửa. Transaction/outbox cho thanh toán vẫn là phần cần triển khai và kiểm thử thêm.
+Thanh toán và hoàn vé dùng MongoDB transaction (snapshot/majority). Xác nhận thanh toán commit Booking/Seat/Ticket/TicketEmail cùng nhau; lỗi phát hành vé rollback toàn bộ. PaymentReview ghi ngoài transaction để lưu cả lần xử lý lỗi. Email là tác vụ bền vững tách khỏi xác nhận tiền; lỗi gửi không làm mất vé. SMTP có thể gửi trùng nếu process dừng sau khi nhà cung cấp nhận thư nhưng trước khi ghi sent; không tuyên bố exactly-once. Resend hỗ trợ idempotency trong 24 giờ, không bảo đảm chống trùng vô hạn.
 
 Các service CMS cũ vẫn cho phép gọi không có version token; giao diện mới chỉ gọi endpoint admin có kiểm soát phiên bản. Consumer cũ cần được chuyển sang hợp đồng mới nếu muốn cùng bảo đảm chống ghi đè.
+
+## Luồng production Vercel → Render (2026-09-30)
+
+- Frontend production gọi `/api`, cấu hình tập trung `src/config/api.js`; Vercel proxy API/uploads trước SPA fallback. Cookie refresh thuộc origin frontend, HttpOnly/Secure/SameSite=Lax/path=/api/auth. Cần đăng nhập lại một lần sau chuyển từ cookie Render cũ.
+- Frontend gộp refresh đồng thời; backend xoay token bằng CAS, previous hash có grace 30 giây. Không xóa phiên chỉ vì mất mạng/5xx. Logout thu hồi phiên. Access token vẫn chỉ trong bộ nhớ.
+- Google GIS initialize một lần theo client ID; nút có thể render lại. COOP cho phép popup. Authorized origins vẫn phải cấu hình trên Google Cloud.
+- SePay REST xác minh invoice chính xác; nếu detail không nhận invoice thì tìm order_id rồi đọc detail. Chỉ CAPTURED + APPROVED PAYMENT, tiền VND đủ giá đơn mới xử lý. URL success/error/cancel không phải bằng chứng thanh toán.
+- IPN xác thực X-Secret-Key (SEPAY_IPN_SECRET hoặc SEPAY_SECRET_KEY); balance webhook dùng cấu hình riêng. Không lưu/log payload nhạy cảm.
+- `paymentSync.service.js`: fallback tự động ở server, tick 15s, batch tối đa 10, claim bền vững 2 phút chống nhiều worker; pending thử lại 30s, expired 5 phút, lỗi backoff tối đa 15 phút. Chỉ quét đơn chưa trả tiền tạo trong 48 giờ, chưa đánh dấu cần admin đối chiếu. Đơn cũ hơn vẫn đối chiếu theo API người mua/admin. Worker chỉ chạy khi server thức và có khóa SePay.
+- Thanh toán đến trễ được tự động nhận nếu thời điểm trả tiền từ provider nằm trong hạn giữ ghế và tất cả ghế vẫn rảnh/thuộc hold cũ; không lấy ghế đã thuộc người khác. Thanh toán quá hạn hoặc lệch tiền/ghế bật paymentReviewRequired. Admin phải đối chiếu thực tế, không ép paid.
+- `TicketEmail`: unique bookingId, lease 2 phút, retry bền vững; tạo PNG QR tại server, CID trong thư và file đính kèm. Chọn SMTP hoặc HTTPS Resend; không gọi dịch vụ QR bên ngoài. Chỉ gửi vé valid của đơn paid/confirmed; QR đã hoàn vẫn bị từ chối ở check-in.
+- CMS form chính tập trung nội dung/upload/hiển thị; thông số phụ trong mục nâng cao. Backend mặc định thứ tự/alt text và đánh số feature. Footer giữ nguyên.

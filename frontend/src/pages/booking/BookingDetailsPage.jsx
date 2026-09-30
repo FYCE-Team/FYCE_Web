@@ -28,9 +28,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import "./TicketPages.css";
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:3000/api";
+import { API_BASE_URL } from "../../config/api.js";
 
 const formatPrice = (value) =>
     `${new Intl.NumberFormat("vi-VN").format(
@@ -113,6 +111,7 @@ const BookingDetailsPage = () => {
         refreshSession
     } = useAuth();
 
+    const [syncError, setSyncError] = useState("");
     const [clockNow, setClockNow] = useState(() => Date.now());
     useEffect(() => {
         const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -317,8 +316,10 @@ const BookingDetailsPage = () => {
                     );
                 }
 
+                setSyncError("");
                 return data;
             } catch (err) {
+                setSyncError(err.message || "Chưa kết nối được SePay để đối chiếu. Hệ thống sẽ thử lại; không chuyển khoản lại.");
                 if (!silent) {
                     setError(
                         err.message ||
@@ -345,8 +346,7 @@ const BookingDetailsPage = () => {
         }
 
         if (
-            paymentStatusQuery ===
-            "success"
+            ["success", "cancel", "error"].includes(paymentStatusQuery)
         ) {
             syncPayment().then(
                 (data) => {
@@ -370,21 +370,19 @@ const BookingDetailsPage = () => {
 
     useEffect(() => {
         const shouldPoll =
-            paymentStatusQuery === "success" &&
-            booking?.status ===
-                "pending_payment" &&
+            ["pending_payment", "expired"].includes(booking?.status) &&
             booking?.paymentStatus !== "paid";
 
         if (!shouldPoll) {
             return undefined;
         }
 
-        const pollInterval =
-            window.setInterval(() => {
-                syncPayment({
-                    silent: true
-                });
-            }, 3000);
+        let running = false;
+        const pollInterval = window.setInterval(async () => {
+            if (running || document.hidden) return;
+            running = true;
+            try { await syncPayment({ silent: true }); } finally { running = false; }
+        }, 10000);
 
         return () =>
             window.clearInterval(
@@ -649,9 +647,7 @@ const BookingDetailsPage = () => {
                         </div>
                     )}
 
-                {paymentStatusQuery ===
-                    "success" &&
-                    isValidTicket && (
+                {isValidTicket && (
                         <div className="ticket-alert ticket-alert--success">
                             <CheckCircle2
                                 size={18}
@@ -677,17 +673,19 @@ const BookingDetailsPage = () => {
                     )}
 
                 {paymentStatusQuery ===
-                    "error" && (
+                    "error" && !isValidTicket && !booking.paymentReviewRequired && (
                         <div className="ticket-alert ticket-alert--danger">
                             <XCircle
                                 size={18}
                             />
                             <span>
-                                Thanh toán chưa hoàn tất. Không có khoản thanh toán nào được ghi nhận cho đến khi FYCE nhận xác nhận hợp lệ từ SePay.
+                                Cổng thanh toán trả về thông báo lỗi. FYCE đang kiểm tra lại trạng thái thực tế; nếu bạn đã chuyển khoản, không thanh toán lần nữa.
                             </span>
                         </div>
                     )}
 
+                {syncError && !isValidTicket && <div className="ticket-alert ticket-alert--warning" role="status">{syncError}</div>}
+                {booking.paymentReviewRequired && <div className="ticket-alert ticket-alert--warning" role="alert">FYCE đã nhận thông báo giao dịch nhưng cần đối chiếu ghế/số tiền. Không chuyển khoản lại; liên hệ admin với mã đơn {booking.bookingCode}. Vé chỉ được phát hành khi đối chiếu hợp lệ.</div>}
                 {error && (
                     <div className="ticket-alert ticket-alert--danger">
                         <AlertTriangle

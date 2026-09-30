@@ -35,7 +35,7 @@ const isGatewayPayload = (payload) =>
 
 const authorizeGatewayIpn = (req) => {
     const secret =
-        process.env.SEPAY_SECRET_KEY;
+        process.env.SEPAY_IPN_SECRET || process.env.SEPAY_SECRET_KEY;
 
     if (!secret) {
         return {
@@ -78,7 +78,7 @@ const authorizeBalanceWebhook = (req) => {
     const timestamp = req.get("x-sepay-timestamp");
 
     if (signature && timestamp) {
-        const payload = JSON.stringify(req.body);
+        const payload = req.rawBody || JSON.stringify(req.body);
         const expected = "sha256=" + createHmac("sha256", webhookToken)
             .update(timestamp + "." + payload)
             .digest("hex");

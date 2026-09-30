@@ -23,13 +23,15 @@ const getTicketQrSecret = () => {
 };
 
 export const createTicketQrPayload = (
-    ticket
+    ticket,
+    issuedAt = null
 ) => {
     const token = jwt.sign(
         {
             typ: "fyce-ticket",
             tid: String(ticket._id),
-            ver: ticket.qrVersion
+            ver: ticket.qrVersion,
+            ...(issuedAt ? { iat: Math.floor(new Date(issuedAt).getTime() / 1000) } : {})
         },
         getTicketQrSecret(),
         {

@@ -18,9 +18,7 @@ import {
 import SeatMap from "../../components/booking/SeatMap";
 import "./EventSeatBookingPage.css";
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:3000/api";
+import { API_BASE_URL } from "../../config/api.js";
 
 const formatDate = (date) => {
     if (!date) {

@@ -72,7 +72,16 @@ export const contentSave = async (kind, id, body, actor) => {
   }
   if (payload.isActive !== undefined && typeof payload.isActive !== "boolean")
     fail(400, "Trạng thái không hợp lệ.");
-  if (!id) return Model.create({ ...payload, createdBy: actor });
+  if (Array.isArray(payload.features)) payload.features = payload.features.map((feature, index) => ({ ...feature, sortOrder: index }));
+  if (!id) {
+    if (payload.sortOrder === undefined) {
+      const last = await Model.findOne().sort({ sortOrder: -1 }).select("sortOrder").lean();
+      payload.sortOrder = (last?.sortOrder ?? -1) + 1;
+    }
+    if (kind === "about" && !payload.imageAlt) payload.imageAlt = payload.title || "FYCE";
+    if (kind === "gallery" && !payload.altText) payload.altText = payload.title || payload.caption || "Hoạt động FYCE";
+    return Model.create({ ...payload, createdBy: actor });
+  }
   const record = await Model.findById(objectId(id));
   if (!record) fail(404, "Không tìm thấy nội dung.");
   if (

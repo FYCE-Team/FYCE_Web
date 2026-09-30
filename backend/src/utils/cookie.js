@@ -16,7 +16,7 @@ export const setRefreshTokenCookie = (
             sameSite:
                 process.env.NODE_ENV ===
                 "production"
-                    ? "none"
+                    ? (process.env.REFRESH_COOKIE_SAME_SITE === "none" ? "none" : "lax")
                     : "lax",
 
             maxAge,
@@ -41,7 +41,7 @@ export const clearRefreshTokenCookie = (
             sameSite:
                 process.env.NODE_ENV ===
                 "production"
-                    ? "none"
+                    ? (process.env.REFRESH_COOKIE_SAME_SITE === "none" ? "none" : "lax")
                     : "lax",
 
             path: "/api/auth"

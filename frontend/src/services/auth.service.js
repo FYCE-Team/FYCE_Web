@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_BASE_URL;
+import { API_BASE_URL as API_URL } from "../config/api.js";
 
 export const register = async (data) => {
     const response = await fetch(
@@ -167,7 +167,7 @@ export const loginWithGoogle = async (
     return result;
 };
 
-export const refresh = async () => {
+const performRefresh = async () => {
     const response = await fetch(
         `${API_URL}/auth/refresh`,
         {
@@ -180,10 +180,7 @@ export const refresh = async () => {
         await response.json();
 
     if (!response.ok) {
-        throw new Error(
-            result.message ||
-            "Không thể làm mới phiên đăng nhập"
-        );
+        throw Object.assign(new Error(result.message || "Không thể làm mới phiên đăng nhập"), { status: response.status });
     }
 
     return result;
@@ -347,3 +344,10 @@ export const updateProfile = async (
     return result;
 };
 
+
+// Share bootstrap/401 refreshes, including StrictMode's repeated effect.
+let refreshInFlight = null;
+export const refresh = () => {
+    if (!refreshInFlight) refreshInFlight = performRefresh().finally(() => { refreshInFlight = null; });
+    return refreshInFlight;
+};

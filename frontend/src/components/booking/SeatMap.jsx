@@ -6,9 +6,7 @@ import {
 } from "react";
 import "./SeatMap.css";
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:3000/api";
+import { API_BASE_URL } from "../../config/api.js";
 
 const EMPTY_SELECTED_SEAT_IDS = [];
 const CANVAS_WIDTH = 1456;

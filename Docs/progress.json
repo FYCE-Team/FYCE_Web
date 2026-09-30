@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-29",
+  "updatedAt": "2026-09-30",
   "scope": "FYCEweb repository only",
   "acceptance": {
     "completed": 8,
@@ -9,8 +9,8 @@
   "status": "implemented_pending_browser_and_provider_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 35,
-    "integrationPassed": 35,
+    "integrationWritten": 44,
+    "integrationPassed": 44,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,
@@ -23,12 +23,14 @@
     "gitDiffCheck": "passed"
   },
   "blockedChecks": [
-    "Mobile and physical camera acceptance pending; Safari desktop subset verified",
-    "Google Cloud authorized origins require external configuration; Google OAuth end-to-end unverified",
-    "Live SePay sandbox and SMTP unverified"
+    "Google Cloud exact production origin configuration and live OAuth unverified",
+    "Live SePay IPN/REST and email delivery unverified; failed booking code not supplied yet",
+    "Mobile and physical camera acceptance pending"
   ],
   "knownLimits": [
-    "Payment flow still has no cross-collection transaction/outbox crash guarantee; manual refund uses transactions",
+    "External provider and deployed payment acceptance still pending",
+    "Email SMTP can duplicate after provider acknowledgement/process crash; Resend idempotency lasts 24 hours",
+    "Background workers require running Render instance; reconciliation scans recent 48h only",
     "Legacy CMS writers do not require version tokens",
     "Refund is offline confirmation only; no automated money transfer"
   ],
@@ -36,14 +38,15 @@
     "Docs/PROGRESS.md",
     "Docs/ARCHITECTURE.md",
     "Docs/TESTING.md",
-    "Docs/LOCAL_SETUP.md"
+    "Docs/LOCAL_SETUP.md",
+    "Docs/DEPLOYMENT.md"
   ],
   "existingUntrackedData": "fyce_backup/ (untouched, do not commit)",
-  "testEnvironment": "Isolated replica set localhost:27028/fyce_admin_test; temporary MongoDB/API3018/Vite5174 stopped after tests; real development API3000 and frontend5173 retained",
+  "testEnvironment": "Isolated localhost:27028/fyce_admin_test only; QA API3018/Vite5174/Mongo27028 stopped after verification; real database not used for tests",
   "runtime": {
-    "applicationApi": "localhost:3000 running; Atlas connected; health/homepage HTTP 200",
-    "cors": "development localhost:5173 allowed; production explicit allowlist",
-    "googleClientIdsMatch": true,
-    "publicBrowser": "Safari localhost:5173 homepage rendered real CMS and event data"
+    "productionFrontend": "https://fyce-web.vercel.app",
+    "productionBackend": "https://fyce-web.onrender.com",
+    "preDeployObservation": "Vercel /api/health returns index HTML; new proxy not live yet",
+    "qaBrowser": "Safari same-origin login/reload/leave-and-return retained session; paid fixture shows QR even payment=error"
   }
 }

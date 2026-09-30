@@ -419,6 +419,9 @@ export default function AdminRecords({ kind }) {
             </form>
           )}
           {audit.tickets.some(t => t.refundedAt) && <><h3>Lịch sử hoàn vé thủ công</h3><ul>{audit.tickets.filter(t => t.refundedAt).map(t => <li key={t._id}>{t.seatLabel} · {t.ticketCode} · {dateTime(t.refundedAt)} · {t.refundedBy?.fullName || "Quản trị viên"} · {t.refundReason}</li>)}</ul></>}
+          {audit.booking.paymentReviewRequired && <p className="am-error">Đã nhận thông báo giao dịch cần đối chiếu. Kiểm tra số tiền và quyền sở hữu ghế trước khi xử lý với khách.</p>}
+          <h3>Email vé</h3>
+          <p>{audit.ticketEmail?.status === "sent" ? `Đã gửi lúc ${dateTime(audit.ticketEmail.sentAt)}` : audit.ticketEmail?.status === "skipped" ? "Không gửi vì đơn/vé không còn hiệu lực." : audit.ticketEmail ? `Đang chờ gửi / tự động thử lại. ${audit.ticketEmail.lastError || ""}` : "Chưa có yêu cầu gửi email vé."}</p>
           <h3>Lịch sử xử lý thanh toán</h3>
           {audit.payments?.length ? (
             <div className="am-table-wrap">

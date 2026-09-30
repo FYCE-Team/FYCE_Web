@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import Booking from "../models/Booking.js";
 import Seat from "../models/Seat.js";
+import TicketEmail from "../models/TicketEmail.js";
 import PaymentReview from "../models/PaymentReview.js";
 import { cancelBooking } from "./booking.service.js";
 import Ticket from "../models/Ticket.js";
@@ -312,7 +313,8 @@ export const getBookingAudit = async (id) => {
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
-  return { booking, tickets, seats, payments, issues };
+  const ticketEmail = await TicketEmail.findOne({ bookingId: booking._id }).select("status attempts sentAt lastError nextAttemptAt").lean();
+  return { booking, tickets, seats, payments, issues, ticketEmail };
 };
 export const reconcileAdminBooking = async (id) => {
   const booking = await Booking.findById(objectId(id));

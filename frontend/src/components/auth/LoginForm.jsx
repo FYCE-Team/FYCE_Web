@@ -14,9 +14,7 @@ import {
     useNavigate
 } from "react-router-dom";
 
-import {
-    GoogleLogin
-} from "@react-oauth/google";
+import GoogleLogin from "./GoogleSignInButton.jsx";
 
 import {
     useAuth

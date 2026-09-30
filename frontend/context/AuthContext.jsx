@@ -3,6 +3,7 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useRef,
     useState
 } from "react";
 
@@ -34,8 +35,12 @@ export const AuthProvider = ({
         setLoading
     ] = useState(true);
 
+    const [sessionError, setSessionError] = useState("");
+    const authGeneration = useRef(0);
+
     const refreshSession =
         useCallback(async () => {
+            const generation = authGeneration.current;
             try {
                 const result =
                     await refreshRequest();
@@ -46,6 +51,8 @@ export const AuthProvider = ({
                 const currentUser =
                     result.data.user;
 
+                if (generation !== authGeneration.current) return null;
+                setSessionError("");
                 setAccessToken(token);
                 setUser(currentUser);
 
@@ -53,10 +60,13 @@ export const AuthProvider = ({
                     accessToken: token,
                     user: currentUser
                 };
-            } catch {
-                setAccessToken(null);
-                setUser(null);
-
+            } catch (error) {
+                if (generation !== authGeneration.current) return null;
+                if ([401, 403].includes(error.status)) {
+                    setAccessToken(null); setUser(null); setSessionError("");
+                } else {
+                    setSessionError("Chưa kết nối được máy chủ để khôi phục phiên. Vui lòng thử lại.");
+                }
                 return null;
             }
         }, []);
@@ -77,6 +87,8 @@ export const AuthProvider = ({
             password,
             rememberMe
         }) => {
+            authGeneration.current += 1;
+            setSessionError("");
             const result =
                 await loginRequest({
                     identifier,
@@ -101,6 +113,8 @@ export const AuthProvider = ({
     const loginWithGoogle =
         useCallback(
             async (credential) => {
+                authGeneration.current += 1;
+                setSessionError("");
                 const result =
                     await googleLoginRequest(
                         credential
@@ -214,6 +228,8 @@ export const AuthProvider = ({
 
     const logout = useCallback(
         async () => {
+            authGeneration.current += 1;
+            setSessionError("");
             try {
                 await logoutRequest();
             } finally {
@@ -225,6 +241,7 @@ export const AuthProvider = ({
     );
 
     const value = {
+        sessionError,
         accessToken,
         user,
         loading,

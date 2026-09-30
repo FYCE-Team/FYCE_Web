@@ -63,3 +63,10 @@ export const ticketScanRateLimit = rateLimit({
             "Quá nhiều yêu cầu quét vé. Vui lòng thử lại sau."
     }
 });
+
+// Authenticated reconciliation is bounded per account, independent of proxy IPs.
+export const paymentSyncRateLimit = rateLimit({
+    windowMs: 60000, limit: 30, keyGenerator: req => String(req.user.userId),
+    standardHeaders: "draft-8", legacyHeaders: false,
+    message: { success: false, message: "Đang kiểm tra thanh toán. Vui lòng đợi một phút trước khi thử lại." }
+});

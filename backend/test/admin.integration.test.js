@@ -1,3 +1,10 @@
+import TicketEmail from "../src/models/TicketEmail.js";
+import RefreshToken from "../src/models/RefreshToken.js";
+import { hashToken } from "../src/utils/token.js";
+import { refreshAccessToken } from "../src/services/refreshToken.service.js";
+import { deliverNextTicketEmail, buildTicketEmail } from "../src/services/ticketEmail.service.js";
+import { retrieveSePayOrderByInvoice } from "../src/services/payment.service.js";
+import { paymentReturnOrigin } from "../src/controllers/booking.controller.js";
 import test, { before, after } from "node:test";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
@@ -35,6 +42,7 @@ before(async () => {
   process.env.JWT_ACCESS_SECRET =
     "fyce-isolated-test-secret-not-for-production";
   process.env.JWT_ACCESS_EXPIRES = "1h";
+  process.env.JWT_REFRESH_SECRET = "fyce-test-refresh-only";
   process.env.TICKET_QR_SECRET =
     "fyce-isolated-qr-test-secret-not-for-production";
   // Never read .env or use application database. Fixed loopback test DB only.
@@ -42,7 +50,7 @@ before(async () => {
     serverSelectionTimeoutMS: 5000,
   });
   await mongoose.connection.dropDatabase();
-  await Promise.all([User.init(), Booking.init(), Ticket.init()]);
+  await Promise.all([User.init(), Booking.init(), Ticket.init(), TicketEmail.init(), RefreshToken.init(), Seat.init()]);
   admin = await User.create({
     username: "testadmin",
     fullName: "Admin thử nghiệm",
@@ -526,65 +534,15 @@ test("admin may cancel only pending unpaid bookings", async () => {
   );
 });
 
-test("partial seat sale is rolled back using the current attempt owner", async () => {
+test("payment transaction rolls back sold seats and booking when ticket issuance fails", async () => {
   const pending = await pendingFixture();
-  const extra = await Seat.create({
-    eventId: pending.eventId,
-    ticketCategoryId: pending.items[0].ticketCategoryId,
-    section: "center",
-    row: "A",
-    number: 2,
-    label: "A2",
-    position: { x: 40, y: 0 },
-    status: "held",
-    holdToken: pending.holdToken,
-    heldByUserId: pending.userId,
-    holdExpiresAt: pending.holdExpiresAt,
-  });
-  pending.items.push({
-    ...pending.items[0].toObject(),
-    seatId: extra._id,
-    seatLabel: "A2",
-    number: 2,
-    ticketCode: `${pending.items[0].ticketCode}-2`,
-  });
-  pending.subtotal = 200000;
-  pending.totalAmount = 200000;
-  await pending.save();
-  const original = Seat.countDocuments;
-  let injected = false;
-  Seat.countDocuments = async function (filter) {
-    const count = await original.call(this, filter);
-    if (!injected && filter.holdToken === pending.holdToken) {
-      injected = true;
-      await Seat.updateOne(
-        { _id: extra._id },
-        {
-          $set: {
-            status: "blocked",
-            holdToken: null,
-            heldByUserId: null,
-            holdExpiresAt: null,
-          },
-        },
-      );
-    }
-    return count;
-  };
-  try {
-    const payload = paymentFor(pending);
-    payload.order.order_amount = 200000;
-    payload.transaction.transaction_amount = 200000;
-    assert.equal((await processSePayPayment(payload)).success, false);
-    assert.equal((await Seat.findById(pending.items[0].seatId)).status, "held");
-    assert.equal((await Seat.findById(extra._id)).status, "blocked");
-    assert.equal(
-      (await Booking.findById(pending._id)).status,
-      "pending_payment",
-    );
-  } finally {
-    Seat.countDocuments = original;
-  }
+  const original = Ticket.bulkWrite;
+  Ticket.bulkWrite = async () => { throw new Error("QA_ISSUANCE_FAILURE"); };
+  try { await assert.rejects(processSePayPayment(paymentFor(pending)), /QA_ISSUANCE_FAILURE/); }
+  finally { Ticket.bulkWrite = original; }
+  assert.equal((await Seat.findById(pending.items[0].seatId)).status, "held");
+  assert.equal((await Booking.findById(pending._id)).status, "pending_payment");
+  assert.equal(await TicketEmail.countDocuments({ bookingId: pending._id }), 0);
 });
 
 test("public homepage reflects published content and excludes drafts", async () => {
@@ -791,4 +749,174 @@ test("already checked-in tickets cannot be refunded", async () => {
   assert.equal((await request("/tickets/admin/check-in", { method: "POST", body: { qrPayload: createTicketQrPayload(tickets[0]) } })).status, 200);
   assert.equal((await request(`/admin/bookings/${paid.id}/refund`, { method: "POST", body: refundBody(paid, tickets) })).status, 409);
   assert.equal((await Seat.findById(tickets[0].seatId)).status, "sold");
+});
+
+test("concurrent refreshes converge without losing the session, bounded grace rejects old tokens", async () => {
+  const ordinary = await User.findOne({ username: "createduser" });
+  const raw = "qa-refresh-concurrent-only";
+  const stored = await RefreshToken.create({ userId: ordinary._id, tokenHash: hashToken(raw), expiresAt: new Date(Date.now() + 3600000) });
+  const results = await Promise.all([1,2,3].map(() => refreshAccessToken(raw)));
+  assert.equal(new Set(results.map(r => r.refreshToken)).size, 1);
+  assert.notEqual(results[0].refreshToken, raw);
+  assert.equal(await RefreshToken.countDocuments({ _id: stored._id }), 1);
+  assert.equal((await refreshAccessToken(results[0].refreshToken)).refreshToken, results[0].refreshToken);
+  await RefreshToken.updateOne({ _id: stored._id }, { rotatedAt: new Date(Date.now() - 31000) });
+  await assert.rejects(refreshAccessToken(raw), /REFRESH_TOKEN_INVALID/);
+  assert.ok((await refreshAccessToken(results[0].refreshToken)).accessToken);
+});
+
+test("production login sets first-party secure cookie and refresh works after page navigation", async () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    const login = await fetch(`${base}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: "createduser", password: "Strong-test-1234" }) });
+    assert.equal(login.status, 200);
+    const cookie = login.headers.get("set-cookie");
+    assert.match(cookie, /HttpOnly/); assert.match(cookie, /Secure/); assert.match(cookie, /SameSite=Lax/); assert.match(cookie, /Path=\/api\/auth/);
+    const response = await fetch(`${base}/auth/refresh`, { method: "POST", headers: { Cookie: cookie.split(";")[0] } });
+    assert.equal(response.status, 200);
+    const rotated = response.headers.get("set-cookie").split(";")[0];
+    assert.equal((await fetch(`${base}/auth/logout`, { method: "POST", headers: { Cookie: rotated } })).status, 200);
+    assert.equal((await fetch(`${base}/auth/refresh`, { method: "POST", headers: { Cookie: rotated } })).status, 401);
+  } finally { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; }
+});
+
+test("return URLs stay on approved frontend origin and cannot be redirected to an attacker", () => {
+  const oldClient = process.env.CLIENT_URL, oldMode = process.env.NODE_ENV;
+  process.env.CLIENT_URL = "https://fyce-web.vercel.app"; process.env.NODE_ENV = "development";
+  try {
+    assert.equal(paymentReturnOrigin({ get: () => "http://localhost:5173" }), "http://localhost:5173");
+    assert.equal(paymentReturnOrigin({ get: () => "https://attacker.test" }), "https://fyce-web.vercel.app");
+  } finally {
+    if (oldClient === undefined) delete process.env.CLIENT_URL; else process.env.CLIENT_URL = oldClient;
+    if (oldMode === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldMode;
+  }
+});
+
+test("SePay reconciliation can resolve provider ID but never matches a different invoice", async () => {
+  const invoice = "FYCE-20260930-ABCDEF99";
+  const calls = [];
+  const client = { order: {
+    retrieve: async value => { calls.push(value); if (value === invoice) throw { response: { status: 404 } }; return { data: { data: { order_invoice_number: invoice, order_status: "CAPTURED" } } }; },
+    all: async () => ({ data: { data: [{ order_id: "provider-id", order_invoice_number: invoice }, { order_id: "unrelated", order_invoice_number: "other" }] } })
+  } };
+  assert.equal((await retrieveSePayOrderByInvoice(invoice, client)).order_invoice_number, invoice);
+  assert.deepEqual(calls, [invoice, "provider-id"]);
+  client.order.all = async () => ({ data: { data: [{ order_id: "unrelated", order_invoice_number: "other" }] } });
+  assert.equal(await retrieveSePayOrderByInvoice(invoice, client), null);
+});
+
+test("gateway IPN requires secret and confirmed PAYMENT; callback creates ticket and email job", async () => {
+  process.env.SEPAY_SECRET_KEY = "qa-gateway-secret-only";
+  const pending = await pendingFixture();
+  const payload = paymentFor(pending);
+  const call = secret => fetch(`${base}/payments/sepay-webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Secret-Key": secret }, body: JSON.stringify(payload) });
+  assert.equal((await call("wrong")).status, 401);
+  assert.equal((await Booking.findById(pending._id)).paymentStatus, "unpaid");
+  assert.equal((await (await call(process.env.SEPAY_SECRET_KEY)).json()).success, true);
+  assert.equal(await Ticket.countDocuments({ bookingId: pending._id }), 1);
+  assert.equal(await TicketEmail.countDocuments({ bookingId: pending._id }), 1);
+  assert.equal((await (await call(process.env.SEPAY_SECRET_KEY)).json()).success, true);
+  assert.equal(await TicketEmail.countDocuments({ bookingId: pending._id }), 1);
+  const outgoing = await pendingFixture();
+  const invalid = paymentFor(outgoing); invalid.transaction.transaction_type = "REFUND";
+  assert.equal((await processSePayPayment(invalid)).success, false);
+  assert.equal((await Booking.findById(outgoing._id)).paymentStatus, "unpaid");
+});
+
+test("delayed on-time payment recovers released seats only if still available", async () => {
+  const pending = await pendingFixture();
+  const paidAt = new Date(Date.now() - 2000);
+  await Booking.collection.updateOne({ _id: pending._id }, { $set: { status: "expired", createdAt: new Date(Date.now() - 10000), holdExpiresAt: new Date(Date.now() - 1000) } });
+  await Seat.updateOne({ _id: pending.items[0].seatId }, { status: "available", holdToken: null, heldByUserId: null, holdExpiresAt: null });
+  const payload = paymentFor(pending); payload.transaction.transaction_date = paidAt.toISOString();
+  assert.equal((await processSePayPayment(payload)).success, true);
+  assert.equal((await Booking.findById(pending._id)).paymentStatus, "paid");
+  const other = await pendingFixture();
+  await Booking.collection.updateOne({ _id: other._id }, { $set: { status: "expired", createdAt: new Date(Date.now() - 10000), holdExpiresAt: new Date(Date.now() - 1000) } });
+  await Seat.updateOne({ _id: other.items[0].seatId }, { status: "sold", soldBookingId: oid() });
+  const another = paymentFor(other); another.transaction.transaction_date = paidAt.toISOString();
+  assert.equal((await processSePayPayment(another)).success, false);
+  assert.equal((await Booking.findById(other._id)).paymentReviewRequired, true);
+  assert.equal(await Ticket.countDocuments({ bookingId: other._id }), 0);
+});
+
+test("email contains QR attachments, escapes HTML, and retries SMTP without reverting paid booking", async () => {
+  const { paid, tickets } = await paidFixture();
+  paid.customer.fullName = '<script>alert("x")</script>';
+  const mail = await buildTicketEmail(paid, tickets);
+  assert.equal(mail.to, paid.customer.email);
+  assert.match(mail.html, /&lt;script&gt;/); assert.ok(!mail.html.includes('<script>'));
+  assert.equal(mail.attachments.length, 1);
+  assert.equal(mail.attachments[0].content.subarray(1,4).toString(), "PNG");
+  assert.match(mail.html, new RegExp(`cid:${mail.attachments[0].cid}`));
+  // Isolate this job in the queue; no emails are delivered by this test.
+  await TicketEmail.updateMany({ bookingId: { $ne: paid._id } }, { nextAttemptAt: new Date(Date.now() + 86400000) });
+  assert.equal(await deliverNextTicketEmail(async () => { throw new Error("QA_SMTP_DOWN"); }), true);
+  let job = await TicketEmail.findOne({ bookingId: paid._id });
+  assert.equal(job.status, "pending"); assert.equal(job.attempts, 1);
+  assert.equal((await Booking.findById(paid._id)).paymentStatus, "paid");
+  await TicketEmail.updateOne({ _id: job._id }, { nextAttemptAt: new Date(0) });
+  let sent = 0;
+  await Promise.all([1,2].map(() => deliverNextTicketEmail(async message => { assert.equal(message.attachments.length, 1); sent++; })));
+  job = await TicketEmail.findById(job._id);
+  assert.equal(job.status, "sent"); assert.equal(sent, 1);
+});
+
+test("automatic reconciliation issues QR and email without an open browser or IPN", async () => {
+  const { reconcileNextPayment } = await import("../src/services/paymentSync.service.js");
+  const pending = await pendingFixture();
+  await Booking.updateMany({ _id: { $ne: pending._id } }, { paymentNextSyncAt: new Date(Date.now() + 86400000) });
+  const originalFetch = globalThis.fetch;
+  const originalMerchant = process.env.SEPAY_MERCHANT_ID;
+  process.env.SEPAY_MERCHANT_ID = "qa-merchant";
+  let calls = 0;
+  globalThis.fetch = async url => {
+    assert.ok(String(url).startsWith("https://pgapi-sandbox.sepay.vn/v1/"));
+    calls++;
+    if (String(url).endsWith(`/detail/${pending.bookingCode}`)) return new Response("{}", { status: 404 });
+    if (String(url).includes("/order?")) return Response.json({ data: [{ order_id: "SEPAY-QA", order_invoice_number: pending.bookingCode }] });
+    assert.ok(String(url).endsWith("/detail/SEPAY-QA"));
+    return Response.json({ data: { ...paymentFor(pending).order, transactions: [paymentFor(pending).transaction] } });
+  };
+  try {
+    const outcomes = await Promise.all([reconcileNextPayment(), reconcileNextPayment()]);
+    assert.equal(outcomes.filter(Boolean).length, 1);
+    assert.equal(calls, 3);
+    assert.equal((await Booking.findById(pending._id)).paymentStatus, "paid");
+    assert.equal((await Seat.findById(pending.items[0].seatId)).status, "sold");
+    const issued = await Ticket.findOne({ bookingId: pending._id });
+    assert.ok(issued); assert.ok(createTicketQrPayload(issued));
+    assert.equal(await TicketEmail.countDocuments({ bookingId: pending._id, status: "pending" }), 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalMerchant === undefined) delete process.env.SEPAY_MERCHANT_ID; else process.env.SEPAY_MERCHANT_ID = originalMerchant;
+  }
+  const retry = await pendingFixture();
+  await reconcileNextPayment(async () => { throw new Error("PROVIDER_UNAVAILABLE"); });
+  const waiting = await Booking.findById(retry._id);
+  assert.equal(waiting.paymentStatus, "unpaid");
+  assert.ok(waiting.paymentNextSyncAt > new Date());
+  assert.equal(await Ticket.countDocuments({ bookingId: retry._id }), 0);
+});
+
+test("HTTPS email transport preserves QR CID attachments and handles provider failures", async () => {
+  const { sendMail } = await import("../src/services/email.service.js");
+  const keys = ["EMAIL_PROVIDER", "RESEND_API_KEY", "EMAIL_FROM"];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  Object.assign(process.env, { EMAIL_PROVIDER: "resend", RESEND_API_KEY: "qa-fake-key", EMAIL_FROM: "FYCE <qa@example.test>" });
+  try {
+    const options = { to: "buyer@example.test", subject: "QA", messageId: "qa-ticket-once", html: '<img src="cid:qa-qr"/>', attachments: [{ filename: "qr.png", content: Buffer.from("qa-png"), cid: "qa-qr", contentType: "image/png" }] };
+    const result = await sendMail(options, async (url, request) => {
+      assert.equal(url, "https://api.resend.com/emails");
+      assert.equal(request.headers["Idempotency-Key"], options.messageId);
+      const body = JSON.parse(request.body);
+      assert.equal(body.from, process.env.EMAIL_FROM);
+      assert.equal(body.attachments[0].content_id, "qa-qr");
+      assert.equal(Buffer.from(body.attachments[0].content, "base64").toString(), "qa-png");
+      return Response.json({ id: "qa-message" });
+    });
+    assert.equal(result.messageId, "qa-message");
+    await assert.rejects(sendMail(options, async () => new Response("{}", { status: 429 })), /EMAIL_DELIVERY_FAILED/);
+  } finally { for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; } }
 });

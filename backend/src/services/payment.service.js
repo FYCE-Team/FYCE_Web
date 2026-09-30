@@ -1,8 +1,9 @@
+import mongoose from "mongoose";
+import { enqueueTicketEmail } from "./ticketEmail.service.js";
 import { randomUUID } from "node:crypto";
 import PaymentReview from "../models/PaymentReview.js";
 import Booking from "../models/Booking.js";
 import Seat from "../models/Seat.js";
-import { SePayPgClient } from "sepay-pg-node";
 import {
     ensureTicketsForBooking
 } from "./ticket.service.js";
@@ -24,11 +25,16 @@ const getSePayClient = () => {
         );
     }
 
-    return new SePayPgClient({
-        env: getSePayEnvironment(),
-        merchant_id: merchantId,
-        secret_key: secretKey
-    });
+    const api = getSePayEnvironment() === "production" ? "https://pgapi.sepay.vn/v1" : "https://pgapi-sandbox.sepay.vn/v1";
+    const request = async path => {
+        const response = await fetch(`${api}/${path}`, { headers: { Authorization: `Basic ${Buffer.from(`${merchantId}:${secretKey}`).toString("base64")}` }, signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw Object.assign(new Error("SEPAY_HTTP_ERROR"), { status: response.status });
+        return { data: await response.json() };
+    };
+    return { order: {
+        retrieve: key => request(`order/detail/${encodeURIComponent(key)}`),
+        all: query => request(`order?${new URLSearchParams(query)}`)
+    } };
 };
 
 const getSePayErrorStatus = (error) =>
@@ -57,51 +63,28 @@ const normalizeSePayOrderResponse = (response) => {
     return firstLevel || null;
 };
 
-const retrieveSePayOrderByInvoice = async (invoiceNumber) => {
+export const retrieveSePayOrderByInvoice = async (invoiceNumber, client = getSePayClient()) => {
     try {
-        const client = getSePayClient();
-
-        // Official SePay Node SDK expects order_invoice_number here,
-        // not SePay's internal order_id (PAY... / SEPAY-...).
-        const response =
-            await client.order.retrieve(
-                invoiceNumber
-            );
-
-        return normalizeSePayOrderResponse(
-            response
-        );
-    } catch (error) {
-        const status =
-            getSePayErrorStatus(error);
-
-        // Immediately after the success redirect, SePay may need a short
-        // moment before the order can be retrieved. Treat 404 as pending so
-        // the frontend polling loop can retry instead of surfacing a 502.
-        if (status === 404) {
-            return null;
+        try {
+            const direct = normalizeSePayOrderResponse(await client.order.retrieve(invoiceNumber));
+            if (direct?.order_invoice_number === invoiceNumber) return direct;
+        } catch (error) {
+            if (![400, 404, 422].includes(getSePayErrorStatus(error))) throw error;
         }
-
-        console.error(
-            "[SePay Reconcile] SDK retrieve failed",
-            {
-                status: status || null,
-                invoiceNumber,
-                message:
-                    error?.response?.data?.message ||
-                    error?.message ||
-                    "Unknown SePay SDK error",
-                response:
-                    error?.response?.data || null
-            }
-        );
-
-        const requestError = new Error(
-            "SEPAY_RECONCILIATION_REQUEST_FAILED"
-        );
-        requestError.status = status || 502;
-        requestError.cause = error;
-        throw requestError;
+        // Some gateway versions require provider order_id despite the SDK parameter name.
+        // Search is only a locator: exact invoice and detail response are verified again.
+        const response = await client.order.all({ q: invoiceNumber, per_page: 100 });
+        const raw = response?.data ?? response;
+        const entries = Array.isArray(raw?.data) ? raw.data : Array.isArray(raw) ? raw : [];
+        const matches = entries.filter(order => order.order_invoice_number === invoiceNumber);
+        if (!matches.length) return null;
+        if (matches.length !== 1 || !matches[0].order_id) throw new Error("AMBIGUOUS_SEPAY_ORDER");
+        const order = normalizeSePayOrderResponse(await client.order.retrieve(matches[0].order_id));
+        if (order?.order_invoice_number !== invoiceNumber) throw new Error("SEPAY_INVOICE_MISMATCH");
+        return order;
+    } catch (error) {
+        console.error("[SePay Reconcile] Request failed", { status: getSePayErrorStatus(error) || null });
+        throw new Error("SEPAY_RECONCILIATION_REQUEST_FAILED");
     }
 };
 
@@ -123,7 +106,8 @@ const extractGatewayPayment = (
         notificationType !==
             "ORDER_PAID" ||
         orderStatus !== "CAPTURED" ||
-        transactionStatus !== "APPROVED"
+        transactionStatus !== "APPROVED" ||
+        (payload?.transaction?.transaction_type && payload.transaction.transaction_type !== "PAYMENT")
     ) {
         return {
             accepted: false,
@@ -162,15 +146,7 @@ const extractGatewayPayment = (
             .trim()
             .toUpperCase(),
         amountReceived:
-            Number(
-                payload?.transaction
-                    ?.transaction_amount
-            ) ||
-            Number(
-                payload?.order
-                    ?.order_amount
-            ) ||
-            0
+            Number(payload?.transaction?.transaction_amount ?? payload?.order?.order_amount ?? 0)
     };
 };
 
@@ -229,226 +205,53 @@ const extractBalanceWebhookPayment = (
     };
 };
 
-const releaseExpiredBooking = async (booking, now) => {
-    const expired = await Booking.findOneAndUpdate({ _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" }, holdExpiresAt: { $lte: now } }, { $set: { status: "expired", expiredAt: now } }, { returnDocument: "after" });
-    if (!expired) return;
-    await Seat.updateMany({ _id: { $in: booking.items.map(item => item.seatId) }, eventId: booking.eventId, status: "held", holdToken: booking.holdToken, heldByUserId: booking.userId }, { $set: { status: "available", holdToken: null, heldByUserId: null, holdExpiresAt: null } });
+const paymentDate = payload => {
+    const value = payload?.transaction?.transaction_date || payload?.transactionDate;
+    if (!value || typeof value !== "string") return null;
+    const normalized = /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(value) ? value.replace(" ", "T") + "+07:00" : value;
+    const date = new Date(normalized);
+    return Number.isFinite(date.getTime()) && date <= new Date(Date.now() + 60000) ? date : null;
 };
 
-// Roll back only seats sold by this booking; never touch seats owned by another order.
-const rollbackSoldSeats = async (booking, claimToken) => {
-    const current = await Booking.findById(booking._id).lean();
-    if (current?.status === "confirmed" && current.paymentStatus === "paid") return;
-    const restoreHold = current?.status === "pending_payment" && current.holdExpiresAt > new Date();
-    await Seat.updateMany({ soldBookingId: booking._id, saleClaimToken: claimToken, status: "sold" }, { $set: {
-        status: restoreHold ? "held" : "available", soldBookingId: null, saleClaimToken: null,
-        holdToken: restoreHold ? booking.holdToken : null,
-        heldByUserId: restoreHold ? booking.userId : null,
-        holdExpiresAt: restoreHold ? booking.holdExpiresAt : null
-    } });
+const applySePayPayment = async payload => {
+    const payment = payload?.order?.order_invoice_number ? extractGatewayPayment(payload) : extractBalanceWebhookPayment(payload);
+    if (!payment.accepted) return { success: false, message: payment.message };
+    const { bookingCode, amountReceived } = payment;
+    return mongoose.connection.transaction(async session => {
+        const booking = await Booking.findOne({ bookingCode }).session(session);
+        const reject = message => ({ success: false, reviewRequired: true, message });
+        if (!booking) return reject(`Booking ${bookingCode} not found`);
+        if (booking.status === "confirmed" && booking.paymentStatus === "paid") {
+            await ensureTicketsForBooking(booking, session);
+            await enqueueTicketEmail(booking._id, session);
+            return { success: true, message: `Booking ${bookingCode} is already confirmed` };
+        }
+        if (!["pending_payment", "expired"].includes(booking.status)) return reject(`Booking ${bookingCode} is no longer payable; manual reconciliation is required`);
+        if (!Number.isFinite(amountReceived) || amountReceived < booking.totalAmount) return reject(`Insufficient amount. Expected ${booking.totalAmount}, got ${amountReceived}`);
+        const now = new Date(), paidAt = paymentDate(payload);
+        const live = booking.status === "pending_payment" && booking.holdExpiresAt > now;
+        // A delayed authenticated IPN can recover an on-time transfer only if every seat is still unclaimed.
+        const paidOnTime = paidAt && paidAt >= booking.createdAt && paidAt <= booking.holdExpiresAt;
+        if (!live && !paidOnTime) {
+            if (booking.status === "pending_payment") {
+                await Booking.updateOne({ _id: booking._id }, { status: "expired", expiredAt: now }, { session });
+                await Seat.updateMany({ _id: { $in: booking.items.map(i => i.seatId) }, status: "held", holdToken: booking.holdToken, heldByUserId: booking.userId }, { status: "available", holdToken: null, heldByUserId: null, holdExpiresAt: null }, { session });
+            }
+            return reject(`Booking ${bookingCode} expired; payment requires manual reconciliation`);
+        }
+        const seatIds = booking.items.map(i => i.seatId);
+        const ownership = { status: "held", holdToken: booking.holdToken, heldByUserId: booking.userId, ...(live ? { holdExpiresAt: { $gt: now } } : {}) };
+        const filter = { _id: { $in: seatIds }, eventId: booking.eventId, ...(live ? ownership : { $or: [ownership, { status: "available", soldBookingId: null }] }) };
+        if (await Seat.countDocuments(filter).session(session) !== seatIds.length) return reject(`Seat ownership for ${bookingCode} has changed; payment requires manual reconciliation`);
+        const sold = await Seat.updateMany(filter, { $set: { status: "sold", soldBookingId: booking._id, saleClaimToken: randomUUID(), holdToken: null, heldByUserId: null, holdExpiresAt: null } }, { session });
+        if (sold.modifiedCount !== seatIds.length) throw new Error("PAYMENT_SEAT_CONFLICT");
+        booking.status = "confirmed"; booking.paymentStatus = "paid"; booking.confirmedAt = now; booking.paymentReviewRequired = false;
+        await booking.save({ session });
+        await ensureTicketsForBooking(booking, session);
+        await enqueueTicketEmail(booking._id, session);
+        return { success: true, message: `Booking ${bookingCode} successfully confirmed` };
+    }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
 };
-
-/**
- * Process a confirmed payment webhook from SePay.
- * The booking is only confirmed while its seat hold is still valid.
- * Confirmed seats are permanently moved from `held` to `sold`.
- */
-const applySePayPayment =
-    async (payload) => {
-        const isGatewayFormat =
-            Boolean(
-                payload?.order
-                    ?.order_invoice_number
-            );
-
-        const payment =
-            isGatewayFormat
-                ? extractGatewayPayment(
-                      payload
-                  )
-                : extractBalanceWebhookPayment(
-                      payload
-                  );
-
-        if (!payment.accepted) {
-            return {
-                success: false,
-                message: payment.message
-            };
-        }
-
-        const {
-            bookingCode,
-            amountReceived
-        } = payment;
-
-        const booking =
-            await Booking.findOne({
-                bookingCode
-            });
-
-        if (!booking) {
-            return {
-                success: false,
-                message: `Booking ${bookingCode} not found`
-            };
-        }
-
-        // Idempotency for SePay retries / duplicate IPNs.
-        if (
-            booking.paymentStatus ===
-                "paid" &&
-            booking.status ===
-                "confirmed"
-        ) {
-            await ensureTicketsForBooking(
-                booking
-            );
-
-            return {
-                success: true,
-                message: `Booking ${bookingCode} is already confirmed`
-            };
-        }
-
-        if (
-            booking.status ===
-                "cancelled" ||
-            booking.status === "expired"
-        ) {
-            return {
-                success: false,
-                message: `Booking ${bookingCode} is no longer payable; manual refund/reconciliation is required`
-            };
-        }
-
-        if (
-            booking.status !==
-            "pending_payment"
-        ) {
-            return {
-                success: false,
-                message: `Booking ${bookingCode} cannot be paid in status ${booking.status}`
-            };
-        }
-
-        const now = new Date();
-
-        if (
-            !booking.holdExpiresAt ||
-            booking.holdExpiresAt <= now
-        ) {
-            await releaseExpiredBooking(
-                booking,
-                now
-            );
-
-            return {
-                success: false,
-                message: `Booking ${bookingCode} expired before payment confirmation; manual refund/reconciliation is required`
-            };
-        }
-
-        if (
-            !Number.isFinite(
-                amountReceived
-            ) ||
-            amountReceived <
-                booking.totalAmount
-        ) {
-            return {
-                success: false,
-                message: `Insufficient amount. Expected ${booking.totalAmount}, got ${amountReceived}`
-            };
-        }
-
-        const seatIds = booking.items.map(
-            (item) => item.seatId
-        );
-
-        const validHoldFilter = {
-            _id: {
-                $in: seatIds
-            },
-            eventId: booking.eventId,
-            status: "held",
-            holdToken:
-                booking.holdToken,
-            heldByUserId:
-                booking.userId,
-            holdExpiresAt: {
-                $gt: now
-            }
-        };
-
-        const heldSeatCount =
-            await Seat.countDocuments(
-                validHoldFilter
-            );
-
-        if (
-            heldSeatCount !==
-            seatIds.length
-        ) {
-            return {
-                success: false,
-                message: `Seat hold for booking ${bookingCode} is no longer valid; manual refund/reconciliation is required`
-            };
-        }
-
-        const claimToken = randomUUID();
-        const soldResult =
-            await Seat.updateMany(
-                validHoldFilter,
-                {
-                    $set: {
-                        status: "sold",
-                        soldBookingId: booking._id,
-                        saleClaimToken: claimToken,
-                        holdToken: null,
-                        heldByUserId: null,
-                        holdExpiresAt: null
-                    }
-                }
-            );
-
-        if (
-            soldResult.modifiedCount !==
-            seatIds.length
-        ) {
-            await rollbackSoldSeats(booking, claimToken);
-            return {
-                success: false,
-                message: `Could not lock all seats for booking ${bookingCode}; manual reconciliation is required`
-            };
-        }
-
-        try {
-            const confirmed = await Booking.findOneAndUpdate({
-                _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" }, holdExpiresAt: { $gt: new Date() }
-            }, { $set: { paymentStatus: "paid", status: "confirmed", confirmedAt: now } }, { returnDocument: "after" });
-            if (!confirmed) {
-                await rollbackSoldSeats(booking, claimToken);
-                return { success: false, message: `Booking ${bookingCode} changed during payment; manual reconciliation is required` };
-            }
-            Object.assign(booking, { paymentStatus: "paid", status: "confirmed", confirmedAt: now });
-        } catch (error) {
-            await rollbackSoldSeats(booking, claimToken);
-            throw error;
-        }
-
-        // Ticket issuance is idempotent. Each paid seat receives one
-        // server-backed Ticket document; the QR itself is generated only
-        // through the authenticated ticket API and never stores PII.
-        await ensureTicketsForBooking(
-            booking
-        );
-
-        return {
-            success: true,
-            message: `Booking ${bookingCode} successfully confirmed`
-        };
-    };
 
 // Persist only normalized reconciliation facts; never store webhook secrets or raw personal data.
 export const processSePayPayment = async payload => {
@@ -458,6 +261,7 @@ export const processSePayPayment = async payload => {
     try {
         const result = await applySePayPayment(payload);
         await PaymentReview.updateOne({ _id: review._id }, { $set: { outcome: result.success ? "accepted" : "review_required", message: result.message.slice(0, 1000) } });
+        if (!result.success) await Booking.updateOne({ bookingCode: payment.bookingCode, paymentStatus: { $ne: "paid" } }, { $set: { paymentReviewRequired: true } });
         return result;
     } catch (error) {
         await PaymentReview.updateOne({ _id: review._id }, { $set: { outcome: "error", message: "Payment processing failed; inspect booking, seats and payment provider before retrying." } });
@@ -469,7 +273,7 @@ export const processSePayPayment = async payload => {
  * Fallback reconciliation for local development / missed IPNs.
  *
  * The browser success URL is NOT trusted as proof of payment. The backend
- * retrieves the exact invoice from SePay using the official SDK and only
+ * retrieves the exact invoice from SePay's authenticated REST API and only
  * confirms a booking when SePay reports CAPTURED with an APPROVED transaction.
  */
 export const reconcileSePayPayment =
@@ -505,9 +309,8 @@ export const reconcileSePayPayment =
             booking.status ===
                 "confirmed"
         ) {
-            await ensureTicketsForBooking(
-                booking
-            );
+            await ensureTicketsForBooking(booking);
+            await enqueueTicketEmail(booking._id);
 
             return {
                 success: true,
@@ -518,9 +321,7 @@ export const reconcileSePayPayment =
         }
 
         if (
-            booking.status ===
-                "cancelled" ||
-            booking.status === "expired"
+            booking.status === "cancelled"
         ) {
             return {
                 success: false,
@@ -531,8 +332,7 @@ export const reconcileSePayPayment =
         }
 
         if (
-            booking.status !==
-            "pending_payment"
+            !["pending_payment", "expired"].includes(booking.status)
         ) {
             return {
                 success: false,
@@ -624,7 +424,7 @@ export const reconcileSePayPayment =
                         transaction?.transaction_status ||
                             ""
                     ).toUpperCase() ===
-                    "APPROVED"
+                    "APPROVED" && (!transaction.transaction_type || transaction.transaction_type === "PAYMENT")
             );
 
         if (!approvedTransaction) {

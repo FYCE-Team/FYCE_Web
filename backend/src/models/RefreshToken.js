@@ -16,6 +16,8 @@ const refreshTokenSchema =
                 unique: true
             },
 
+            previousTokenHash: { type: String, index: true, default: null },
+            rotatedAt: { type: Date, default: null },
             expiresAt: {
                 type: Date,
                 required: true

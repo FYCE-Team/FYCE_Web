@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
-const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+import { API_BASE_URL as base } from "../config/api.js";
 export const mediaUrl = (value) =>
   value?.startsWith("/") ? `${base.replace(/\/api\/?$/, "")}${value}` : value;
 export function useAdminApi() {

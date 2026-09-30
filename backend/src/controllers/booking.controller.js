@@ -14,6 +14,14 @@ const getSePayEnvironment = () =>
         ? "production"
         : "sandbox";
 
+export const paymentReturnOrigin = (req) => {
+    const configured = process.env.CLIENT_URL || "http://localhost:5173";
+    const allowed = new Set([configured, ...(process.env.CLIENT_URLS || "").split(",")].map(s => s.trim().replace(/\/$/, "")));
+    if (process.env.NODE_ENV === "development") { allowed.add("http://localhost:5173"); allowed.add("http://127.0.0.1:5173"); }
+    const origin = req.get("Origin");
+    return allowed.has(origin) ? origin : configured.replace(/\/$/, "");
+};
+
 const handleBookingError = (
     error,
     res,
@@ -270,7 +278,7 @@ export const create = async (
                 secret_key: process.env.SEPAY_SECRET_KEY
             });
 
-            const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+            const clientUrl = paymentReturnOrigin(req);
             const successUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=success`;
             const cancelUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=cancel`;
             const errorUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=error`;
@@ -555,7 +563,7 @@ export const pay = async (
                 secret_key: process.env.SEPAY_SECRET_KEY
             });
 
-            const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+            const clientUrl = paymentReturnOrigin(req);
             const successUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=success`;
             const cancelUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=cancel`;
             const errorUrl = `${clientUrl}/bookings/${booking.bookingCode}?payment=error`;

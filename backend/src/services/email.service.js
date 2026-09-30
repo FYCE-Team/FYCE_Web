@@ -2,6 +2,9 @@ import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
     port: Number(process.env.SMTP_PORT),
     secure: process.env.SMTP_SECURE === "true",
 
@@ -17,7 +20,7 @@ export const sendVerificationEmail = async ({
     otp
 }) => {
     try {
-        const info = await transporter.sendMail({
+        const info = await sendMail({
             from: `"FYCE Ensemble" <${process.env.SMTP_USER}>`,
             to: email,
 
@@ -35,7 +38,7 @@ export const sendVerificationEmail = async ({
                     "
                 >
                     <h2>
-                        Chào ${fullName}
+                        Chào ${escapeHtml(fullName)}
                     </h2>
 
                     <p>
@@ -125,7 +128,7 @@ export const sendPasswordResetOtpEmail = async ({
         </h2>
 
         <p>
-          Xin chào <strong>${fullName}</strong>,
+          Xin chào <strong>${escapeHtml(fullName)}</strong>,
         </p>
 
         <p>
@@ -173,5 +176,26 @@ export const sendPasswordResetOtpEmail = async ({
     `
   };
 
-  await transporter.sendMail(mailOptions);
+  await sendMail(mailOptions);
+};
+const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+export const isEmailConfigured = () => process.env.EMAIL_PROVIDER === "resend"
+  ? Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM)
+  : Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+
+export const sendMail = async (options, fetcher = fetch) => {
+  const from = process.env.EMAIL_FROM || `"FYCE Ensemble" <${process.env.SMTP_USER}>`;
+  if (process.env.EMAIL_PROVIDER !== "resend") return transporter.sendMail({ ...options, from });
+  if (!isEmailConfigured()) throw new Error("EMAIL_NOT_CONFIGURED");
+  const response = await fetcher("https://api.resend.com/emails", {
+    method: "POST", signal: AbortSignal.timeout(30000),
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json",
+      ...(options.messageId ? { "Idempotency-Key": options.messageId } : {}) },
+    body: JSON.stringify({ from, to: options.to, subject: options.subject, text: options.text, html: options.html,
+      attachments: options.attachments?.map(a => ({ filename: a.filename, content: a.content.toString("base64"), content_id: a.cid, content_type: a.contentType })) })
+  });
+  if (!response.ok) throw Object.assign(new Error("EMAIL_DELIVERY_FAILED"), { status: response.status });
+  const result = await response.json();
+  if (!result.id) throw new Error("EMAIL_DELIVERY_NOT_CONFIRMED");
+  return { messageId: result.id };
 };

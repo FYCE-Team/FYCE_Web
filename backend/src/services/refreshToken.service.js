@@ -1,147 +1,36 @@
+import { createHmac } from "node:crypto";
 import RefreshToken from "../models/RefreshToken.js";
 import User from "../models/User.js";
-
-import {
-    generateAccessToken,
-    generateRefreshToken,
-    hashToken
-} from "../utils/token.js";
-
-export const refreshAccessToken = async (
-    rawRefreshToken
-) => {
-    if (
-        !rawRefreshToken ||
-        typeof rawRefreshToken !==
-            "string"
-    ) {
-        throw new Error(
-            "REFRESH_TOKEN_MISSING"
-        );
+import { generateAccessToken, hashToken } from "../utils/token.js";
+const GRACE_MS = 30000;
+const successor = token => {
+    if (!process.env.JWT_REFRESH_SECRET) throw new Error("REFRESH_SECRET_NOT_CONFIGURED");
+    return createHmac("sha256", process.env.JWT_REFRESH_SECRET).update(`fyce-refresh-v1:${token}`).digest("hex");
+};
+export const refreshAccessToken = async raw => {
+    if (!raw || typeof raw !== "string") throw new Error("REFRESH_TOKEN_MISSING");
+    const hash = hashToken(raw), now = new Date();
+    const stored = await RefreshToken.findOne({ $or: [{ tokenHash: hash }, { previousTokenHash: hash, rotatedAt: { $gt: new Date(now - GRACE_MS) } }] });
+    if (!stored) throw new Error("REFRESH_TOKEN_INVALID");
+    if (stored.expiresAt <= now) throw new Error("REFRESH_TOKEN_EXPIRED");
+    const user = await User.findById(stored.userId).select("-password");
+    if (!user || !user.isActive || user.isBlocked) {
+        await RefreshToken.deleteOne({ _id: stored._id });
+        throw new Error(user ? "ACCOUNT_NOT_ACTIVE" : "USER_NOT_FOUND");
     }
-
-    const tokenHash =
-        hashToken(
-            rawRefreshToken
-        );
-
-    const storedToken =
-        await RefreshToken.findOne({
-            tokenHash
-        });
-
-    if (!storedToken) {
-        throw new Error(
-            "REFRESH_TOKEN_INVALID"
-        );
-    }
-
-    if (
-        storedToken.expiresAt.getTime() <=
-        Date.now()
-    ) {
-        await RefreshToken.deleteOne({
-            _id: storedToken._id
-        });
-
-        throw new Error(
-            "REFRESH_TOKEN_EXPIRED"
-        );
-    }
-
-    const user =
-        await User.findById(
-            storedToken.userId
-        ).select(
-            "-password"
-        );
-
-    if (!user) {
-        await RefreshToken.deleteOne({
-            _id: storedToken._id
-        });
-
-        throw new Error(
-            "USER_NOT_FOUND"
-        );
-    }
-
-    if (!user.isActive || user.isBlocked) {
-        await RefreshToken.deleteOne({
-            _id: storedToken._id
-        });
-
-        throw new Error(
-            "ACCOUNT_NOT_ACTIVE"
-        );
-    }
-
-    const newAccessToken =
-        generateAccessToken(
-            user
-        );
-
-    /*
-     * Token Rotation
-     *
-     * Token cũ bị xóa.
-     * Token mới được tạo.
-     */
-    const newRefreshToken =
-        generateRefreshToken();
-
-    const newRefreshTokenHash =
-        hashToken(
-            newRefreshToken
-        );
-
-    const remainingTime =
-        storedToken.expiresAt.getTime() -
-        Date.now();
-
-    const newExpiresAt =
-        new Date(
-            Date.now() +
-                remainingTime
-        );
-
-    await RefreshToken.deleteOne({
-        _id: storedToken._id
-    });
-
-    await RefreshToken.create({
-        userId: user._id,
-        tokenHash:
-            newRefreshTokenHash,
-        expiresAt:
-            newExpiresAt
-    });
-
-    return {
-        accessToken:
-            newAccessToken,
-
-        refreshToken:
-            newRefreshToken,
-
-        expiresAt:
-            newExpiresAt,
-
-        user: {
-            id:
-                user._id.toString(),
-            username:
-                user.username,
-            fullName:
-                user.fullName,
-            email:
-                user.email,
-            phone:
-                user.phone,
-            role:
-                user.role,
-            isActive:
-                user.isActive
+    let next = raw;
+    if (stored.tokenHash !== hash) {
+        next = successor(raw);
+        if (hashToken(next) !== stored.tokenHash) throw new Error("REFRESH_TOKEN_INVALID");
+    } else if (!stored.rotatedAt || now - stored.rotatedAt >= GRACE_MS) {
+        next = successor(raw);
+        const changed = await RefreshToken.updateOne({ _id: stored._id, tokenHash: hash }, { $set: { tokenHash: hashToken(next), previousTokenHash: hash, rotatedAt: now } });
+        if (!changed.modifiedCount) {
+            // A concurrent request must converge on the same successor, not delete the session.
+            const winner = await RefreshToken.exists({ _id: stored._id, tokenHash: hashToken(next), previousTokenHash: hash, rotatedAt: { $gt: new Date(Date.now() - GRACE_MS) } });
+            if (!winner) throw new Error("REFRESH_TOKEN_INVALID");
         }
-    };
+    }
+    return { accessToken: generateAccessToken(user), refreshToken: next, expiresAt: stored.expiresAt,
+        user: { id: String(user._id), username: user.username, fullName: user.fullName, email: user.email, phone: user.phone, role: user.role, isActive: user.isActive } };
 };

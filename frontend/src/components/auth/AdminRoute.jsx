@@ -10,12 +10,16 @@ import {
 
 const AdminRoute = () => {
     const {
+        sessionError,
+        refreshSession,
         user,
         loading
     } = useAuth();
 
     const location =
         useLocation();
+
+    if (sessionError) return <div role="alert"><p>{sessionError}</p><button onClick={() => refreshSession()}>Thử khôi phục phiên</button></div>;
 
     if (loading) {
         return (

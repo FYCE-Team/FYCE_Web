@@ -229,6 +229,9 @@ const bookingSchema = new mongoose.Schema(
             index: true
         },
 
+        paymentReviewRequired: { type: Boolean, default: false },
+        paymentNextSyncAt: { type: Date, default: null, index: true },
+        paymentSyncAttempts: { type: Number, default: 0 },
         refundedAmount: { type: Number, default: 0, min: 0 },
 
         cancelledAt: {

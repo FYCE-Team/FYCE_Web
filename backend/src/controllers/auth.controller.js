@@ -413,7 +413,7 @@ export const logout = async (
 
         if (refreshToken) {
             await RefreshToken.deleteOne({
-                tokenHash: hashToken(refreshToken)
+                $or: [{ tokenHash: hashToken(refreshToken) }, { previousTokenHash: hashToken(refreshToken), rotatedAt: { $gt: new Date(Date.now() - 30000) } }]
             });
         }
 

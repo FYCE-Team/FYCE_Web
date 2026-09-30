@@ -111,7 +111,7 @@ const toAdminTicketDto = (
 });
 
 export const ensureTicketsForBooking =
-    async (bookingOrId) => {
+    async (bookingOrId, session = null) => {
         const booking =
             typeof bookingOrId ===
             "object"
@@ -197,14 +197,14 @@ export const ensureTicketsForBooking =
             await Ticket.bulkWrite(
                 operations,
                 {
-                    ordered: false
+                    ordered: true, session
                 }
             );
         }
 
         return Ticket.find({
             bookingId: booking._id
-        }).sort({
+        }).session(session).sort({
             seatLabel: 1
         });
     };

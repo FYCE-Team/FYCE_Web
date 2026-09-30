@@ -49,6 +49,7 @@ export default function AdminHomepage() {
     [revision, setRevision] = useState(0),
     [events, setEvents] = useState([]),
     [pendingDelete, setPendingDelete] = useState(null);
+  const [advanced, setAdvanced] = useState(false);
   const panelRef = useRef(null);
   const panelKey = pendingDelete ? `delete:${pendingDelete._id}` : editor ? `edit:${editor._id || "new"}` : "";
   useEffect(() => {
@@ -169,11 +170,9 @@ export default function AdminHomepage() {
             setEditor({
               title: "",
               description: "",
-              sortOrder: 0,
               isActive: false,
               features: [],
               category: "general",
-              overlayOpacity: 0.35,
               featuredEvent: null,
             });
             setPendingDelete(null);
@@ -227,8 +226,9 @@ export default function AdminHomepage() {
           </h2>
           <form className="am-form" onSubmit={save}>
             <fieldset disabled={busy}>
+              <button type="button" aria-expanded={advanced} onClick={() => setAdvanced(value => !value)}>{advanced ? "Ẩn tùy chỉnh nâng cao" : "Tùy chỉnh nút liên kết, thứ tự và hiển thị"}</button>
               <div className="am-form-grid">
-                {fields[kind].map(([key, label, max]) => (
+                {fields[kind].filter(([key]) => advanced || !["eyebrow", "primaryButtonText", "primaryButtonLink", "secondaryButtonText", "secondaryButtonLink", "buttonText", "buttonLink", "imageAlt", "altText"].includes(key)).map(([key, label, max]) => (
                   <div key={key} className="am-field">
                     <label htmlFor={`content-${key}`}>{label}</label>
                     {["description", "caption"].includes(key) ? (
@@ -242,10 +242,11 @@ export default function AdminHomepage() {
                       />
                     ) : (
                       <input
+                        hidden={!advanced && ["image", "backgroundImage", "backgroundVideoUrl"].includes(key)}
                         id={`content-${key}`}
                         required={
                           (key === "title" && kind !== "gallery") ||
-                          (key === "image" && kind === "gallery")
+                          (key === "image" && kind === "gallery" && advanced)
                         }
                         maxLength={max || 2000}
                         value={editor[key] || ""}
@@ -282,19 +283,19 @@ export default function AdminHomepage() {
                     )}
                   </div>
                 ))}
-                <label>
-                  Thứ tự ưu tiên
+                {advanced && <label>
+                  Thứ tự hiển thị
                   <input
                     type="number"
                     min="0"
                     step="1"
                     required
-                    value={editor.sortOrder}
+                    value={editor.sortOrder ?? 0}
                     onChange={(e) =>
                       change("sortOrder", Number(e.target.value))
                     }
                   />
-                </label>
+                </label>}
                 <label className="am-checkbox">
                   <input
                     type="checkbox"
@@ -305,19 +306,19 @@ export default function AdminHomepage() {
                 </label>
                 {kind === "hero" && (
                   <>
-                    <label>
+                    {advanced && <label>
                       Độ tối lớp phủ (0–1)
                       <input
                         type="number"
                         min="0"
                         max="1"
                         step="0.05"
-                        value={editor.overlayOpacity}
+                        value={editor.overlayOpacity ?? 0.35}
                         onChange={(e) =>
                           change("overlayOpacity", Number(e.target.value))
                         }
                       />
-                    </label>
+                    </label>}
                     <label>
                       Sự kiện nổi bật
                       <select

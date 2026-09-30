@@ -1,4 +1,5 @@
 import express from "express";
+import { paymentSyncRateLimit } from "../middleware/rateLimit.middleware.js";
 
 import {
     create,
@@ -86,6 +87,7 @@ when developing locally and SePay cannot reach a localhost webhook URL.
 */
 router.post(
     "/:bookingCode/sync-payment",
+    paymentSyncRateLimit,
     syncPayment
 );
 
