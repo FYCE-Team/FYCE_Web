@@ -6,7 +6,7 @@
     "total": 10,
     "percent": 80
   },
-  "status": "implemented_pending_browser_and_provider_acceptance",
+  "status": "deployed_health_verified_pending_live_provider_acceptance",
   "entrypoint": "/admin",
   "tests": {
     "integrationWritten": 44,
@@ -47,6 +47,8 @@
     "productionFrontend": "https://fyce-web.vercel.app",
     "productionBackend": "https://fyce-web.onrender.com",
     "preDeployObservation": "Vercel /api/health returns index HTML; new proxy not live yet",
-    "qaBrowser": "Safari same-origin login/reload/leave-and-return retained session; paid fixture shows QR even payment=error"
-  }
+    "qaBrowser": "Safari same-origin login/reload/leave-and-return retained session; paid fixture shows QR even payment=error",
+    "postDeployObservation": "2026-09-30 08:24 Asia/Ho_Chi_Minh: Vercel /api/health and Render /api/health JSON 200; no-store/private and COOP headers; Vercel bundle index-DgG46Wqj.js matches verified build"
+  },
+  "codeCommit": "f50887f"
 }

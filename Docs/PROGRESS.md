@@ -64,3 +64,7 @@ Cập nhật 2026-09-30. Phạm vi rà soát: mã nguồn, dependencies và lu�
 - CMS bớt trường kỹ thuật, có mục nâng cao; giữ footer.
 - 44/44 test, production build, cú pháp backend, diff check đạt. Lint 0 lỗi/16 cảnh báo cũ; npm audit cả dev+prod hai phía 0 lỗ hổng tại thời điểm kiểm tra.
 - Chưa xác minh giao dịch thật người dùng vừa báo vì chưa có mã đơn; chưa cấu hình tài khoản Google/SePay/email từ dashboard nhà cung cấp. Xem DEPLOYMENT.md cho điều kiện vận hành và nghiệm thu. Giữ tiến độ 80%, không đánh dấu 100% chỉ nhờ mock tests.
+
+### Xác minh sau push
+
+Commit chức năng `f50887f` đã push vào `FYCE-Team/FYCE_Web` nhánh main. Lúc 08:24 ngày 2026-09-30 (Asia/Ho_Chi_Minh), Vercel phục vụ bundle `index-DgG46Wqj.js` khớp build đã kiểm tra; `/api/health` qua Vercel trả JSON 200, Cache-Control no-store/private và COOP same-origin-allow-popups. Render trực tiếp cũng trả health JSON 200 với header mới. Đây là xác minh triển khai/định tuyến, chưa phải nghiệm thu giao dịch hay email thật. Các tiến trình QA 27028/3018/5174 đã dừng; worktree sạch sau commit bàn giao.
