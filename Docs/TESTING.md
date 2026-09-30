@@ -31,7 +31,7 @@ npm audit --prefix frontend
 
 ## Kết quả và phạm vi
 
-- **44/44 ca tích hợp đạt**: phân quyền, validation/pagination/regex, dashboard totals, dữ liệu nhạy cảm, user CRUD/duplicate/stale writes/block Google, bảo vệ admin, CMS CRUD/concurrent writes/unsafe URLs/media conflict, booking/ticket audit, QR tamper/duplicate check-in/event mismatch/payment state, idempotent issuance/reconciliation, payment duplicate/cancel/expiry/outgoing/partial rollback, public homepage, upload MIME/admin/GridFS round-trip.
+- **47/47 ca tích hợp đạt**: phân quyền, validation/pagination/regex, dashboard totals, dữ liệu nhạy cảm, user CRUD/duplicate/stale writes/block Google, bảo vệ admin, CMS CRUD/concurrent writes/unsafe URLs/media conflict, booking/ticket audit, QR tamper/duplicate check-in/event mismatch/payment state, idempotent issuance/reconciliation, payment duplicate/cancel/expiry/outgoing/partial rollback, public homepage, upload MIME/admin/GridFS round-trip.
 - Build production thành công; lazy route loại bỏ cảnh báo chunk lớn hơn 500 kB.
 - Lint trả exit 0, không có error; còn 16 warning trên phần mã cũ (15 `set-state-in-effect`, 1 `only-export-components`). Các trang management mới không có warning.
 - Kiểm tra cú pháp toàn bộ `backend/src/**/*.js` và `git diff --check`.
@@ -61,3 +61,5 @@ Xem `LOCAL_SETUP.md` để chạy frontend/backend đúng cổng, xử lý Googl
 - QR PNG/CID, HTML escape, hàng đợi email retry/chống xử lý trùng, HTTP email mock và lỗi 429. Không gửi thư thật, không thực hiện chuyển tiền.
 - Safari QA same-origin: đăng nhập, reload, rời sang hostname khác rồi quay về URL payment=error; phiên còn nguyên, đơn paid vẫn hiện xác nhận và QR. Đây là fixture QA, không phải chứng nhận SePay production.
 - Live read-only trước deploy: Vercel /api/health trả HTML index (proxy chưa triển khai), Render /api/health trả JSON 200. Chưa có mã đơn lỗi từ người dùng để kết luận nguyên nhân của riêng giao dịch đó.
+
+Ca hồi quy mới: sửa About raw legacy không author/trùng sortOrder; CAPTURED không transactions chỉ nhận qua REST, không tin IPN thiếu transaction hoặc sai currency; bank webhook tham chiếu PAY...; HMAC raw JSON và timestamp replay. Đơn thật và ảnh khôi phục là xử lý nghiệp vụ được cho phép riêng, không phải fixture test.

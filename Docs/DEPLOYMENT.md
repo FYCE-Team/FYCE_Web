@@ -29,7 +29,7 @@ Worker đối chiếu và email chạy cùng server, không cần người mua m
 
 Cấu hình **IPN của Cổng thanh toán** đến `https://fyce-web.onrender.com/api/payments/sepay-webhook`, HTTP POST HTTPS public, authentication SECRET_KEY gửi X-Secret-Key khớp env. Kiểm tra log delivery tại SePay: 401 là secret sai, 500 cần retry/kiểm tra server. Webhook biến động số dư và gateway IPN là hai loại khác nhau, không trộn cấu hình khóa.
 
-Fallback REST tìm invoice FYCE chính xác, lấy order_id rồi detail. Chỉ nhận CAPTURED + APPROVED PAYMENT đúng VND/đủ số tiền. Worker quét đơn pending/expired trong 48h, tự retry; lỗi nhà cung cấp backoff. Khi IPN tới, không cần chờ worker. Browser polling 10 giây khi tab hiển thị; không tự dừng sau hai phút.
+Fallback REST tìm invoice FYCE chính xác, lấy order_id rồi detail. Nhận CAPTURED + APPROVED PAYMENT đúng VND/đủ số tiền; chuyển khoản có transactions rỗng dùng order-level CAPTURED từ merchant REST. Không áp dụng ngoại lệ này cho browser/IPN. Worker quét đơn pending/expired trong 48h, tự retry; lỗi nhà cung cấp backoff. Khi IPN tới, không cần chờ worker. Browser polling 10 giây khi tab hiển thị; không tự dừng sau hai phút.
 
 Nếu đã có giao dịch trong SePay nhưng chưa có vé: đối chiếu mã FYCE, môi trường merchant, status/detail transaction, IPN delivery, Render logs. Giao dịch trong danh sách biến động ngân hàng chưa chắc đã được gateway gắn vào đúng invoice. Không đánh dấu paid chỉ dựa vào ảnh giao dịch. Admin → Đơn vé & thanh toán → Đối chiếu đọc REST thật; log và paymentReviewRequired hiển thị nếu lệch tiền hoặc ghế đã thuộc đơn khác. Đơn cũ hơn 48 giờ cần chủ động gọi đối chiếu; worker không tự quét lịch sử vô hạn.
 
@@ -62,3 +62,7 @@ CSP report-only của trang pay.sepay.vn là chính sách của SePay, không ph
 5. Kiểm tra giao dịch lỗi cụ thể bằng mã đơn người dùng cung cấp. Phiên này chưa nhận mã đó, không tự sửa đơn thật.
 
 Nguồn: [Vercel rewrites](https://vercel.com/docs/routing/rewrites), [SePay IPN](https://developer.sepay.vn/vi/cong-thanh-toan/IPN), [SePay order detail](https://developer.sepay.vn/vi/cong-thanh-toan/API/don-hang/chi-tiet-don-hang), [Resend send email](https://resend.com/docs/api-reference/emails/send-email), [CID attachments](https://resend.com/changelog/embed-images-using-cid).
+
+### Phân biệt webhook ngân hàng với gateway IPN
+
+Webhook ngân hàng có thể chứa PAY... thay vì mã FYCE; backend sẽ tra chính xác mã gateway qua REST merchant rồi đối chiếu invoice. HMAC dùng SEPAY_WEBHOOK_SECRET (hoặc tên cũ SEPAY_WEBHOOK_TOKEN), khác SEPAY_IPN_SECRET. Không bỏ xác thực để tránh 401. HTTP 200 có success:false không có nghĩa đã cấp vé; phải đọc response body trong lịch sử SePay. Lỗi 401/403 ở REST cần kiểm tra merchant/secret/môi trường **trên Render**, không chỉ .env local; 429 chờ retry. Tab đang giữ bundle cũ cần tải lại để nhận bản mới; refresh guest 401 không đồng nghĩa tài khoản mất dữ liệu.

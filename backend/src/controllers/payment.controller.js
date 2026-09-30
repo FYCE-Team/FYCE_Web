@@ -63,7 +63,7 @@ const authorizeGatewayIpn = (req) => {
 };
 
 const authorizeBalanceWebhook = (req) => {
-    const webhookToken = process.env.SEPAY_WEBHOOK_TOKEN;
+    const webhookToken = process.env.SEPAY_WEBHOOK_SECRET || process.env.SEPAY_WEBHOOK_TOKEN;
 
     if (!webhookToken) {
         return {
@@ -78,6 +78,9 @@ const authorizeBalanceWebhook = (req) => {
     const timestamp = req.get("x-sepay-timestamp");
 
     if (signature && timestamp) {
+        if (!/^\d+$/.test(timestamp) || Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) {
+            return { ok: false, status: 401, message: "Unauthorized: expired webhook signature" };
+        }
         const payload = req.rawBody || JSON.stringify(req.body);
         const expected = "sha256=" + createHmac("sha256", webhookToken)
             .update(timestamp + "." + payload)

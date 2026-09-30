@@ -1,3 +1,4 @@
+import ContentImage from "../../../components/media/ContentImage.jsx";
 import { useEffect, useRef, useState } from "react";
 import { useAdminApi, mediaUrl } from "../../../services/admin.service.js";
 import { Notice, PageTitle, Pagination } from "./AdminShared.jsx";
@@ -270,7 +271,7 @@ export default function AdminHomepage() {
                           onChange={(e) => upload(e.target.files?.[0], key)}
                         />
                         {editor[key] && key !== "backgroundVideoUrl" && (
-                          <img
+                          <ContentImage showWarning
                             className="am-preview"
                             src={mediaUrl(editor[key])}
                             alt="Xem trước ảnh"
@@ -476,7 +477,7 @@ export default function AdminHomepage() {
           {data.items.map((item) => (
             <article className="am-card am-content-card" key={item._id}>
               {item.image || item.backgroundImage ? (
-                <img
+                <ContentImage showWarning
                   src={mediaUrl(item.image || item.backgroundImage)}
                   alt={item.altText || item.imageAlt || item.title}
                 />

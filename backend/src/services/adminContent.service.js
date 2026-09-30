@@ -90,7 +90,9 @@ export const contentSave = async (kind, id, body, actor) => {
   )
     fail(409, "Nội dung đã thay đổi. Hãy tải lại trước khi sửa.");
   Object.assign(record, payload, { updatedBy: actor });
-  await record.validate();
+  // Legacy imported content may have no author. Preserve unknown provenance;
+  // validate all editable content, without inventing a historical creator.
+  await record.validate({ pathsToSkip: record.createdBy ? [] : ["createdBy"] });
   // Compare-and-swap also protects writers that use older API routes without __v increments.
   const saved = await Model.findOneAndUpdate(
     { _id: record._id, updatedAt: new Date(body.updatedAt) },

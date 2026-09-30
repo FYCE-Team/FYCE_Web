@@ -9,15 +9,15 @@ import {
 } from "./ticket.service.js";
 
 const getSePayEnvironment = () =>
-    process.env.SEPAY_ENV === "production"
+    process.env.SEPAY_ENV?.trim() === "production"
         ? "production"
         : "sandbox";
 
 const getSePayClient = () => {
     const merchantId =
-        process.env.SEPAY_MERCHANT_ID;
+        process.env.SEPAY_MERCHANT_ID?.trim();
     const secretKey =
-        process.env.SEPAY_SECRET_KEY;
+        process.env.SEPAY_SECRET_KEY?.trim();
 
     if (!merchantId || !secretKey) {
         throw new Error(
@@ -83,7 +83,10 @@ export const retrieveSePayOrderByInvoice = async (invoiceNumber, client = getSeP
         if (order?.order_invoice_number !== invoiceNumber) throw new Error("SEPAY_INVOICE_MISMATCH");
         return order;
     } catch (error) {
-        console.error("[SePay Reconcile] Request failed", { status: getSePayErrorStatus(error) || null });
+        const status = getSePayErrorStatus(error);
+        console.error("[SePay Reconcile] Request failed", { status: status || null, environment: getSePayEnvironment(), reason: error.name });
+        if ([401, 403].includes(status)) throw Object.assign(new Error("Cấu hình đối chiếu SePay trên máy chủ bị từ chối. Vui lòng báo admin kiểm tra merchant, secret và môi trường SePay."), { status: 503 });
+        if (status === 429) throw Object.assign(new Error("SePay đang giới hạn truy vấn. Hệ thống sẽ tự đối chiếu lại; không chuyển khoản lần nữa."), { status: 503 });
         throw new Error("SEPAY_RECONCILIATION_REQUEST_FAILED");
     }
 };
@@ -213,8 +216,7 @@ const paymentDate = payload => {
     return Number.isFinite(date.getTime()) && date <= new Date(Date.now() + 60000) ? date : null;
 };
 
-const applySePayPayment = async payload => {
-    const payment = payload?.order?.order_invoice_number ? extractGatewayPayment(payload) : extractBalanceWebhookPayment(payload);
+const applySePayPayment = async (payload, payment) => {
     if (!payment.accepted) return { success: false, message: payment.message };
     const { bookingCode, amountReceived } = payment;
     return mongoose.connection.transaction(async session => {
@@ -254,12 +256,11 @@ const applySePayPayment = async payload => {
 };
 
 // Persist only normalized reconciliation facts; never store webhook secrets or raw personal data.
-export const processSePayPayment = async payload => {
-    const payment = payload?.order?.order_invoice_number ? extractGatewayPayment(payload) : extractBalanceWebhookPayment(payload);
+const recordSePayPayment = async (payload, payment) => {
     if (!payment.accepted) return { success: false, message: payment.message };
     const review = await PaymentReview.create({ bookingCode: payment.bookingCode, amountReceived: Number.isFinite(payment.amountReceived) ? payment.amountReceived : null, outcome: "review_required", message: "Payment processing started; review if this attempt remains incomplete." });
     try {
-        const result = await applySePayPayment(payload);
+        const result = await applySePayPayment(payload, payment);
         await PaymentReview.updateOne({ _id: review._id }, { $set: { outcome: result.success ? "accepted" : "review_required", message: result.message.slice(0, 1000) } });
         if (!result.success) await Booking.updateOne({ bookingCode: payment.bookingCode, paymentStatus: { $ne: "paid" } }, { $set: { paymentReviewRequired: true } });
         return result;
@@ -267,6 +268,24 @@ export const processSePayPayment = async payload => {
         await PaymentReview.updateOne({ _id: review._id }, { $set: { outcome: "error", message: "Payment processing failed; inspect booking, seats and payment provider before retrying." } });
         throw error;
     }
+};
+
+export const processSePayPayment = async payload => {
+    const payment = payload?.order?.order_invoice_number ? extractGatewayPayment(payload) : extractBalanceWebhookPayment(payload);
+    if (!payment.accepted && payment.message === "No booking code found in transfer content") {
+        // Bank-transfer gateway descriptions may contain only SePay's PAY... ID.
+        // Resolve it through the authenticated merchant API, never infer an invoice.
+        const reference = `${payload.code || ""} ${payload.content || ""}`.match(/\b(?:PAY[A-Z0-9]{8,64}|SEPAY-[A-Z0-9]{8,64})\b/i)?.[0];
+        if (reference) {
+            let order;
+            try { order = normalizeSePayOrderResponse(await getSePayClient().order.retrieve(reference)); }
+            catch (error) { if (getSePayErrorStatus(error) === 404) return { success: false, message: "Unrecognized gateway reference" }; throw error; }
+            if (order?.order_id !== reference || !/^FYCE-\d{8}-[A-F0-9]{8}$/.test(order?.order_invoice_number || "")) return { success: false, message: "Gateway reference does not match a FYCE invoice" };
+            const booking = await Booking.findOne({ bookingCode: order.order_invoice_number }).select("userId");
+            if (booking) return reconcileSePayPayment(order.order_invoice_number, booking.userId);
+        }
+    }
+    return recordSePayPayment(payload, payment);
 };
 
 /**
@@ -426,6 +445,17 @@ export const reconcileSePayPayment =
                     ).toUpperCase() ===
                     "APPROVED" && (!transaction.transaction_type || transaction.transaction_type === "PAYMENT")
             );
+
+        if (!approvedTransaction && transactions.length === 0 && order.order_currency === "VND") {
+            // Bank-transfer orders can be CAPTURED with no card transactions.
+            // Only this authenticated REST path may use order-level confirmation;
+            // an incoming webhook or browser payload cannot opt into this path.
+            // updated_at is an upper bound on capture time, used conservatively
+            // when recovering an expired hold (never take someone else's seat).
+            return recordSePayPayment({ transactionDate: order.updated_at }, {
+                accepted: true, bookingCode: normalizedCode, amountReceived: orderAmount
+            });
+        }
 
         if (!approvedTransaction) {
             return {

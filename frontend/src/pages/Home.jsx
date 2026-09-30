@@ -1,3 +1,4 @@
+import ContentImage from "../components/media/ContentImage.jsx";
 import {
     useEffect,
     useState
@@ -370,7 +371,7 @@ const Home = () => {
                             <div className="home-featured-poster">
 
                                 {featuredEvent.coverImage ? (
-                                    <img
+                                    <ContentImage
                                         src={getMediaUrl(
                                             featuredEvent.coverImage
                                         )}
@@ -586,7 +587,7 @@ const Home = () => {
 
                                                     {event.coverImage ? (
 
-                                                        <img
+                                                        <ContentImage
                                                             src={getMediaUrl(
                                                                 event.coverImage
                                                             )}
@@ -759,7 +760,7 @@ const Home = () => {
 
                                 {about.image ? (
 
-                                    <img
+                                    <ContentImage
                                         src={getMediaUrl(
                                             about.image
                                         )}
@@ -939,7 +940,7 @@ const Home = () => {
 
                                         {item.image ? (
 
-                                            <img
+                                            <ContentImage
                                                 src={getMediaUrl(
                                                     item.image
                                                 )}

@@ -920,3 +920,58 @@ test("HTTPS email transport preserves QR CID attachments and handles provider fa
     await assert.rejects(sendMail(options, async () => new Response("{}", { status: 429 })), /EMAIL_DELIVERY_FAILED/);
   } finally { for (const key of keys) { if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; } }
 });
+
+test("legacy about without createdBy can be edited while keeping unknown original author", async () => {
+  const About = (await import("../src/models/AboutSection.js")).default;
+  const id = oid(), updatedAt = new Date();
+  await About.collection.insertOne({ _id: id, title: "Legacy about", description: "Legacy description", features: [{ title: "One", sortOrder: 0 }, { title: "Two", sortOrder: 0 }], isActive: false, createdAt: updatedAt, updatedAt });
+  const result = await request(`/admin/content/about/${id}`, { method: "PUT", body: { title: "Updated about", description: "Updated description", features: [{ title: "One", sortOrder: 0 }, { title: "Two", sortOrder: 0 }], updatedAt } });
+  assert.equal(result.status, 200, result.message);
+  const saved = await About.findById(id);
+  assert.equal(saved.createdBy, undefined);
+  assert.equal(String(saved.updatedBy), String(admin._id));
+  assert.deepEqual(saved.features.map(f => f.sortOrder), [0, 1]);
+  assert.equal((await request(`/admin/content/about/${id}`, { method: "PUT", body: { title: "", updatedAt: saved.updatedAt } })).status, 400);
+});
+
+test("CAPTURED bank transfer with empty transactions issues tickets only via authenticated REST", async () => {
+  const { reconcileSePayPayment } = await import("../src/services/payment.service.js");
+  const pending = await pendingFixture();
+  const now = Date.now();
+  await Booking.collection.updateOne({ _id: pending._id }, { $set: { status: "expired", createdAt: new Date(now - 60000), holdExpiresAt: new Date(now - 1000) } });
+  await Seat.updateOne({ _id: pending.items[0].seatId }, { status: "available", holdToken: null, heldByUserId: null, holdExpiresAt: null });
+  const original = globalThis.fetch, merchant = process.env.SEPAY_MERCHANT_ID;
+  process.env.SEPAY_MERCHANT_ID = "qa-only";
+  let currency = "VND";
+  globalThis.fetch = async () => Response.json({ data: { order_id: "PAYTEST123456", order_invoice_number: pending.bookingCode, order_status: "CAPTURED", order_amount: pending.totalAmount, order_currency: currency, updated_at: new Date(now - 30000).toISOString(), transactions: [] } });
+  try {
+    const fakeIpn = { notification_type: "ORDER_PAID", order: { order_invoice_number: pending.bookingCode, order_status: "CAPTURED", order_amount: pending.totalAmount, order_currency: "VND" } };
+    assert.equal((await processSePayPayment(fakeIpn)).success, false);
+    currency = "USD";
+    assert.equal((await reconcileSePayPayment(pending.bookingCode, pending.userId)).success, false);
+    assert.equal(await Ticket.countDocuments({ bookingId: pending._id }), 0);
+    currency = "VND";
+    const result = await processSePayPayment({ transferType: "in", transferAmount: pending.totalAmount, content: "Thanh toan PAYTEST123456" });
+    assert.equal(result.success, true);
+    assert.equal((await Booking.findById(pending._id)).paymentStatus, "paid");
+    assert.equal(await Ticket.countDocuments({ bookingId: pending._id }), 1);
+    assert.equal(await TicketEmail.countDocuments({ bookingId: pending._id }), 1);
+    assert.equal((await reconcileSePayPayment(pending.bookingCode, pending.userId)).success, true);
+    assert.equal(await Ticket.countDocuments({ bookingId: pending._id }), 1);
+  } finally { globalThis.fetch = original; if (merchant === undefined) delete process.env.SEPAY_MERCHANT_ID; else process.env.SEPAY_MERCHANT_ID = merchant; }
+});
+
+test("HMAC webhook verifies raw bytes and rejects replay timestamps", async () => {
+  const { createHmac } = await import("node:crypto");
+  const previous = process.env.SEPAY_WEBHOOK_SECRET;
+  process.env.SEPAY_WEBHOOK_SECRET = "qa-hmac-only";
+  const pending = await pendingFixture();
+  const body = JSON.stringify({ transferType: "in", transferAmount: pending.totalAmount, content: `Thanh toán ${pending.bookingCode}` }, null, 2);
+  const send = async timestamp => fetch(`${base}/payments/sepay-webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-SePay-Timestamp": timestamp, "X-SePay-Signature": "sha256=" + createHmac("sha256", process.env.SEPAY_WEBHOOK_SECRET).update(timestamp + "." + body).digest("hex") }, body });
+  try {
+    assert.equal((await send(String(Math.floor(Date.now() / 1000) - 600))).status, 401);
+    assert.equal((await Booking.findById(pending._id)).paymentStatus, "unpaid");
+    const result = await send(String(Math.floor(Date.now() / 1000)));
+    assert.equal(result.status, 200); assert.equal((await result.json()).success, true);
+  } finally { if (previous === undefined) delete process.env.SEPAY_WEBHOOK_SECRET; else process.env.SEPAY_WEBHOOK_SECRET = previous; }
+});

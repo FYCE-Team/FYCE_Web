@@ -14,7 +14,7 @@ Cập nhật 2026-09-30. Phạm vi rà soát: mã nguồn, dependencies và lu�
 | Đơn vé và thanh toán                            | Hoàn thành ở mức API/build    | Danh sách/lọc/chi tiết/hủy pending/đối soát SePay/nhật ký xử lý                                                                       |
 | Vé và check-in                                  | Hoàn thành ở mức API/build    | Danh sách/lọc theo event, lịch sử check-in, đối chiếu đơn–vé–ghế, chặn sai event/đơn chưa paid                                        |
 | Dashboard, điều hướng, tải trang                | Hoàn thành ở mức build        | Dashboard mới tại `/admin`, màu FYCE, responsive CSS, lazy routes; hết cảnh báo chunk >500kB                                          |
-| Sửa lỗi bảo mật/concurrency và tự động kiểm tra | Hoàn thành trong phạm vi test | 44/44 test đạt; build/cú pháp đạt; audit hai phía 0 lỗ hổng; lint 0 error, 16 warning cũ                                                                   |
+| Sửa lỗi bảo mật/concurrency và tự động kiểm tra | Hoàn thành trong phạm vi test | 47/47 test đạt; build/cú pháp đạt; audit hai phía 0 lỗ hổng; lint 0 error, 16 warning cũ                                                                   |
 | Tài liệu bàn giao                               | Hoàn thành                    | Docs này, `ARCHITECTURE.md`, `TESTING.md`, `progress.json`                                                                            |
 | Nghiệm thu UI desktop/mobile và camera | Đã kiểm tra một phần trên Safari | Đăng nhập, CMS draft→publish, đối chiếu đơn, check-in, form hoàn vé; chưa mobile/camera thật. |
 | E2E SePay/SMTP/Google và vận hành production    | Chưa xác minh                 | Chưa gọi dịch vụ thật, chưa thực hiện thanh toán/hoàn tiền thật, chưa triển khai; cần môi trường sandbox tích hợp đầy đủ.             |
@@ -50,7 +50,7 @@ Cập nhật 2026-09-30. Phạm vi rà soát: mã nguồn, dependencies và lu�
 - Client ID Google hai phía khớp. Còn cần Authorized JavaScript origins trên Google Cloud; hướng dẫn tại `LOCAL_SETUP.md`. Chưa xác nhận Google OAuth thật.
 - Footer admin đã khôi phục component Footer ban đầu theo yêu cầu.
 - Hoàn vé thủ công từng ghế/toàn đơn: chọn vé, ghi chú, xác nhận đã xử lý tiền bên ngoài, transaction, vô hiệu QR cũ, lưu lịch sử, bán lại QR mới. Dashboard tính tiền còn lại sau hoàn; trang người mua giữ lịch sử đơn đã hoàn.
-- 44 test đạt gồm partial/full refund, QR cũ/mới, không hồi sinh vé bằng issuance retry, rollback nhiều collection, đồng thời refund/refund và refund/check-in, ghế legacy, từ chối vé đã check-in, CORS và audit hold hết hạn.
+- 47 test đạt gồm partial/full refund, QR cũ/mới, không hồi sinh vé bằng issuance retry, rollback nhiều collection, đồng thời refund/refund và refund/check-in, ghế legacy, từ chối vé đã check-in, CORS và audit hold hết hạn.
 - Safari desktop: login QA thành công; form refund chuyển trạng thái và hiện lịch sử admin/thời gian/lý do. Các thử nghiệm sửa dữ liệu chỉ dùng DB QA; không hoàn tiền hoặc sửa đơn thật.
 - Tiến độ vẫn 80% theo 10 cổng nghiệm thu: UI mới xác minh một phần; provider/mobile/camera còn mở. Không đánh dấu hoàn thành toàn bộ.
 
@@ -62,9 +62,18 @@ Cập nhật 2026-09-30. Phạm vi rà soát: mã nguồn, dependencies và lu�
 - Thanh toán transaction; fallback REST tự chạy phía server; polling frontend không tự dừng sau 2 phút. Hiển thị lỗi kết nối thay vì chỉ chờ vô hạn. Không nhầm query error thành giao dịch thất bại khi đơn đã paid.
 - Giao dịch được xác minh tự phát hành QR, tạo email queue và retry; hỗ trợ SMTP hoặc Resend HTTPS cho môi trường chặn SMTP. Admin audit hiển thị tình trạng gửi thư và yêu cầu đối chiếu.
 - CMS bớt trường kỹ thuật, có mục nâng cao; giữ footer.
-- 44/44 test, production build, cú pháp backend, diff check đạt. Lint 0 lỗi/16 cảnh báo cũ; npm audit cả dev+prod hai phía 0 lỗ hổng tại thời điểm kiểm tra.
+- 47/47 test, production build, cú pháp backend, diff check đạt. Lint 0 lỗi/16 cảnh báo cũ; npm audit cả dev+prod hai phía 0 lỗ hổng tại thời điểm kiểm tra.
 - Chưa xác minh giao dịch thật người dùng vừa báo vì chưa có mã đơn; chưa cấu hình tài khoản Google/SePay/email từ dashboard nhà cung cấp. Xem DEPLOYMENT.md cho điều kiện vận hành và nghiệm thu. Giữ tiến độ 80%, không đánh dấu 100% chỉ nhờ mock tests.
 
 ### Xác minh sau push
 
 Commit chức năng `f50887f` đã push vào `FYCE-Team/FYCE_Web` nhánh main. Lúc 08:24 ngày 2026-09-30 (Asia/Ho_Chi_Minh), Vercel phục vụ bundle `index-DgG46Wqj.js` khớp build đã kiểm tra; `/api/health` qua Vercel trả JSON 200, Cache-Control no-store/private và COOP same-origin-allow-popups. Render trực tiếp cũng trả health JSON 200 với header mới. Đây là xác minh triển khai/định tuyến, chưa phải nghiệm thu giao dịch hay email thật. Các tiến trình QA 27028/3018/5174 đã dừng; worktree sạch sau commit bàn giao.
+
+## Hồi quy theo giao dịch thực tế (2026-09-30)
+
+- SePay REST trả CAPTURED/VND/đủ tiền nhưng transactions=[] với chuyển khoản ngân hàng. Đã hỗ trợ xác nhận order-level **chỉ từ REST merchant đã xác thực**; webhook/browser không được tự bỏ qua kiểm tra. updated_at là giới hạn trên thời điểm capture khi xem xét khôi phục hold hết hạn, vẫn kiểm tra toàn bộ quyền sở hữu ghế.
+- Webhook biến động số dư tới Render HTTP 200 nhưng body báo không tìm thấy mã FYCE: nội dung dùng PAY... của gateway. Đã tra PAY.../SEPAY-... qua merchant REST để lấy chính xác invoice trước đối chiếu. Không đoán invoice từ giao dịch ngân hàng. HMAC dùng raw bytes, có chống replay 5 phút và alias SEPAY_WEBHOOK_SECRET.
+- About legacy thiếu createdBy: sửa nội dung giữ nguồn tác giả cũ là unknown, ghi updatedBy đúng admin; tạo mới vẫn bắt buộc author, trường nghiệp vụ vẫn validate. Feature order chuẩn hóa theo mảng; stale write vẫn 409.
+- Hai ảnh GridFS bị thiếu đã khôi phục đúng ID và bytes gốc từ riêng images.files/images.chunks trong backup; kiểm tra sequence/chunk length/JPEG trước transaction, không overwrite, không phục hồi collection khác. Cả hai URL production trả JPEG 200. Backup không dùng làm fixture, không thay đổi và không commit.
+- Người dùng xác nhận riêng cho phép đối chiếu/cấp vé đơn được cung cấp. Kết quả: confirmed/paid, 1 vé ghế K02; retry không nhân đôi. Chrome local reload giữ phiên, hiển thị QR. Email job sent lúc 08:41:28; chưa chứng minh inbox delivery.
+- 47/47 tests, build/cú pháp/diff đạt; lint 0 lỗi/16 warning. Render dashboard chưa đăng nhập, chưa đọc được log để kết luận nguyên nhân riêng của 502 trước đó. Code phân biệt 401/403 cấu hình và 429 giới hạn thay vì gộp mọi lỗi thành thông báo chung.

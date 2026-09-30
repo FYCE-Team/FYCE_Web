@@ -317,6 +317,7 @@ const BookingDetailsPage = () => {
                 }
 
                 setSyncError("");
+                setError("");
                 return data;
             } catch (err) {
                 setSyncError(err.message || "Chưa kết nối được SePay để đối chiếu. Hệ thống sẽ thử lại; không chuyển khoản lại.");

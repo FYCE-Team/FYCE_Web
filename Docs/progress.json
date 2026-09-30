@@ -9,8 +9,8 @@
   "status": "deployed_health_verified_pending_live_provider_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 44,
-    "integrationPassed": 44,
+    "integrationWritten": 47,
+    "integrationPassed": 47,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,
@@ -23,9 +23,9 @@
     "gitDiffCheck": "passed"
   },
   "blockedChecks": [
-    "Google Cloud exact production origin configuration and live OAuth unverified",
-    "Live SePay IPN/REST and email delivery unverified; failed booking code not supplied yet",
-    "Mobile and physical camera acceptance pending"
+    "Render dashboard login pending; underlying historic 502 deployment log not yet inspected",
+    "New deployment end-to-end payment and inbox delivery acceptance pending",
+    "Google OAuth/mobile/physical camera acceptance pending"
   ],
   "knownLimits": [
     "External provider and deployed payment acceptance still pending",
@@ -41,14 +41,15 @@
     "Docs/LOCAL_SETUP.md",
     "Docs/DEPLOYMENT.md"
   ],
-  "existingUntrackedData": "fyce_backup/ (untouched, do not commit)",
+  "existingUntrackedData": "fyce_backup/ untouched and excluded; only the two missing public GridFS images were selectively read/restored, never used as fixtures",
   "testEnvironment": "Isolated localhost:27028/fyce_admin_test only; QA API3018/Vite5174/Mongo27028 stopped after verification; real database not used for tests",
   "runtime": {
     "productionFrontend": "https://fyce-web.vercel.app",
     "productionBackend": "https://fyce-web.onrender.com",
     "preDeployObservation": "Vercel /api/health returns index HTML; new proxy not live yet",
     "qaBrowser": "Safari same-origin login/reload/leave-and-return retained session; paid fixture shows QR even payment=error",
-    "postDeployObservation": "2026-09-30 08:24 Asia/Ho_Chi_Minh: Vercel /api/health and Render /api/health JSON 200; no-store/private and COOP headers; Vercel bundle index-DgG46Wqj.js matches verified build"
+    "postDeployObservation": "2026-09-30 08:24 Asia/Ho_Chi_Minh: Vercel /api/health and Render /api/health JSON 200; no-store/private and COOP headers; Vercel bundle index-DgG46Wqj.js matches verified build",
+    "latestRecovery": "One explicitly authorized real order confirmed/paid with one QR ticket; Chrome local reload retained session; email job sent. Two missing GridFS images restored from exact backup IDs and production HTTP 200 verified."
   },
   "codeCommit": "f50887f"
 }
