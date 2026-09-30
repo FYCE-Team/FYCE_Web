@@ -28,6 +28,7 @@ const Header = () => {
 
   const {
     user,
+    loading,
     logout
   } = useAuth();
 
@@ -101,7 +102,7 @@ const Header = () => {
             Về chúng tôi
         </a>
 
-          {!user && (
+          {!user && !loading && (
             <div className="site-navigation-mobile-auth">
               <button
                 type="button"
@@ -180,7 +181,7 @@ const Header = () => {
             </button>
           )}
 
-          {!user ? (
+          {loading ? <span role="status">Đang khôi phục phiên…</span> : !user ? (
             <div className="site-auth-actions">
               <button
                 type="button"

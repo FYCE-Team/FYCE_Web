@@ -84,3 +84,11 @@ Commit chức năng `f50887f` đã push vào `FYCE-Team/FYCE_Web` nhánh main. L
 - AuthContext xử lý pageshow.persisted: khôi phục phiên khi trở lại từ BFCache, hiển thị loading trong lúc refresh, giữ HttpOnly cookie và access token trong memory.
 - Bỏ pseudo-element nét đứt trên ticket-pass, không che QR. Link hành động trong admin có border/padding/hover/focus tương đương button, giới hạn trong am-page; không đổi footer.
 - 48/48 integration tests đạt; build và lint đạt (16 warning cũ). Cần tiếp tục nghiệm thu checkout tại provider với đơn mới; không tự tạo giao dịch tiền thật để test. Lỗi PUT About legacy đã có test đúng dữ liệu thiếu createdBy; nếu production còn lỗi cần xác minh Render đang chạy commit mới.
+
+### Xác minh Chrome production sau commit 7738af6
+
+- Vercel bundle index-BzyHJOZS.js khớp build. Đăng nhập admin được khôi phục qua cookie.
+- Mở Giới thiệu và lưu lại nguyên nội dung hiện có: thành công, UI báo “Đã lưu nội dung trang chủ.” Không thay đổi văn bản/ảnh/publish của người dùng.
+- Rời admin sang sepay.vn rồi Back: phiên admin được khôi phục, không bị đưa về login. Header đang bootstrap được đổi sang “Đang khôi phục phiên…” để tránh báo Đăng nhập tạm thời gây hiểu nhầm.
+- Đơn đã đối chiếu hiển thị paid; vé hiện đã check-in bởi thao tác sau đó của người dùng, nên QR vô hiệu đúng nghiệp vụ. Không reset check-in.
+- Checkout mới đã kiểm tra chữ ký canonical bằng test; chưa thực hiện thanh toán mới ở provider trong lần kiểm tra này, không tuyên bố đã nghiệm thu tiền thật hoàn toàn.

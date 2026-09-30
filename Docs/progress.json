@@ -6,7 +6,7 @@
     "total": 10,
     "percent": 80
   },
-  "status": "checkout_and_bfcache_fix_verified_locally_pending_deploy_acceptance",
+  "status": "deployed_admin_save_and_back_verified_pending_new_gateway_checkout",
   "entrypoint": "/admin",
   "tests": {
     "integrationWritten": 48,
@@ -49,7 +49,9 @@
     "preDeployObservation": "Vercel /api/health returns index HTML; new proxy not live yet",
     "qaBrowser": "Safari same-origin login/reload/leave-and-return retained session; paid fixture shows QR even payment=error",
     "postDeployObservation": "2026-09-30 08:24 Asia/Ho_Chi_Minh: Vercel /api/health and Render /api/health JSON 200; no-store/private and COOP headers; Vercel bundle index-DgG46Wqj.js matches verified build",
-    "latestRecovery": "One explicitly authorized real order confirmed/paid with one QR ticket; Chrome local reload retained session; email job sent. Two missing GridFS images restored from exact backup IDs and production HTTP 200 verified."
+    "latestRecovery": "One explicitly authorized real order confirmed/paid with one QR ticket; Chrome local reload retained session; email job sent. Two missing GridFS images restored from exact backup IDs and production HTTP 200 verified.",
+    "adminSave": "Chrome production About PUT succeeded with unchanged existing content",
+    "backNavigation": "Chrome production admin → sepay.vn → Back retained authenticated admin"
   },
-  "codeCommit": "f50887f"
+  "codeCommit": "7738af6"
 }
