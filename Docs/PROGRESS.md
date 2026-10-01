@@ -1,5 +1,7 @@
 ## Đợt cập nhật 01/10/2026 — đọc mục này trước
 
+Commit chức năng: `85a6587` trên nhánh `main`. Giữ nguyên thay đổi riêng ở `package.json`/`package-lock.json` thư mục gốc, không đưa vào commit này.
+
 Tiến độ chức năng đợt này: **█████████░ 90% — code và kiểm thử local hoàn tất; nghiệm thu dịch vụ thật trên deploy còn mở.** Không dùng tỷ lệ này để kết luận giao dịch/email thật đã được nghiệm thu.
 
 - [x] Sidebar admin dọc trái; nhóm nút sự kiện gọn/cùng kích thước.

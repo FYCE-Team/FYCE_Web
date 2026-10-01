@@ -46,7 +46,7 @@
     "Docs/DEPLOYMENT.md"
   ],
   "existingUntrackedData": "fyce_backup/ untouched and excluded; only the two missing public GridFS images were selectively read/restored, never used as fixtures",
-  "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180. No production DB or provider used in tests.",
+  "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180. QA processes stopped after tests; no production database/provider used.",
   "runtime": {
     "productionFrontend": "https://fyce-web.vercel.app",
     "productionBackend": "https://fyce-web.onrender.com",
@@ -57,7 +57,7 @@
     "adminSave": "Chrome production About PUT succeeded with unchanged existing content",
     "backNavigation": "Chrome production admin → sepay.vn → Back retained authenticated admin"
   },
-  "codeCommit": "pending current commit; see git log",
+  "codeCommit": "85a6587",
   "currentIteration": {
     "percent": 90,
     "completed": [
