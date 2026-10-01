@@ -1160,6 +1160,8 @@ eventSchema.pre("validate", async function () {
 });
 
 
+eventSchema.add({ deletedAt: { type: Date, default: null, index: true }, deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } });
+
 export default mongoose.model(
   "Event",
   eventSchema

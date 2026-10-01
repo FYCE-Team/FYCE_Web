@@ -1567,3 +1567,9 @@
         border-radius: 10px;
     }
 }
+/* Repeat the five-photo composition without limiting the gallery length. */
+.home-gallery-grid { grid-template-rows: none; grid-auto-rows: 220px; grid-auto-flow: row dense; }
+.home-gallery-item-1 { grid-row: span 2; }
+@media(max-width:1100px) { .home-gallery-grid { grid-auto-rows: 210px; } .home-gallery-item-1 { grid-row: auto; grid-column: 1 / -1; } }
+@media(max-width:700px) { .home-gallery-grid { grid-template-rows: none; grid-auto-rows: 200px; } .home-gallery-item-1 { grid-column:auto; grid-row:auto; } }
+.home-page #concerts,.home-page #about,.home-page #gallery{scroll-margin-top:90px}

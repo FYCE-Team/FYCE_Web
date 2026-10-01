@@ -172,6 +172,8 @@ ticketSchema.index({
     checkedInAt: -1
 });
 
+ticketSchema.add({ deletedAt: { type: Date, default: null, index: true }, deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } });
+
 export default mongoose.model(
     "Ticket",
     ticketSchema

@@ -61,8 +61,8 @@ export const authenticateToken = async (
             });
         }
 
-        const currentUser = await User.findById(payload.sub).select("role isActive isBlocked").lean();
-        if (!currentUser?.isActive || currentUser.isBlocked) {
+        const currentUser = await User.findById(payload.sub).select("role isActive isBlocked authVersion").lean();
+        if (!currentUser?.isActive || currentUser.isBlocked || (payload.ver || 0) !== (currentUser.authVersion || 0)) {
             return res.status(401).json({ success: false, message: "Tài khoản không còn hoạt động." });
         }
         req.user = { userId: payload.sub, role: currentUser.role };

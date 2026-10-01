@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+import ProfileOtp from "../models/ProfileOtp.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
@@ -41,7 +43,7 @@ const validateNewPassword = (password) => {
     throw new Error("PASSWORD_TOO_SHORT");
   }
 
-  if (password.length > 128) {
+  if (Buffer.byteLength(password) > 72) {
     throw new Error("PASSWORD_TOO_LONG");
   }
 
@@ -270,7 +272,7 @@ export const resetPassword = async ({
     throw new Error("USER_NOT_FOUND");
   }
 
-  const isSamePassword =
+  const isSamePassword = user.password &&
     await bcrypt.compare(
       password,
       user.password
@@ -285,17 +287,19 @@ export const resetPassword = async ({
   const passwordHash =
     await bcrypt.hash(password, 12);
 
-  user.password = passwordHash;
-  user.isActive = true;
-
-  await user.save();
-
-  await RefreshToken.deleteMany({
-    userId: user._id
-  });
-
-  await PasswordReset.deleteMany({
-    userId: user._id
+  await mongoose.connection.transaction(async session => {
+    const consumed = await PasswordReset.findOneAndDelete({
+      _id: resetRequest._id, resetTokenHash, verified: true,
+      resetTokenExpiresAt: { $gt: new Date() }
+    }, { session });
+    if (!consumed) throw new Error("RESET_TOKEN_INVALID");
+    const changed = await User.updateOne({ _id: user._id }, {
+      $set: { password: passwordHash, isActive: true }, $inc: { authVersion: 1 }
+    }, { session });
+    if (!changed.matchedCount) throw new Error("USER_NOT_FOUND");
+    await RefreshToken.deleteMany({ userId: user._id }, { session });
+    await PasswordReset.deleteMany({ userId: user._id }, { session });
+    await ProfileOtp.deleteMany({ userId: user._id }, { session });
   });
 
   return {

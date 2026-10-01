@@ -1,6 +1,7 @@
 import Logo from "./Logo";
 import "./Footer.css";
-
+import { FaFacebookF, FaInstagram } from "react-icons/fa";
+import { SiZalo } from "react-icons/si";
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -21,95 +22,81 @@ const Footer = () => {
             </p>
 
             <div className="site-footer-socials">
-              <a
-                href="#"
-                aria-label="Facebook"
-              >
-                f
-              </a>
+  {/* Facebook */}
+  <a
+    href="https://www.facebook.com/fyce.official"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Facebook"
+    title="Facebook"
+  >
+    <FaFacebookF />
+  </a>
 
-              <a
-                href="#"
-                aria-label="Instagram"
-              >
-                ◎
-              </a>
+  {/* Instagram */}
+  <a
+    href="https://www.instagram.com/fyce.official/"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Instagram"
+    title="Instagram"
+  >
+    <FaInstagram />
+  </a>
 
-              <a
-                href="#"
-                aria-label="YouTube"
-              >
-                ▶
-              </a>
-            </div>
+  {/* Zalo */}
+  <a
+    href="https://zalo.me/0325289840"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Zalo"
+    title="Zalo"
+  >
+    <SiZalo />
+  </a>
+</div>
           </section>
 
           <section className="site-footer-column">
             <h3>Khám phá</h3>
 
-            <a href="/">
+            <a href="/#top">
               Trang chủ
             </a>
 
-            <a href="/events">
+            <a href="/#concerts">
               Hòa nhạc & Sự kiện
             </a>
 
-            <a href="/about">
+            <a href="/#about">
               Về chúng tôi
             </a>
 
-            <a href="/gallery">
+            <a href="/#gallery">
               Hoạt động & Hậu trường
             </a>
 
-            <a href="/booking">
-              Đặt vé
-            </a>
-          </section>
 
-          <section className="site-footer-column">
-            <h3>Thông tin</h3>
-
-            <a href="/events">
-              Lịch biểu diễn
-            </a>
-
-            <a href="/about">
-              Nghệ sĩ
-            </a>
-
-            <a href="/seating">
-              Sơ đồ khán phòng
-            </a>
-
-            <a href="/policies">
-              Chính sách
-            </a>
-
-            <a href="/faq">
-              Câu hỏi thường gặp
-            </a>
           </section>
 
           <section className="site-footer-column site-footer-contact">
             <h3>Liên hệ</h3>
 
-            <a href="mailto:boxoffice@fyce.art">
+            <a href="mailto:fyce.official@gmail.com">
               <span className="footer-contact-icon">
                 @
               </span>
               <span>
-                boxoffice@fyce.art
+                fyce.official@gmail.com
               </span>
             </a>
 
-            <a href="tel:1900888868">
+            <a href="tel:0325289840">
               <span className="footer-contact-icon">
                 ☎
               </span>
               <span>
-                1900 8888 68
+                0325 289 840
               </span>
             </a>
 
@@ -119,7 +106,7 @@ const Footer = () => {
               </span>
 
               <span>
-                Hà Nội, Việt Nam
+                Đà Nẵng, Việt Nam
               </span>
             </div>
 
@@ -129,43 +116,16 @@ const Footer = () => {
               </strong>
 
               <span>
-                Thứ Hai – Thứ Bảy
+                Thứ Hai – Chúa Nhật
               </span>
 
               <span>
-                08:30 – 20:00
+                08:30 – 22:00
               </span>
             </div>
           </section>
 
-          <section className="site-footer-newsletter">
-            <h3>
-              Bản tin Hòa nhạc
-            </h3>
 
-            <p>
-              Nhận thông tin mới nhất về các
-              buổi biểu diễn, nghệ sĩ và hoạt
-              động của FYCE.
-            </p>
-
-            <form
-              className="site-footer-newsletter-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-              }}
-            >
-              <input
-                type="email"
-                placeholder="Email của bạn"
-                aria-label="Địa chỉ email"
-              />
-
-              <button type="submit">
-                Đăng ký
-              </button>
-            </form>
-          </section>
 
         </div>
       </div>

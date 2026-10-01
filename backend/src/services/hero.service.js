@@ -35,7 +35,7 @@ const validateFeaturedEvent = async (featuredEvent) => {
     return null;
   }
 
-  const event = await Event.findOne({
+  const event = await Event.findOne({ deletedAt: null,
     _id: featuredEvent,
     status: "published"
   });
@@ -84,7 +84,7 @@ export const updateHero = async (
   const hero =
     await HeroSection.findById(heroId);
 
-  if (!hero) {
+  if (!hero || hero.deletedAt) {
     throw new Error("HERO_NOT_FOUND");
   }
 
@@ -111,7 +111,7 @@ export const updateHero = async (
 
 export const getActiveHero = async () => {
   const hero =
-    await HeroSection.findOne({
+    await HeroSection.findOne({ deletedAt: null,
       isActive: true
     })
       .sort({
@@ -123,7 +123,7 @@ export const getActiveHero = async () => {
         "title slug shortDescription coverImage startAt endAt venue address city status"
       );
 
-  if (!hero) {
+  if (!hero || hero.deletedAt) {
     throw new Error("HERO_NOT_FOUND");
   }
 
@@ -131,7 +131,7 @@ export const getActiveHero = async () => {
 };
 
 export const getAllHeroes = async () => {
-  return HeroSection.find()
+  return HeroSection.find({ deletedAt: null })
     .sort({
       sortOrder: 1,
       createdAt: -1
@@ -153,7 +153,7 @@ export const activateHero = async (
   const hero =
     await HeroSection.findById(heroId);
 
-  if (!hero) {
+  if (!hero || hero.deletedAt) {
     throw new Error("HERO_NOT_FOUND");
   }
 
@@ -194,7 +194,7 @@ export const deactivateHero = async (
   const hero =
     await HeroSection.findById(heroId);
 
-  if (!hero) {
+  if (!hero || hero.deletedAt) {
     throw new Error("HERO_NOT_FOUND");
   }
 

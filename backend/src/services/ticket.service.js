@@ -260,6 +260,12 @@ export const getTicketsForBooking =
 const loadTicketFromQr = async (
     qrPayload
 ) => {
+    const input = String(qrPayload || "").trim();
+    if (/^TKT-[A-Z0-9-]{4,64}$/i.test(input)) {
+        const ticket = await Ticket.findOne({ ticketCode: input.toUpperCase() });
+        if (!ticket) throw new Error("TICKET_NOT_FOUND");
+        return ticket;
+    }
     const {
         ticketId,
         qrVersion
@@ -350,24 +356,10 @@ export const checkInTicketForAdmin =
         adminUserId,
         eventId
     ) => {
-        const {
-            ticketId,
-            qrVersion
-        } = verifyTicketQrPayload(
-            qrPayload
-        );
-
-        const normalizedAdminId =
-            ensureObjectId(
-                adminUserId,
-                "USER_ID"
-            );
-        const normalizedTicketId =
-            ensureObjectId(
-                ticketId,
-                "TICKET_ID"
-            );
+        const normalizedAdminId = ensureObjectId(adminUserId, "USER_ID");
         const currentTicket = await loadTicketFromQr(qrPayload);
+        const normalizedTicketId = currentTicket._id;
+        const qrVersion = currentTicket.qrVersion;
         await assertAdmission(currentTicket, eventId);
         const now = new Date();
 

@@ -32,6 +32,8 @@ import EventSeatBookingPage from "./pages/events/EventSeatBookingPage.jsx";
 import CheckoutPage from "./pages/booking/CheckoutPage.jsx";
 import BookingDetailsPage from "./pages/booking/BookingDetailsPage.jsx";
 import MyTicketsPage from "./pages/booking/MyTicketsPage.jsx";
+const AdminTrash = lazy(() => import("./pages/admin/management/AdminTrash.jsx"));
+const ProfilePage = lazy(() => import("./pages/profile/ProfilePage.jsx"));
 const AdminEventCreate = lazy(() => import("./pages/admin/events/AdminEventCreate.jsx"));
 const AdminEventEdit = lazy(() => import("./pages/admin/events/AdminEventEdit.jsx"));
 const AdminSeatManagementPage = lazy(() => import("./pages/admin/events/AdminSeatManagementPage.jsx"));
@@ -106,6 +108,7 @@ function App() {
                                 <Route path="/admin/users" element={<AdminRecords key="users" kind="users" />} />
                                 <Route path="/admin/bookings" element={<AdminRecords key="bookings" kind="bookings" />} />
                                 <Route path="/admin/tickets" element={<AdminRecords key="tickets" kind="tickets" />} />
+                                <Route path="/admin/trash" element={<AdminTrash />} />
                                 <Route path="/admin/homepage" element={<AdminHomepage />} />
 
                                 <Route
@@ -195,6 +198,8 @@ function App() {
                                     }
                                 />
 
+                                <Route
+                                    path="/profile" element={<ProfilePage />} />
                                 <Route
                                     path="/my-tickets"
                                     element={

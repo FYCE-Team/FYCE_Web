@@ -1,3 +1,6 @@
+import { useRecordSelection } from "./useRecordSelection.js";
+import AdminGallery from "./AdminGallery.jsx";
+import BulkAction from "./BulkAction.jsx";
 import ContentImage from "../../../components/media/ContentImage.jsx";
 import { useEffect, useRef, useState } from "react";
 import { useAdminApi, mediaUrl } from "../../../services/admin.service.js";
@@ -60,6 +63,7 @@ export default function AdminHomepage() {
     }
   }, [panelKey]);
   const requestKey = `${kind}:${page}:${revision}`;
+  const selection = useRecordSelection(data.items, requestKey);
   const loading = loadedKey !== requestKey;
   useEffect(() => {
     const c = new AbortController();
@@ -164,7 +168,7 @@ export default function AdminHomepage() {
         <a href="/" target="_blank" rel="noreferrer">
           Xem trang chủ ↗
         </a>
-        <button
+        {kind !== "gallery" && <button
           disabled={busy}
           className="am-primary"
           onClick={() => {
@@ -180,7 +184,9 @@ export default function AdminHomepage() {
           }}
         >
           Thêm nội dung
-        </button>
+        </button>}
+        {kind !== "gallery" && <BulkAction kind={kind} filters={{ids:selection.ids}} disabled={!selection.ids.length || busy || loading} label={`Xóa đã chọn (${selection.ids.length})`} onDone={() => setRevision(x => x + 1)}/> }
+        {kind !== "gallery" && <BulkAction kind={kind} onDone={() => { setPage(1); setRevision(x => x + 1); }} />}
       </PageTitle>
       <div className="am-tabs" role="tablist" aria-label="Loại nội dung">
         {Object.entries(names).map(([key, name]) => (
@@ -202,6 +208,8 @@ export default function AdminHomepage() {
           </button>
         ))}
       </div>
+      {kind === "gallery" ? <AdminGallery /> : <>
+      <label className="am-select-all"><input type="checkbox" checked={selection.all} onChange={selection.toggleAll} disabled={selection.disabled || loading || busy}/> Chọn tất cả trên trang</label>
       <Notice error={error} message={message} />
       {pendingDelete && (
         <section className="am-card am-detail" role="alert" ref={panelRef} tabIndex={-1}>
@@ -476,6 +484,7 @@ export default function AdminHomepage() {
         <div className="am-content-grid">
           {data.items.map((item) => (
             <article className="am-card am-content-card" key={item._id}>
+              <label className="am-select-all"><input type="checkbox" checked={selection.ids.includes(item._id)} disabled={busy} onChange={() => selection.toggle(item._id)}/> Chọn {item.title || "nội dung"}</label>
               {item.image || item.backgroundImage ? (
                 <ContentImage showWarning
                   src={mediaUrl(item.image || item.backgroundImage)}
@@ -539,6 +548,7 @@ export default function AdminHomepage() {
         busy={busy || loading}
         onChange={setPage}
       />
+      </>}
     </div>
   );
 }

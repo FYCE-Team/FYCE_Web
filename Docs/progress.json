@@ -1,16 +1,16 @@
 {
-  "updatedAt": "2026-09-30",
+  "updatedAt": "2026-10-01",
   "scope": "FYCEweb repository only",
   "acceptance": {
     "completed": 8,
     "total": 10,
     "percent": 80
   },
-  "status": "deployed_admin_save_and_back_verified_pending_new_gateway_checkout",
+  "status": "local_checks_passed_pending_new_ui_and_production_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 48,
-    "integrationPassed": 48,
+    "integrationWritten": 65,
+    "integrationPassed": 65,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,
@@ -19,20 +19,24 @@
       "frontend": 0,
       "includesDevDependencies": true
     },
-    "backendSyntax": "passed",
+    "backendSyntax": "passed (94 files)",
     "gitDiffCheck": "passed"
   },
   "blockedChecks": [
     "Render dashboard login pending; underlying historic 502 deployment log not yet inspected",
     "New deployment end-to-end payment and inbox delivery acceptance pending",
-    "Google OAuth/mobile/physical camera acceptance pending"
+    "Google OAuth/mobile/physical camera acceptance pending",
+    "2026-10-01 new dashboard/modal visual check: browser request-header policy failed twice"
   ],
   "knownLimits": [
     "External provider and deployed payment acceptance still pending",
     "Email SMTP can duplicate after provider acknowledgement/process crash; Resend idempotency lasts 24 hours",
     "Background workers require running Render instance; reconciliation scans recent 48h only",
     "Legacy CMS writers do not require version tokens",
-    "Refund is offline confirmation only; no automated money transfer"
+    "Refund is offline confirmation only; no automated money transfer",
+    "Bulk operations and gallery reorder capped at 1000 records per confirmation/request",
+    "Gallery API returns all active image metadata; images lazy-load in browser",
+    "Soft trash preserves data. Guarded purge reclaims eligible records only; shared GridFS and financial history are retained."
   ],
   "handoff": [
     "Docs/PROGRESS.md",
@@ -42,7 +46,7 @@
     "Docs/DEPLOYMENT.md"
   ],
   "existingUntrackedData": "fyce_backup/ untouched and excluded; only the two missing public GridFS images were selectively read/restored, never used as fixtures",
-  "testEnvironment": "Isolated localhost:27028/fyce_admin_test only; QA API3018/Vite5174/Mongo27028 stopped after verification; real database not used for tests",
+  "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180. No production DB or provider used in tests.",
   "runtime": {
     "productionFrontend": "https://fyce-web.vercel.app",
     "productionBackend": "https://fyce-web.onrender.com",
@@ -53,5 +57,24 @@
     "adminSave": "Chrome production About PUT succeeded with unchanged existing content",
     "backNavigation": "Chrome production admin → sepay.vn → Back retained authenticated admin"
   },
-  "codeCommit": "7738af6"
+  "codeCommit": "pending current commit; see git log",
+  "currentIteration": {
+    "percent": 90,
+    "completed": [
+      "left_admin_sidebar",
+      "trash_restore_bulk_selected_and_filtered",
+      "restore_blocked_seats",
+      "gallery_multi_upload_drag_sort_all_public_photos",
+      "manual_ticket_code_checkin",
+      "profile_avatar_password_email_otp",
+      "footer_anchor_navigation",
+      "dependency_security_patches",
+      "guarded_permanent_trash_purge_preserves_financial_history",
+      "dashboard_and_large_blurred_detail_modals"
+    ],
+    "pending": [
+      "production_otp_inbox_google_camera_and_new_payment_acceptance",
+      "new_dashboard_modal_visual_acceptance_browser_tool_unavailable"
+    ]
+  }
 }

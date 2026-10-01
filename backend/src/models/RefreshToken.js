@@ -10,6 +10,7 @@ const refreshTokenSchema =
                 index: true
             },
 
+            authVersion: { type: Number, default: 0 },
             tokenHash: {
                 type: String,
                 required: true,

@@ -11,6 +11,11 @@ router.use((req, res, next) => {
   res.set("Cache-Control", "no-store, private");
   next();
 });
+router.post("/bulk/preview", controller.bulkPreview);
+router.post("/bulk/execute", controller.bulkExecute);
+router.get("/trash/:kind", controller.trashList);
+router.post("/content/gallery/reorder", controller.reorderGallery);
+router.get("/details/:kind/:id", controller.detail);
 router.get("/overview", controller.overview);
 router.post("/users", controller.createUser);
 router.patch("/users/:id", controller.updateUser);

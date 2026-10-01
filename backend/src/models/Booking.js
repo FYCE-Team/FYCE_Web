@@ -272,6 +272,8 @@ bookingSchema.index({
     status: 1
 });
 
+bookingSchema.add({ deletedAt: { type: Date, default: null, index: true }, deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } });
+
 export default mongoose.model(
     "Booking",
     bookingSchema

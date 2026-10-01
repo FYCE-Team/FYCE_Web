@@ -48,3 +48,10 @@ export const cancelBooking = respond((req) =>
 
 import { confirmOfflineRefund } from "../services/refund.service.js";
 export const refund = respond(req => confirmOfflineRefund(req.params.id, req.body, req.user.userId));
+
+import * as trash from "../services/adminTrash.service.js";
+export const bulkPreview = respond(req => trash.previewBulk(req.body || {}, req.user.userId));
+export const bulkExecute = respond(req => trash.executeBulk(req.body || {}, req.user.userId));
+export const trashList = respond(req => trash.listTrash(req.params.kind, req.query));
+export const reorderGallery = respond(req => content.reorderGallery(req.body || {}, req.user.userId));
+export const detail = respond(req => service.getAdminDetail(req.params.kind, req.params.id));

@@ -83,6 +83,8 @@ gallerySchema.index({
   sortOrder: 1
 });
 
+gallerySchema.add({ deletedAt: { type: Date, default: null, index: true }, deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } });
+
 export default mongoose.model(
   "Gallery",
   gallerySchema

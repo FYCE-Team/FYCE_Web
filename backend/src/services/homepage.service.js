@@ -4,10 +4,11 @@ import AboutSection from "../models/AboutSection.js";
 import Gallery from "../models/Gallery.js";
 
 const upcomingLimit = 3;
-const galleryLimit = 5;
+
 
 const getHomepageHero = async () => {
   return HeroSection.findOne({
+    deletedAt: null,
     isActive: true
   })
     .sort({
@@ -15,8 +16,7 @@ const getHomepageHero = async () => {
       createdAt: -1
     })
     .populate(
-      "featuredEvent",
-      "title slug badge shortDescription description subtitle coverImage heroVideoUrl trailerVideoUrl startAt endAt venue address city totalTickets ticketCategories status isFeatured allowBooking"
+      { path: "featuredEvent", match: { deletedAt: null }, select: "title slug badge shortDescription description subtitle coverImage heroVideoUrl trailerVideoUrl startAt endAt venue address city totalTickets ticketCategories status isFeatured allowBooking" }
     )
     .lean();
 };
@@ -30,6 +30,7 @@ const getHomepageFeaturedEvent = async (hero) => {
   }
 
   return Event.findOne({
+    deletedAt: null,
     status: "published",
     isFeatured: true
   })
@@ -42,6 +43,7 @@ const getHomepageFeaturedEvent = async (hero) => {
 
 const getHomepageUpcomingEvents = async () => {
   return Event.find({
+    deletedAt: null,
     status: "published",
     startAt: {
       $gte: new Date()
@@ -59,6 +61,7 @@ const getHomepageUpcomingEvents = async () => {
 
 const getHomepageAbout = async () => {
   return AboutSection.findOne({
+    deletedAt: null,
     isActive: true
   })
     .sort({
@@ -70,13 +73,13 @@ const getHomepageAbout = async () => {
 
 const getHomepageGallery = async () => {
   return Gallery.find({
+    deletedAt: null,
     isActive: true
   })
     .sort({
       sortOrder: 1,
       createdAt: -1
     })
-    .limit(galleryLimit)
     .select(
       "title image altText caption category sortOrder"
     )

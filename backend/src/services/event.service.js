@@ -1316,7 +1316,7 @@ export const updateEvent =
         eventId
       );
 
-    if (!event) {
+    if (!event || event.deletedAt) {
       throw new Error(
         "EVENT_NOT_FOUND"
       );
@@ -1819,6 +1819,7 @@ export const getEventBySlug =
       await Event.findOne({
         slug:
           normalizedSlug,
+        deletedAt: null,
         status:
           "published"
       })
@@ -1831,7 +1832,7 @@ export const getEventBySlug =
           "username fullName email"
         );
 
-    if (!event) {
+    if (!event || event.deletedAt) {
       throw new Error(
         "EVENT_NOT_FOUND"
       );
@@ -1846,6 +1847,7 @@ export const getPublishedEvents =
     skip = 0
   } = {}) => {
     return Event.find({
+      deletedAt: null,
       status:
         "published"
     })
@@ -1859,6 +1861,7 @@ export const getPublishedEvents =
 export const getFeaturedEvent =
   async () => {
     return Event.findOne({
+      deletedAt: null,
       status:
         "published",
       isFeatured:
@@ -1886,6 +1889,7 @@ export const getUpcomingEvents =
       new Date();
 
     return Event.find({
+      deletedAt: null,
       status:
         "published",
       startAt: {
@@ -1920,7 +1924,7 @@ export const publishEvent =
         eventId
       );
 
-    if (!event) {
+    if (!event || event.deletedAt) {
       throw new Error(
         "EVENT_NOT_FOUND"
       );
@@ -1987,7 +1991,7 @@ export const cancelEvent =
         eventId
       );
 
-    if (!event) {
+    if (!event || event.deletedAt) {
       throw new Error(
         "EVENT_NOT_FOUND"
       );
@@ -2025,7 +2029,7 @@ export const getAdminEvents =
     limit = 100,
     skip = 0
   } = {}) => {
-    return Event.find({})
+    return Event.find({ deletedAt: null })
       .populate(
         "createdBy",
         "username fullName email"
@@ -2064,7 +2068,7 @@ export const getAdminEventById =
           "username fullName email"
         );
 
-    if (!event) {
+    if (!event || event.deletedAt) {
       throw new Error(
         "EVENT_NOT_FOUND"
       );
@@ -2089,7 +2093,7 @@ export const featureEvent =
         eventId
       );
 
-    if (!event) {
+    if (!event || event.deletedAt) {
       throw new Error(
         "EVENT_NOT_FOUND"
       );

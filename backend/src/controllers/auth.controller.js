@@ -490,6 +490,7 @@ export const getProfile = async (
                     user.email,
                 phone:
                     user.phone,
+                avatarUrl: user.avatarUrl || "",
                 role:
                     user.role,
                 isActive:

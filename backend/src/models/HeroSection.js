@@ -126,6 +126,8 @@ heroSectionSchema.pre("validate", function () {
   }
 });
 
+heroSectionSchema.add({ deletedAt: { type: Date, default: null, index: true }, deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } });
+
 export default mongoose.model(
   "HeroSection",
   heroSectionSchema

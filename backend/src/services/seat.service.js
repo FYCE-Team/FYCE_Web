@@ -910,6 +910,8 @@ export const holdSeats =
                 eventId
             );
 
+        if (event.deletedAt) throw new Error("EVENT_NOT_FOUND");
+
         const normalizedUserId =
             ensureObjectId(
                 userId,

@@ -991,3 +991,264 @@ test("checkout signature and form order match SePay canonical protocol", async (
     assert.throws(() => createSePayCheckout({ totalAmount: 0 }, "https://example.test"), /BOOKING_AMOUNT_INVALID/);
   } finally { for (const [key,value] of Object.entries({ SEPAY_MERCHANT_ID: old.merchant, SEPAY_SECRET_KEY: old.secret, SEPAY_ENV: old.env })) { if (value === undefined) delete process.env[key]; else process.env[key] = value; } }
 });
+
+test("manual ticket code and QR share authorization, event binding and atomic admission", async () => {
+  await User.updateOne({ _id: user._id }, { isBlocked: false, isActive: true });
+  userToken = generateAccessToken(await User.findById(user._id));
+  const pending = await pendingFixture();
+  await processSePayPayment(paymentFor(pending));
+  const issued = await Ticket.findOne({ bookingId: pending._id });
+  const code = `  ${issued.ticketCode.toLowerCase()}  `;
+  assert.equal((await request("/tickets/admin/verify", { token: userToken, method: "POST", body: { qrPayload: code } })).status, 403);
+  assert.equal((await request("/tickets/admin/verify", { method: "POST", body: { qrPayload: code, eventId: String(oid()) } })).status, 409);
+  assert.equal((await request("/tickets/admin/verify", { method: "POST", body: { qrPayload: code } })).status, 200);
+  const responses = await Promise.all([code, createTicketQrPayload(issued)].map(qrPayload => request("/tickets/admin/check-in", { method: "POST", body: { qrPayload } })));
+  assert.deepEqual(responses.map(r => r.status).sort(), [200, 409]);
+});
+
+const bulk = async (kind, action, filters) => {
+  const preview = await request("/admin/bulk/preview", { method: "POST", body: { kind, action, filters } });
+  assert.equal(preview.status, 200, preview.message);
+  return request("/admin/bulk/execute", { method: "POST", body: { token: preview.data.token } });
+};
+
+test("trash snapshot excludes new records, detects stale writes, binds actor and protects admins", async () => {
+  const { default: Gallery } = await import("../src/models/Gallery.js");
+  const first = await Gallery.create({ title: "Trash snapshot", image: "/one.png", createdBy: admin._id });
+  const preview = await request("/admin/bulk/preview", { method: "POST", body: { kind: "gallery", filters: { q: "Trash snapshot" } } });
+  assert.equal(preview.data.count, 1);
+  const second = await Gallery.create({ title: "Trash snapshot", image: "/two.png", createdBy: admin._id });
+  assert.equal((await request("/admin/bulk/execute", { method: "POST", token: userToken, body: { token: preview.data.token } })).status, 403);
+  assert.equal((await request("/admin/bulk/execute", { method: "POST", body: { token: preview.data.token + "tampered" } })).status, 400);
+  assert.equal((await request("/admin/bulk/execute", { method: "POST", body: { token: preview.data.token } })).status, 200);
+  assert.ok((await Gallery.findById(first._id)).deletedAt);
+  assert.equal((await Gallery.findById(second._id)).deletedAt, null);
+  assert.equal((await request("/admin/bulk/execute", { method: "POST", body: { token: preview.data.token } })).status, 409);
+  const admins = await request("/admin/bulk/preview", { method: "POST", body: { kind: "users", filters: { role: "admin" } } });
+  assert.equal(admins.data.count, 0);
+  assert.equal((await bulk("gallery", "restore", { ids: [String(first._id)] })).status, 200);
+  const stale = await request("/admin/bulk/preview", { method: "POST", body: { kind: "gallery", filters: { q: "Trash snapshot" } } });
+  await Gallery.updateOne({ _id: second._id }, { title: "Changed concurrently" });
+  assert.equal((await request("/admin/bulk/execute", { method: "POST", body: { token: stale.data.token } })).status, 409);
+  assert.equal((await Gallery.findById(first._id)).deletedAt, null, "transaction rolls back first record too");
+});
+
+test("archiving events, bookings and tickets preserves buyer history, QR and payment totals", async () => {
+  const { default: Event } = await import("../src/models/Event.js");
+  const { getPublishedEvents } = await import("../src/services/event.service.js");
+  const pending = await pendingFixture();
+  const event = await Event.create({ _id: pending.eventId, title: "Trash concert", slug: `trash-${sequence}`, venue: "QA Hall", createdBy: admin._id, status: "published", allowBooking: false });
+  await processSePayPayment(paymentFor(pending));
+  const issued = await Ticket.findOne({ bookingId: pending._id });
+  const qrPayload = createTicketQrPayload(issued);
+  for (const [kind, id] of [["events", event.id], ["bookings", pending.id], ["tickets", issued.id]]) assert.equal((await bulk(kind, "trash", { ids: [id] })).status, 200);
+  assert.ok(!(await getPublishedEvents()).some(row => row.id === event.id));
+  const { holdSeats } = await import("../src/services/seat.service.js");
+  await assert.rejects(holdSeats(event.id, [String(pending.items[0].seatId)], user.id), /EVENT_NOT_FOUND/);
+  assert.equal((await Booking.findById(pending._id)).paymentStatus, "paid");
+  assert.equal((await request("/tickets/admin/verify", { method: "POST", body: { qrPayload } })).status, 200);
+  const mine = await request(`/tickets/booking/${pending.bookingCode}`, { token: userToken });
+  // Buyer API must continue to return the archived ticket.
+  assert.equal(mine.status, 200);
+  assert.ok(JSON.stringify(mine.data).includes(issued.ticketCode));
+  for (const [kind, id] of [["events", event.id], ["bookings", pending.id], ["tickets", issued.id]]) assert.equal((await bulk(kind, "restore", { ids: [id] })).status, 200);
+  assert.equal(createTicketQrPayload(await Ticket.findById(issued._id)), qrPayload);
+});
+
+test("bulk seat restoration leaves held and sold seats untouched and records history", async () => {
+  const { default: SeatHistory } = await import("../src/models/SeatHistory.js");
+  const eventId = oid(), category = oid();
+  const rows = await Seat.create(["blocked", "held", "sold"].map((status, index) => ({ eventId, ticketCategoryId: category, label: `Z${index+1}`, section: "center", row: "Z", number: index+1, position: { x: index, y: 0 }, status, isActive: true })));
+  const response = await bulk("seats", "restore-seats", { eventId: String(eventId) });
+  assert.equal(response.status, 200, response.message);
+  assert.equal(response.data.count, 1);
+  assert.deepEqual(await Promise.all(rows.map(async row => (await Seat.findById(row._id)).status)), ["available", "held", "sold"]);
+  assert.equal(await SeatHistory.countDocuments({ eventId, action: "unblocked" }), 1);
+});
+
+test("gallery reordering is atomic, allows empty titles, and trash hides legacy public results", async () => {
+  const { default: Gallery } = await import("../src/models/Gallery.js");
+  const rows = await Gallery.create([0,1].map(sortOrder => ({ title: "", image: `/gallery-${sortOrder}.png`, isActive: true, sortOrder, createdBy: admin._id })));
+  const items = [...rows].reverse().map(row => ({ id: row.id, updatedAt: row.updatedAt.toISOString(), title: "" }));
+  assert.equal((await request("/admin/content/gallery/reorder", { method: "POST", body: { items } })).status, 200);
+  assert.equal((await Gallery.findById(rows[1]._id)).sortOrder, 0);
+  assert.equal((await request("/admin/content/gallery/reorder", { method: "POST", body: { items } })).status, 409);
+  await bulk("gallery", "trash", { ids: rows.map(row => row.id) });
+  const homepage = await request("/homepage", { token: null });
+  assert.ok(!JSON.stringify(homepage.data).includes("/gallery-0.png"));
+  const legacy = await request("/gallery", { token: null });
+  assert.ok(!JSON.stringify(legacy.data).includes("/gallery-0.png"));
+});
+
+test("profile OTP is account-bound, throttled, single-use and revokes old access and refresh sessions", async () => {
+  const { default: ProfileOtp } = await import("../src/models/ProfileOtp.js");
+  const { requestProfileOtp, changeProfilePassword } = await import("../src/services/profile.service.js");
+  await ProfileOtp.init();
+  const member = await User.create({ username: "profileqa", fullName: "Profile QA", email: "profile@example.test", password: "qa-not-used", isActive: true });
+  const token = generateAccessToken(member);
+  let code;
+  await requestProfileOtp(member.id, async mail => { assert.equal(mail.to, member.email); code=mail.otp; });
+  assert.ok(code);
+  assert.notEqual((await ProfileOtp.findOne({ userId: member._id })).hash, code);
+  await assert.rejects(requestProfileOtp(member.id, async()=>{}), error=>error.status===429);
+  await assert.rejects(changeProfilePassword(user.id, { otp: code, password: "SecurePass123" }), error=>error.status===400);
+  await assert.rejects(changeProfilePassword(member.id, { otp: code === "123456" ? "654321" : "123456", password: "SecurePass123" }), error=>error.status===400);
+  const result = await request("/auth/me/password", { token, method:"POST", body: { otp: code, password: "SecurePass123" } });
+  assert.equal(result.status, 200, result.message);
+  assert.equal((await request("/auth/me", { token })).status, 401);
+  assert.equal(await ProfileOtp.countDocuments({ userId: member._id }), 0);
+  await assert.rejects(changeProfilePassword(member.id, { otp: code, password: "SecurePass456" }), error=>error.status===400);
+  const { default: bcrypt } = await import("bcrypt");
+  assert.ok(await bcrypt.compare("SecurePass123", (await User.findById(member._id).select("+password")).password));
+});
+
+test("profile avatar validates file signature and updates only authenticated account", async () => {
+  const response = await fetch(`${base}/auth/me/avatar`, { method:"POST", headers:{Authorization:`Bearer ${userToken}`}, body:(()=>{const form=new FormData();form.append("image",new Blob(["<svg onload=alert(1)></svg>"],{type:"image/png"}),"fake.png");return form;})() });
+  assert.equal(response.status, 400);
+  const { default: QRCode } = await import("qrcode");
+  const png = await QRCode.toBuffer("QA avatar image");
+  const body = new FormData(); body.append("image",new Blob([png],{type:"image/png"}),"avatar.png");body.append("userId",String(admin._id));
+  const uploaded = await fetch(`${base}/auth/me/avatar`,{method:"POST",headers:{Authorization:`Bearer ${userToken}`},body});
+  const result=await uploaded.json();assert.equal(uploaded.status,200,result.message);
+  assert.equal((await User.findById(user._id)).avatarUrl,result.data.avatarUrl);
+  assert.equal((await User.findById(admin._id)).avatarUrl,"");
+  assert.equal((await fetch(`${base.replace(/\/api$/,"")}${result.data.avatarUrl}`)).status,200);
+});
+
+test("profile OTP limits guesses, expires and handles concurrent resend without multiple active challenges", async () => {
+  const { default: ProfileOtp } = await import("../src/models/ProfileOtp.js");
+  const { requestProfileOtp, changeProfilePassword } = await import("../src/services/profile.service.js");
+  const member=await User.create({username:"otpguesses",fullName:"OTP QA",email:"otp@example.test",password:"qa-unused",isActive:true});
+  let code, deliveries=0;
+  const send=async mail=>{code=mail.otp;deliveries++;};
+  const attempts=await Promise.allSettled([requestProfileOtp(member.id,send),requestProfileOtp(member.id,send)]);
+  assert.equal(attempts.filter(a=>a.status==="fulfilled").length,1);
+  assert.equal(deliveries,1);
+  for(let i=0;i<5;i++) await assert.rejects(changeProfilePassword(member.id,{otp:code==="123456"?"654321":"123456",password:"NewPassword123"}),e=>e.status===400);
+  await assert.rejects(changeProfilePassword(member.id,{otp:code,password:"NewPassword123"}),e=>e.status===400);
+  await ProfileOtp.updateOne({userId:member._id},{attempts:0,expiresAt:new Date(Date.now()-1000)});
+  await assert.rejects(changeProfilePassword(member.id,{otp:code,password:"NewPassword123"}),e=>e.status===400);
+});
+
+test("user trash revokes access; restoring preserves previous blocked state and history", async () => {
+  const member=await User.create({username:"trashmember",fullName:"Trash QA",email:"trash@example.test",password:"qa-unused",isActive:true});
+  const token=generateAccessToken(member);
+  assert.equal((await bulk("users","trash",{ids:[member.id]})).status,200);
+  assert.equal((await request("/auth/me",{token})).status,401);
+  assert.equal((await User.findById(member._id)).isBlocked,true);
+  assert.equal((await bulk("users","restore",{ids:[member.id]})).status,200);
+  assert.equal((await User.findById(member._id)).isBlocked,false);
+  assert.equal((await request("/auth/me",{token})).status,401,"old access token remains revoked after restore");
+  await User.updateOne({_id:member._id},{isBlocked:true});
+  await bulk("users","trash",{ids:[member.id]});await bulk("users","restore",{ids:[member.id]});
+  assert.equal((await User.findById(member._id)).isBlocked,true);
+});
+
+test("homepage gallery returns every published non-trashed photo in admin order", async () => {
+  const { default: Gallery } = await import("../src/models/Gallery.js");
+  const photos=await Gallery.insertMany(Array.from({length:105},(_,i)=>({image:`/qa-gallery-${i}.png`,title:"",sortOrder:1000+i,isActive:true,createdBy:admin._id})));
+  const hidden=await Gallery.create({image:"/qa-hidden.png",isActive:true,createdBy:admin._id,deletedAt:new Date()});
+  const response=await request("/homepage",{token:null});
+  assert.equal(response.status,200);
+  const gallery=response.data.gallery;
+  assert.ok(photos.every(photo=>gallery.some(item=>item._id===photo.id)));
+  assert.ok(!gallery.some(item=>item._id===hidden.id));
+  for(let i=1;i<gallery.length;i++)assert.ok(gallery[i].sortOrder>=gallery[i-1].sortOrder);
+});
+
+test("refresh token cannot regain access after the account security version changes", async () => {
+  const member=await User.create({username:"versionqa",fullName:"Version QA",email:"version@example.test",password:"qa-unused",isActive:true});
+  const raw="qa-stale-session-security-version";
+  await RefreshToken.create({userId:member._id,tokenHash:hashToken(raw),authVersion:0,expiresAt:new Date(Date.now()+60000)});
+  await User.updateOne({_id:member._id},{$inc:{authVersion:1}});
+  await assert.rejects(refreshAccessToken(raw),/ACCOUNT_NOT_ACTIVE/);
+});
+
+test("password recovery consumes reset token once and invalidates outstanding profile OTP", async () => {
+  const { default: PasswordReset } = await import("../src/models/PasswordReset.js");
+  const { default: ProfileOtp } = await import("../src/models/ProfileOtp.js");
+  const { resetPassword } = await import("../src/services/passwordReset.service.js");
+  const member=await User.create({username:"recoveryqa",fullName:"Recovery QA",email:"recovery@example.test",googleId:"qa-google-only",isActive:true});
+  const resetToken="qa-recovery-token",future=new Date(Date.now()+60000);
+  await PasswordReset.create({userId:member._id,email:member.email,otpHash:"qa",otpExpiresAt:future,verified:true,resetTokenHash:hashToken(resetToken),resetTokenExpiresAt:future,expiresAt:future});
+  await ProfileOtp.create({userId:member._id,hash:"qa",expiresAt:future});
+  const responses=await Promise.allSettled([resetPassword({resetToken,password:"NewPassword123"}),resetPassword({resetToken,password:"OtherPassword456"})]);
+  assert.equal(responses.filter(r=>r.status==="fulfilled").length,1);
+  assert.equal(await ProfileOtp.countDocuments({userId:member._id}),0);
+  assert.equal((await User.findById(member._id)).authVersion,1);
+});
+
+
+const purgePreview = (kind, ids) => request("/admin/bulk/preview", {method:"POST",body:{kind,action:"purge",filters:{ids}}});
+const purgeExecute = (token, confirmation="XOA VINH VIEN") => request("/admin/bulk/execute", {method:"POST",body:{token,confirmation}});
+test("permanent deletion requires explicit confirmation, protects snapshot and rejects replay", async()=>{
+  const {default:Gallery}=await import("../src/models/Gallery.js");
+  const rows=await Gallery.create([1,2].map(i=>({title:`Purge ${i}`,image:`/purge-${i}.png`,createdBy:admin._id,deletedAt:new Date()})));
+  const preview=await purgePreview("gallery",rows.map(r=>r.id));
+  assert.equal(preview.status,200,preview.message);
+  assert.equal((await purgeExecute(preview.data.token,"")).status,400);
+  await Gallery.updateOne({_id:rows[1]._id},{title:"Changed"});
+  assert.equal((await purgeExecute(preview.data.token)).status,409);
+  assert.equal(await Gallery.countDocuments({_id:{$in:rows.map(r=>r._id)}}),2,"all deletes roll back on stale snapshot");
+  const fresh=await purgePreview("gallery",rows.map(r=>r.id));
+  assert.equal((await purgeExecute(fresh.data.token)).status,200);
+  assert.equal(await Gallery.countDocuments({_id:{$in:rows.map(r=>r._id)}}),0);
+  assert.equal((await purgeExecute(fresh.data.token)).status,409);
+});
+test("permanent deletion preserves paid bookings, tickets, related events and customers",async()=>{
+  const {default:Event}=await import("../src/models/Event.js");
+  const pending=await pendingFixture();
+  await processSePayPayment(paymentFor(pending));
+  const issued=await Ticket.findOne({bookingId:pending._id});
+  const event=await Event.create({_id:pending.eventId,title:"Protected",slug:`protected-${sequence}`,venue:"QA",allowBooking:false,createdBy:admin._id,deletedAt:new Date()});
+  await Booking.updateOne({_id:pending._id},{deletedAt:new Date()});
+  await Ticket.updateOne({_id:issued._id},{deletedAt:new Date()});
+  await User.updateOne({_id:user._id},{deletedAt:new Date()});
+  for(const [kind,id] of [["bookings",pending.id],["tickets",issued.id],["events",event.id],["users",user.id]])assert.equal((await purgePreview(kind,[id])).status,409,kind);
+  assert.equal((await Booking.findById(pending._id)).paymentStatus,"paid");
+  assert.ok(await Ticket.findById(issued._id));
+  await User.updateOne({_id:user._id},{deletedAt:null});
+});
+test("purge rechecks financial state after preview and allows only aged closed unpaid orders",async()=>{
+  const pending=await pendingFixture();
+  await Booking.updateOne({_id:pending._id},{status:"cancelled",deletedAt:new Date()});
+  assert.equal((await purgePreview("bookings",[pending.id])).status,409);
+  await Booking.collection.updateOne({_id:pending._id},{$set:{createdAt:new Date(Date.now()-49*3600000)}});
+  assert.equal((await purgePreview("bookings",[pending.id])).status,409,"active seat hold protects order");
+  await Seat.updateOne({_id:pending.items[0].seatId},{status:"available",holdToken:null,heldByUserId:null,holdExpiresAt:null});
+  const preview=await purgePreview("bookings",[pending.id]);
+  assert.equal(preview.status,200,preview.message);
+  await PaymentReview.create({bookingCode:pending.bookingCode,outcome:"review_required",message:"QA payment evidence"});
+  assert.equal((await purgeExecute(preview.data.token)).status,409,"new payment evidence blocks purge even without order version change");
+  assert.ok(await Booking.findById(pending._id));
+  const clean=await pendingFixture();
+  await Seat.updateOne({_id:clean.items[0].seatId},{status:"available",holdToken:null,heldByUserId:null,holdExpiresAt:null});
+  await Booking.collection.updateOne({_id:clean._id},{$set:{status:"expired",deletedAt:new Date(),createdAt:new Date(Date.now()-49*3600000)}});
+  const allowed=await purgePreview("bookings",[clean.id]);
+  assert.equal(allowed.status,200,allowed.message);
+  assert.equal((await purgeExecute(allowed.data.token)).status,200);
+  assert.equal(await Booking.findById(clean._id),null);
+});
+test("standalone archived event can be purged without deleting shared media",async()=>{
+  const {default:Event}=await import("../src/models/Event.js");
+  const event=await Event.create({title:"Empty purge",slug:"empty-purge",venue:"QA",allowBooking:false,createdBy:admin._id,deletedAt:new Date()});
+  const preview=await purgePreview("events",[event.id]);
+  assert.equal(preview.status,200,preview.message);
+  assert.equal((await purgeExecute(preview.data.token)).status,200);
+  assert.equal(await Event.findById(event._id),null);
+});
+test("admin detail endpoints enforce roles and omit authentication and hold secrets",async()=>{
+  const url=`/admin/details/users/${user.id}`;
+  assert.equal((await request(url,{token:null})).status,401);
+  assert.equal((await request(url,{token:userToken})).status,403);
+  const detail=await request(url);
+  assert.equal(detail.status,200);
+  for(const key of ["password","authVersion","googleId"])assert.equal(detail.data.user[key],undefined);
+  const pending=await pendingFixture();await processSePayPayment(paymentFor(pending));
+  const issued=await Ticket.findOne({bookingId:pending._id});
+  const ticketDetail=await request(`/admin/details/tickets/${issued.id}`);
+  assert.equal(ticketDetail.status,200,ticketDetail.message);
+  assert.equal(ticketDetail.data.ticket.qrVersion,undefined);
+  assert.equal(ticketDetail.data.booking.holdToken,undefined);
+  assert.equal(ticketDetail.data.ticket.userId.email,user.email);
+});

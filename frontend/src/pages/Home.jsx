@@ -5,7 +5,7 @@ import {
 } from "react";
 
 import {
-    Link
+    Link, useLocation
 } from "react-router-dom";
 
 import {
@@ -145,6 +145,7 @@ const getStartingPrice = (event) => {
 };
 
 const Home = () => {
+    const location = useLocation();
     const [
         homepage,
         setHomepage
@@ -195,6 +196,12 @@ const Home = () => {
 
         loadHomepage();
     }, []);
+
+    useEffect(() => {
+        if (!location.hash || !homepage) return;
+        const target = document.getElementById(location.hash.slice(1));
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, [homepage, location.hash]);
 
     const featuredEvent =
         homepage?.hero?.featuredEvent ||
@@ -290,7 +297,7 @@ const Home = () => {
     }
 
     return (
-        <div className="home-page">
+        <div className="home-page" id="top">
 
             <section
                 className="home-hero"
@@ -897,7 +904,7 @@ const Home = () => {
                 </section>
             )}
 
-            <section className="home-gallery">
+            <section className="home-gallery" id="gallery">
 
                 <div className="home-container">
 
@@ -923,7 +930,6 @@ const Home = () => {
                     <div className="home-gallery-grid">
 
                         {gallery
-                            .slice(0, 5)
                             .map(
                                 (
                                     item,
@@ -931,7 +937,7 @@ const Home = () => {
                                 ) => (
 
                                     <figure
-                                        className={`home-gallery-item home-gallery-item-${index + 1}`}
+                                        className={`home-gallery-item home-gallery-item-${index % 5 + 1}`}
                                         key={
                                             item._id ||
                                             index
@@ -941,6 +947,7 @@ const Home = () => {
                                         {item.image ? (
 
                                             <ContentImage
+                                                loading="lazy"
                                                 src={getMediaUrl(
                                                     item.image
                                                 )}

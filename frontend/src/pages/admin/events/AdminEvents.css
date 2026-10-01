@@ -668,3 +668,4 @@
     margin-top: 6px;
     line-height: 1.45;
 }
+.admin-events-header{flex-wrap:wrap;align-items:center}.admin-events-header>.am-bulk-toolbar{width:100%;justify-content:flex-end}.admin-event-actions .am-bulk-action>button{min-height:31px;padding:0 9px;font-size:10px;font-weight:700;border-radius:8px;line-height:1.2}.admin-event-actions{align-items:center}.admin-events-table .am-select-cell{width:36px;padding-left:12px;padding-right:8px}.admin-events-table .am-select-cell input{width:16px;height:16px;accent-color:#237db3}

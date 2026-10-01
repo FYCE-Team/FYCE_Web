@@ -247,6 +247,7 @@ const assertEventBookable = (
     }
 
     if (
+        event.deletedAt ||
         event.status !== "published" ||
         event.allowBooking === false
     ) {

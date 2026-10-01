@@ -1,3 +1,4 @@
+import BulkAction from "../../pages/admin/management/BulkAction.jsx";
 import {
     useCallback,
     useEffect,
@@ -705,6 +706,7 @@ const AdminSeatManager = ({
                 </button>
             </div>
 
+            <BulkAction kind="seats" action="restore-seats" filters={{eventId}} onDone={() => loadSeats()} disabled={actionLoading} label="Khôi phục tất cả ghế bị khóa" />
             <div className="admin-seat-manager__summary">
                 <div>
                     <small>Tổng ghế</small>

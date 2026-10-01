@@ -1,3 +1,22 @@
+## Đợt cập nhật 01/10/2026 — đọc mục này trước
+
+Tiến độ chức năng đợt này: **█████████░ 90% — code và kiểm thử local hoàn tất; nghiệm thu dịch vụ thật trên deploy còn mở.** Không dùng tỷ lệ này để kết luận giao dịch/email thật đã được nghiệm thu.
+
+- [x] Sidebar admin dọc trái; nhóm nút sự kiện gọn/cùng kích thước.
+- [x] Xóa một/chọn nhiều/toàn bộ kết quả bộ lọc vào thùng rác; khôi phục một/chọn nhiều/toàn bộ. Giữ tiền, lịch sử, QR và vé đã mua; chặn admin bị xóa.
+- [x] Xóa vĩnh viễn trong thùng rác: xác nhận bằng cụm từ, kiểm tra lại trong transaction; bảo vệ lịch sử thanh toán, đơn/vé và liên kết. Chỉ xóa đơn chưa thanh toán đã hủy/hết hạn, tạo trên 48 giờ, không dấu vết xử lý tiền/ghế.
+- [x] Dashboard mới với số liệu thực, thao tác nhanh; tên người dùng/mã đơn/mã vé mở modal lớn có backdrop mờ, hỗ trợ Escape/focus trap.
+- [x] Khôi phục toàn bộ ghế bị khóa; transaction + SeatHistory, bảo vệ sold/held.
+- [x] Gallery chọn nhiều tệp, title tùy chọn, kéo thả/keyboard, lưu thứ tự có kiểm tra phiên bản. Trang chủ hiển thị toàn bộ ảnh; đã kiểm thử hơn 100 ảnh.
+- [x] Check-in thủ công nhận mã vé từ email và dùng cùng bảo vệ như QR.
+- [x] Profile, avatar, đổi mật khẩu bằng OTP email, giới hạn thử mã và thu hồi phiên cũ.
+- [x] Footer bỏ Thông tin/Đặt vé/bản tin, link neo như header, cân đối Khám phá/Liên hệ bên phải.
+- [x] 65/65 kiểm thử tích hợp trên MongoDB QA độc lập; frontend build, backend syntax (94 tệp), diff check đạt; lint 0 lỗi/16 cảnh báo cũ.
+- [x] Audit mới tìm và vá transitive dependencies brace-expansion, ip-address bằng bản tương thích. Không thay đổi API thanh toán.
+- [ ] Nghiệm thu OTP inbox, Google/camera thật và checkout mới trên deploy. Không tự chuyển tiền hoặc sửa dữ liệu thật để kiểm thử.
+
+Chrome QA: sidebar/profile đã xem trực quan; checkbox sự kiện bật đúng số lượng, dialog chốt đúng mục; kéo chuột đổi thứ tự gallery và lưu có thông báo thành công. Test database là fyce_admin_test tại 127.0.0.1:27028; không dùng .env hoặc dump production. Kiểm tra trực quan dashboard/modal bổ sung ngày 01/10 bị chặn bởi lỗi công cụ trình duyệt “Unable to load browser request-header policy” sau hai lần thử; API/build đã đạt nhưng không ghi nhận UI mới là đã nghiệm thu. Các kết quả cũ bên dưới là lịch sử, không thay cho tình trạng hiện tại.
+
 # Tiến độ FYCE admin
 
 Cập nhật 2026-09-30. Phạm vi rà soát: mã nguồn, dependencies và luồng dữ liệu của dự án FYCEweb; không phải chẩn đoán/sửa toàn bộ hệ điều hành của máy.

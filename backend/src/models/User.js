@@ -54,6 +54,9 @@ const userSchema = new mongoose.Schema(
             default: "user"
         },
 
+        avatarUrl: { type: String, default: "" },
+        authVersion: { type: Number, default: 0 },
+
         isBlocked: { type: Boolean, default: false, index: true },
 
         isActive: {
@@ -65,6 +68,8 @@ const userSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+
+userSchema.add({ deletedAt: { type: Date, default: null, index: true }, deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, trashWasBlocked: Boolean });
 
 const User = mongoose.model("User", userSchema);
 

@@ -52,7 +52,7 @@ export const updateAbout = async (
   const about =
     await AboutSection.findById(aboutId);
 
-  if (!about) {
+  if (!about || about.deletedAt) {
     throw new Error("ABOUT_NOT_FOUND");
   }
 
@@ -71,14 +71,14 @@ export const updateAbout = async (
 
 export const getActiveAbout = async () => {
   const about =
-    await AboutSection.findOne({
+    await AboutSection.findOne({ deletedAt: null,
       isActive: true
     }).sort({
       sortOrder: 1,
       createdAt: -1
     });
 
-  if (!about) {
+  if (!about || about.deletedAt) {
     throw new Error("ABOUT_NOT_FOUND");
   }
 
@@ -86,7 +86,7 @@ export const getActiveAbout = async () => {
 };
 
 export const getAllAbout = async () => {
-  return AboutSection.find().sort({
+  return AboutSection.find({ deletedAt: null }).sort({
     sortOrder: 1,
     createdAt: -1
   });
@@ -103,7 +103,7 @@ export const activateAbout = async (
   const about =
     await AboutSection.findById(aboutId);
 
-  if (!about) {
+  if (!about || about.deletedAt) {
     throw new Error("ABOUT_NOT_FOUND");
   }
 
@@ -144,7 +144,7 @@ export const deactivateAbout = async (
   const about =
     await AboutSection.findById(aboutId);
 
-  if (!about) {
+  if (!about || about.deletedAt) {
     throw new Error("ABOUT_NOT_FOUND");
   }
 

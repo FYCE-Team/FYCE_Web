@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Hero from "../models/HeroSection.js";
 import About from "../models/AboutSection.js";
 import Gallery from "../models/Gallery.js";
@@ -34,12 +35,12 @@ export const contentList = async (kind, query) => {
   const { Model } = config(kind);
   const { page, limit } = listOptions(query);
   const [items, total] = await Promise.all([
-    Model.find()
+    Model.find({ deletedAt: null })
       .sort({ sortOrder: 1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
-    Model.countDocuments(),
+    Model.countDocuments({ deletedAt: null }),
   ]);
   return { items, total, page, limit };
 };
@@ -83,7 +84,7 @@ export const contentSave = async (kind, id, body, actor) => {
     return Model.create({ ...payload, createdBy: actor });
   }
   const record = await Model.findById(objectId(id));
-  if (!record) fail(404, "Không tìm thấy nội dung.");
+  if (!record || record.deletedAt) fail(404, "Không tìm thấy nội dung.");
   if (
     !body.updatedAt ||
     new Date(body.updatedAt).getTime() !== record.updatedAt.getTime()
@@ -114,11 +115,25 @@ export const contentDelete = async (kind, id, body) => {
   const { Model } = config(kind);
   if (!body?.updatedAt || !Number.isFinite(Date.parse(body.updatedAt)))
     fail(400, "Thiếu phiên bản nội dung.");
-  const deleted = await Model.findOneAndDelete({
+  const deleted = await Model.findOneAndUpdate({
     _id: objectId(id),
     updatedAt: new Date(body.updatedAt),
-  });
+    deletedAt: null,
+  }, { $set: { deletedAt: new Date() } });
   if (!deleted)
     fail(409, "Nội dung đã thay đổi hoặc đã được xóa. Hãy tải lại.");
   return { deleted: true };
+};
+
+export const reorderGallery = async ({ items } = {}, actor) => {
+  if (!Array.isArray(items) || !items.length || items.length > 1000 || items.some(item => !item || typeof item.id !== "string" || (item.title !== undefined && typeof item.title !== "string")) || new Set(items.map(item => item.id)).size !== items.length) fail(400, "Danh sách ảnh không hợp lệ.");
+  await mongoose.connection.transaction(async session => {
+    for (const [index, item] of items.entries()) {
+      if (!item.updatedAt || !Number.isFinite(Date.parse(item.updatedAt))) fail(400, "Thiếu phiên bản ảnh.");
+      const updatedAt = new Date(Math.max(Date.now(), Date.parse(item.updatedAt) + 1));
+      const result = await Gallery.updateOne({ _id: objectId(item.id), deletedAt: null, updatedAt: new Date(item.updatedAt) }, { $set: { sortOrder: index, updatedAt, updatedBy: actor, ...(item.title !== undefined ? { title: item.title } : {}) } }, { session, timestamps: false, runValidators: true });
+      if (!result.matchedCount) fail(409, "Ảnh đã thay đổi. Hãy tải lại trước khi sắp xếp.");
+    }
+  });
+  return { message: "Đã lưu tiêu đề và thứ tự ảnh." };
 };

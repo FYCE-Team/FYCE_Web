@@ -231,11 +231,11 @@ const AdminCheckInPage = () => {
             if (
                 !qrPayload.startsWith(
                     "FYCE1:"
-                )
+                ) && !/^TKT-[A-Z0-9-]{4,64}$/i.test(qrPayload)
             ) {
                 setVerification(null);
                 setError(
-                    "QR này không phải vé FYCE hợp lệ."
+                    "Nhập mã vé TKT-… hoặc nội dung QR FYCE hợp lệ."
                 );
                 return;
             }
@@ -637,7 +637,7 @@ const AdminCheckInPage = () => {
                                             .value
                                     )
                                 }
-                                placeholder="FYCE1:eyJ..."
+                                placeholder="TKT-… hoặc FYCE1:eyJ…"
                                 autoComplete="off"
                                 spellCheck="false"
                             />

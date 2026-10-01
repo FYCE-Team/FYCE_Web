@@ -1,3 +1,7 @@
+import AdminModal from "./AdminModal.jsx";
+import AdminRecordDetails from "./AdminRecordDetails.jsx";
+import { useRecordSelection } from "./useRecordSelection.js";
+import BulkAction from "./BulkAction.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -9,6 +13,7 @@ import {
 import { Badge, Notice, PageTitle, Pagination } from "./AdminShared.jsx";
 export default function AdminRecords({ kind }) {
   const api = useAdminApi();
+  const [details, setDetails] = useState(null);
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get("q") || "");
   const [data, setData] = useState({ items: [], total: 0 }),
@@ -25,7 +30,7 @@ export default function AdminRecords({ kind }) {
   const [refundReason, setRefundReason] = useState("");
   const [refundConfirmed, setRefundConfirmed] = useState(false);
   const detailRef = useRef(null);
-  const detailKey = editor ? `user:${editor._id || "new"}` : audit ? `booking:${audit.booking._id}` : "";
+  const detailKey = editor ? `user:${editor._id || "new"}` : "";
   useEffect(() => {
     if (detailKey) {
       detailRef.current?.focus({ preventScroll: true });
@@ -35,6 +40,7 @@ export default function AdminRecords({ kind }) {
   const page = Math.max(1, Number(params.get("page")) || 1);
   const query = params.toString();
   const requestKey = `${kind}:${query}:${revision}`;
+  const selection = useRecordSelection(data.items, requestKey);
   const busy = loadedKey !== requestKey;
   useEffect(() => {
     const controller = new AbortController();
@@ -157,6 +163,7 @@ export default function AdminRecords({ kind }) {
     : ["pending_payment", "confirmed", "expired", "cancelled"];
   return (
     <div className="am-page">
+      {details && <AdminRecordDetails key={`${details.kind}:${details.id}`} {...details} onClose={() => setDetails(null)} />}
       <PageTitle
         title={
           isUsers
@@ -199,6 +206,8 @@ export default function AdminRecords({ kind }) {
             Quét vé check-in
           </Link>
         )}
+        <BulkAction kind={kind} filters={{...Object.fromEntries(params), ids:selection.ids}} disabled={!selection.ids.length || busy} label={`Xóa đã chọn (${selection.ids.length})`} onDone={() => setRevision(x => x + 1)} />
+        <BulkAction kind={kind} filters={Object.fromEntries(params)} onDone={() => setRevision(x => x + 1)} />
       </PageTitle>
       <Notice error={error} message={message} />
       {editor && (
@@ -290,13 +299,8 @@ export default function AdminRecords({ kind }) {
         </section>
       )}
       {audit && (
-        <section className="am-card am-detail" ref={detailRef} tabIndex={-1} aria-label="Chi tiết đối chiếu đơn vé">
-          <div className="am-section-heading">
-            <h2>Đối chiếu {audit.booking.bookingCode}</h2>
-            <button disabled={saving} onClick={() => setAudit(null)}>
-              Đóng
-            </button>
-          </div>
+        <AdminModal title={`Đối chiếu ${audit.booking.bookingCode}`} onClose={() => setAudit(null)} busy={saving}>
+          <Notice error={error} message={message} />
           <p>
             {audit.booking.customer.fullName} · {audit.booking.customer.email} ·{" "}
             {money(audit.booking.totalAmount)}
@@ -456,7 +460,7 @@ export default function AdminRecords({ kind }) {
               không có nhật ký này.
             </p>
           )}
-        </section>
+        </AdminModal>
       )}
       <section className="am-card">
         <div className="am-filters">
@@ -558,6 +562,7 @@ export default function AdminRecords({ kind }) {
             <table>
               <thead>
                 <tr>
+                  <th className="am-select-cell"><input type="checkbox" aria-label="Chọn tất cả trên trang này" checked={selection.all} disabled={selection.disabled || busy} onChange={selection.toggleAll}/></th>
                   {(isUsers
                     ? [
                         "Người dùng",
@@ -585,15 +590,17 @@ export default function AdminRecords({ kind }) {
                   ).map((x) => (
                     <th key={x}>{x}</th>
                   ))}
+                  <th>Thùng rác</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.map((row) => (
                   <tr key={row._id}>
+                    <td className="am-select-cell"><input type="checkbox" aria-label={`Chọn ${row.fullName || row.ticketCode || row.bookingCode}`} checked={selection.ids.includes(row._id)} disabled={row.role === "admin" || busy} onChange={() => selection.toggle(row._id)}/></td>
                     {isUsers ? (
                       <>
                         <td>
-                          <strong>{row.fullName}</strong>
+                          <button className="am-text-link" onClick={() => setDetails({kind:"users",id:row._id})}>{row.fullName}</button>
                           <small>@{row.username}</small>
                         </td>
                         <td>
@@ -625,7 +632,7 @@ export default function AdminRecords({ kind }) {
                     ) : isTickets ? (
                       <>
                         <td>
-                          <strong>{row.ticketCode}</strong>
+                          <button className="am-text-link" onClick={() => setDetails({kind:"tickets",id:row._id})}>{row.ticketCode}</button>
                           <small>
                             <Link
                               to={`/admin/bookings?q=${encodeURIComponent(row.bookingCode)}`}
@@ -635,7 +642,7 @@ export default function AdminRecords({ kind }) {
                           </small>
                         </td>
                         <td>
-                          {row.userId?.fullName || "—"}
+                          {row.userId?._id ? <button className="am-text-link" onClick={() => setDetails({kind:"users",id:row.userId._id})}>{row.userId.fullName || "Người mua"}</button> : "—"}
                           <small>{row.userId?.email}</small>
                         </td>
                         <td>
@@ -655,11 +662,11 @@ export default function AdminRecords({ kind }) {
                     ) : (
                       <>
                         <td>
-                          <strong>{row.bookingCode}</strong>
+                          <button className="am-text-link" disabled={saving} onClick={() => inspect(row._id)}>{row.bookingCode}</button>
                           <small>{dateTime(row.createdAt)}</small>
                         </td>
                         <td>
-                          {row.customer.fullName}
+                          <button className="am-text-link" disabled={saving} onClick={() => inspect(row._id)}>{row.customer.fullName}</button>
                           <small>{row.customer.email}</small>
                         </td>
                         <td>
@@ -683,6 +690,7 @@ export default function AdminRecords({ kind }) {
                         </td>
                       </>
                     )}
+                    <td>{row.role !== "admin" && <BulkAction kind={kind} filters={{ids:[row._id]}} label="Xóa" onDone={() => setRevision(x => x + 1)} />}</td>
                   </tr>
                 ))}
               </tbody>

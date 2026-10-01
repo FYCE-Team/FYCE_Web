@@ -1,4 +1,5 @@
 export const errorHandler = (error, req, res, next) => {
+    if (error.code === "LIMIT_FILE_SIZE") return res.status(400).json({ success: false, message: "Tệp vượt quá dung lượng cho phép." });
     if (res.headersSent) return next(error);
     if (["HERO_BACKGROUND_SOURCE_CONFLICT", "ABOUT_FEATURE_ORDER_DUPLICATE"].includes(error.message)) return res.status(400).json({ success: false, message: error.message === "HERO_BACKGROUND_SOURCE_CONFLICT" ? "Chỉ chọn ảnh hoặc video nền." : "Thứ tự điểm nổi bật bị trùng." });
     if (error.message === "SEPAY_RECONCILIATION_NOT_CONFIGURED") return res.status(503).json({ success: false, message: "Máy chủ chưa cấu hình thông tin đối soát SePay." });

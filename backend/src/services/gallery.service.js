@@ -48,7 +48,7 @@ export const updateGallery = async (
   const gallery =
     await Gallery.findById(galleryId);
 
-  if (!gallery) {
+  if (!gallery || gallery.deletedAt) {
     throw new Error("GALLERY_NOT_FOUND");
   }
 
@@ -70,7 +70,7 @@ export const getActiveGallery = async ({
   skip = 0,
   category = null
 } = {}) => {
-  const filter = {
+  const filter = { deletedAt: null,
     isActive: true
   };
 
@@ -92,7 +92,7 @@ export const getAllGallery = async ({
   skip = 0,
   category = null
 } = {}) => {
-  const filter = {};
+  const filter = { deletedAt: null,};
 
   if (category) {
     filter.category = category;
@@ -118,7 +118,7 @@ export const activateGallery = async (
   const gallery =
     await Gallery.findById(galleryId);
 
-  if (!gallery) {
+  if (!gallery || gallery.deletedAt) {
     throw new Error("GALLERY_NOT_FOUND");
   }
 
@@ -144,7 +144,7 @@ export const deactivateGallery = async (
   const gallery =
     await Gallery.findById(galleryId);
 
-  if (!gallery) {
+  if (!gallery || gallery.deletedAt) {
     throw new Error("GALLERY_NOT_FOUND");
   }
 

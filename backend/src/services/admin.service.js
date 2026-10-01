@@ -43,15 +43,15 @@ export const listOptions = (query = {}) => {
   };
 };
 const userFields =
-  "username fullName email phone role isActive isBlocked createdAt updatedAt";
+  "username fullName email phone role isActive isBlocked createdAt updatedAt deletedAt";
 const enumFilter = (filter, query, field, values) => {
   if (!query[field]) return;
   if (!values.includes(query[field])) fail(400, "Bộ lọc không hợp lệ.");
   filter[field] = query[field];
 };
-export const listAdminRecords = async (kind, query) => {
+export const adminRecordQuery = (kind, query = {}) => {
   const { page, limit, search } = listOptions(query);
-  const filter = {};
+  const filter = { deletedAt: query.trash === "1" ? { $ne: null } : null };
   let Model, fields, searchFields;
   if (kind === "users") {
     Model = User;
@@ -103,6 +103,10 @@ export const listAdminRecords = async (kind, query) => {
     filter.$or = searchFields.map((field) => ({
       [field]: { $regex: search, $options: "i" },
     }));
+  return { Model, filter, fields, page, limit };
+};
+export const listAdminRecords = async (kind, query) => {
+  const { Model, filter, fields, page, limit } = adminRecordQuery(kind, query);
   let records = Model.find(filter)
     .select(fields)
     .sort({ createdAt: -1, _id: -1 })
@@ -121,8 +125,8 @@ export const listAdminRecords = async (kind, query) => {
 };
 export const getOverview = async () => {
   const [users, events, bookings, tickets, recent] = await Promise.all([
-    User.countDocuments(),
-    Event.countDocuments(),
+    User.countDocuments({ deletedAt: null }),
+    Event.countDocuments({ deletedAt: null }),
     Booking.aggregate([
       {
         $group: {
@@ -201,7 +205,7 @@ export const createAdminUser = async (data) => {
 export const updateAdminUser = async (id, data, actorId) => {
   const payload = userPayload(data);
   const current = await User.findById(objectId(id)).select(userFields).lean();
-  if (!current) fail(404, "Không tìm thấy người dùng.");
+  if (!current || current.deletedAt) fail(404, "Không tìm thấy người dùng.");
   // Existing administrators cannot be disabled/demoted here, preventing concurrent last-admin removal.
   if (
     (String(id) === String(actorId) || current.role === "admin") &&
@@ -339,4 +343,22 @@ export const cancelAdminBooking = async (id) => {
       fail(409, "Đơn đã thay đổi hoặc hết hạn. Hãy tải lại.");
     throw error;
   }
+};
+
+export const getAdminDetail = async (kind, id) => {
+  const recordId = objectId(id);
+  if (kind === "users") {
+    const user = await User.findById(recordId).select(userFields).lean();
+    if (!user) fail(404, "Không tìm thấy người dùng.");
+    const bookings = await Booking.find({ userId: recordId }).select("bookingCode eventSnapshot.title totalAmount paymentStatus createdAt").sort({createdAt:-1}).limit(10).lean();
+    return { user, bookings };
+  }
+  if (kind === "bookings") return getBookingAudit(id);
+  if (kind === "tickets") {
+    const ticket = await Ticket.findById(recordId).select("-qrVersion").populate("userId", "fullName email").populate("checkedInBy", "fullName").lean();
+    if (!ticket) fail(404, "Không tìm thấy vé.");
+    const audit = await getBookingAudit(String(ticket.bookingId));
+    return { ...audit, ticket };
+  }
+  fail(404, "Loại chi tiết không hợp lệ.");
 };

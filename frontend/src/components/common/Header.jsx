@@ -1,3 +1,4 @@
+import { mediaUrl } from "../../services/admin.service.js";
 import { useState } from "react";
 import {
   Menu,
@@ -225,9 +226,9 @@ const Header = () => {
                 }
               >
                 <span className="site-account-avatar">
-                  {user.avatar ? (
+                  {user.avatarUrl ? (
                     <img
-                      src={user.avatar}
+                      src={mediaUrl(user.avatarUrl)}
                       alt={
                         user.fullName ||
                         user.username ||

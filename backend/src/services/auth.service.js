@@ -99,6 +99,7 @@ export const loginUser = async ({
 
     await RefreshToken.create({
         userId: user._id,
+        authVersion: user.authVersion || 0,
         tokenHash: refreshTokenHash,
         expiresAt
     });
@@ -114,6 +115,7 @@ export const loginUser = async ({
             fullName: user.fullName,
             email: user.email,
             phone: user.phone,
+            avatarUrl: user.avatarUrl || "",
             role: user.role,
             isActive: user.isActive
         }
@@ -390,6 +392,7 @@ export const verifyRegistrationOtp = async ({
         fullName: user.fullName,
         email: user.email,
         phone: user.phone,
+            avatarUrl: user.avatarUrl || "",
         role: user.role,
         isActive: user.isActive
     };
@@ -646,6 +649,7 @@ export const loginWithGoogle = async ({
 
     await RefreshToken.create({
         userId: user._id,
+        authVersion: user.authVersion || 0,
         tokenHash:
             refreshTokenHash,
         expiresAt
@@ -668,6 +672,7 @@ export const loginWithGoogle = async ({
                 user.email,
             phone:
                 user.phone,
+            avatarUrl: user.avatarUrl || "",
             role:
                 user.role,
             isActive:
@@ -765,6 +770,7 @@ export const updateUserProfile = async ({
         fullName: user.fullName,
         email: user.email,
         phone: user.phone || "",
+        avatarUrl: user.avatarUrl || "",
         role: user.role,
         isActive: user.isActive,
         createdAt: user.createdAt,

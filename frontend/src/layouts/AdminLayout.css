@@ -9,3 +9,16 @@
     flex: 1;
     min-width: 0;
 }
+
+.admin-workspace { display: grid; grid-template-columns: 232px minmax(0, 1fr); flex: 1; align-items: start; }
+.admin-workspace > .admin-workspace-nav { position: sticky; top: 0; display: flex; flex-direction: column; gap: 8px; padding: 24px 16px; min-height: calc(100vh - 84px); background: #fff; border-right: 1px solid #dce5ec; border-bottom: 0; overflow: visible; }
+.admin-workspace > .admin-workspace-nav a { white-space: normal; border-radius: 12px; padding: 13px 16px; font-weight: 650; text-decoration: none; }
+.admin-workspace > .admin-workspace-nav a.active { background: #e6f1fc; color: #1262a2; box-shadow: inset 3px 0 #1262a2; }
+.admin-workspace > .admin-workspace-nav a:hover { background: #f0f5fa; }
+@media (max-width: 760px) {
+ .admin-workspace { grid-template-columns: 150px minmax(0, 1fr); }
+ .admin-workspace > .admin-workspace-nav { padding: 12px 8px; }
+ .admin-workspace > .admin-workspace-nav a { font-size: 12px; padding: 11px 9px; }
+ .admin-workspace .am-page { padding: 22px 12px; }
+}
+@media (max-width: 420px) { .admin-workspace { grid-template-columns: 112px minmax(0, 1fr); } }

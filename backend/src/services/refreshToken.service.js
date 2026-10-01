@@ -14,7 +14,7 @@ export const refreshAccessToken = async raw => {
     if (!stored) throw new Error("REFRESH_TOKEN_INVALID");
     if (stored.expiresAt <= now) throw new Error("REFRESH_TOKEN_EXPIRED");
     const user = await User.findById(stored.userId).select("-password");
-    if (!user || !user.isActive || user.isBlocked) {
+    if (!user || !user.isActive || user.isBlocked || (stored.authVersion || 0) !== (user.authVersion || 0)) {
         await RefreshToken.deleteOne({ _id: stored._id });
         throw new Error(user ? "ACCOUNT_NOT_ACTIVE" : "USER_NOT_FOUND");
     }
@@ -32,5 +32,5 @@ export const refreshAccessToken = async raw => {
         }
     }
     return { accessToken: generateAccessToken(user), refreshToken: next, expiresAt: stored.expiresAt,
-        user: { id: String(user._id), username: user.username, fullName: user.fullName, email: user.email, phone: user.phone, role: user.role, isActive: user.isActive } };
+        user: { id: String(user._id), username: user.username, fullName: user.fullName, email: user.email, phone: user.phone, avatarUrl: user.avatarUrl || "", role: user.role, isActive: user.isActive } };
 };

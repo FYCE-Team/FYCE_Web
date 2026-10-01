@@ -449,3 +449,11 @@
 .site-footer-newsletter-form button:hover {
   background: var(--fyce-primary-dark);
 }
+/* Brand at left; exploration and contact columns balanced at the right. */
+.site-footer-grid { grid-template-columns: minmax(250px, 1fr) 200px 230px; gap: clamp(32px,6vw,100px); }
+.site-footer-brand { grid-column: auto; }
+.site-footer-column h3 { font-size:12px; }
+.site-footer-column a, .site-footer-contact-item, .site-footer-hours strong, .site-footer-hours span { font-size:12px; }
+.site-footer-description { font-size:12px; }
+@media(max-width:900px) { .site-footer-grid { grid-template-columns: 1fr 1fr;gap:32px; } .site-footer-brand { grid-column:1 / -1; } }
+@media(max-width:480px) { .site-footer-grid {grid-template-columns:1fr 1fr;gap:24px 16px;} .site-footer-column a {overflow-wrap:anywhere;} }

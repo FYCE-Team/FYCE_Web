@@ -31,7 +31,7 @@ npm audit --prefix frontend
 
 ## Kết quả và phạm vi
 
-- **47/47 ca tích hợp đạt**: phân quyền, validation/pagination/regex, dashboard totals, dữ liệu nhạy cảm, user CRUD/duplicate/stale writes/block Google, bảo vệ admin, CMS CRUD/concurrent writes/unsafe URLs/media conflict, booking/ticket audit, QR tamper/duplicate check-in/event mismatch/payment state, idempotent issuance/reconciliation, payment duplicate/cancel/expiry/outgoing/partial rollback, public homepage, upload MIME/admin/GridFS round-trip.
+- **65/65 ca tích hợp đạt (01/10/2026)**: phân quyền, validation/pagination/regex, dashboard totals, dữ liệu nhạy cảm, user CRUD/duplicate/stale writes/block Google, bảo vệ admin, CMS CRUD/concurrent writes/unsafe URLs/media conflict, booking/ticket audit, QR tamper/duplicate check-in/event mismatch/payment state, idempotent issuance/reconciliation, payment duplicate/cancel/expiry/outgoing/partial rollback, public homepage, upload MIME/admin/GridFS round-trip.
 - Build production thành công; lazy route loại bỏ cảnh báo chunk lớn hơn 500 kB.
 - Lint trả exit 0, không có error; còn 16 warning trên phần mã cũ (15 `set-state-in-effect`, 1 `only-export-components`). Các trang management mới không có warning.
 - Kiểm tra cú pháp toàn bộ `backend/src/**/*.js` và `git diff --check`.
@@ -44,8 +44,8 @@ npm audit --prefix frontend
 - User: tài khoản chưa xác thực khác tài khoản bị khóa; token đã phát phải bị từ chối ngay sau khóa; admin không thể tự khóa/hạ quyền.
 - CMS: lưu ảnh/video trước rồi lưu nội dung; hai nguồn nền đồng thời bị chặn; xóa nội dung không làm mất tệp ở trang khác. Giữ nháp không làm thay đổi trang public; ưu tiên sortOrder hoạt động đúng.
 - Booking: chỉ pending chưa paid được hủy. Đối soát đọc SePay phía server, không sửa trạng thái thành paid từ browser. IPN đến chậm chỉ khôi phục nếu provider xác nhận trả trong hạn và ghế chưa thuộc người khác; còn lại chuyển đối chiếu.
-- Vé: QR sai chữ ký/buổi diễn, QR đã check-in, đơn refunded/cancelled đều không được nhận vào cổng. Hoàn một phần giữ các vé còn lại hiệu lực; toàn bộ lịch sử/QR cũ/QR mới và tranh chấp refund/check-in đã có test transaction. Khi camera không hỗ trợ BarcodeDetector, dùng QR thủ công.
-- UI: kiểm tra bảng cuộn ngang trên mobile, menu cuộn ngang, label/focus keyboard, loading/empty/error, nút không bấm lặp trong request, thông báo xung đột 409 và retry có chủ đích.
+- Vé: QR sai chữ ký/buổi diễn, QR đã check-in, đơn refunded/cancelled đều không được nhận vào cổng. Hoàn một phần giữ các vé còn lại hiệu lực; toàn bộ lịch sử/QR cũ/QR mới và tranh chấp refund/check-in đã có test transaction. Khi camera không hỗ trợ BarcodeDetector, nhập mã vé TKT hoặc QR thủ công.
+- UI: kiểm tra bảng cuộn ngang trên mobile, sidebar dọc trái, label/focus keyboard, loading/empty/error, nút không bấm lặp trong request, thông báo xung đột 409 và retry có chủ đích.
 
 ## Deploy
 
@@ -65,3 +65,16 @@ Xem `LOCAL_SETUP.md` để chạy frontend/backend đúng cổng, xử lý Googl
 Ca hồi quy mới: sửa About raw legacy không author/trùng sortOrder; CAPTURED không transactions chỉ nhận qua REST, không tin IPN thiếu transaction hoặc sai currency; bank webhook tham chiếu PAY...; HMAC raw JSON và timestamp replay. Đơn thật và ảnh khôi phục là xử lý nghiệp vụ được cho phép riêng, không phải fixture test.
 
 Checkout canonical signing regression: đối chiếu chuỗi thứ tự trường cố định và HMAC với expected độc lập; cả 48 ca đạt.
+
+
+### Hồi quy thùng rác / profile / gallery 01-10-2026
+
+Đã thêm kiểm thử: code/QR check-in cạnh tranh; snapshot bulk loại trừ bản ghi mới, chống tamper/replay, rollback khi stale, không xóa admin; event trash ẩn public/chặn hold và giữ vé buyer; restore không đổi QR; ghế chỉ blocked được mở lại; reorder/gallery trash; OTP ràng buộc user, cooldown đồng thời, 5 lần sai, hết hạn, dùng một lần; đổi mật khẩu thu hồi access/refresh; avatar giả MIME bị từ chối và không sửa user khác; homepage trả hơn 100 ảnh; refresh token cũ không vượt qua authVersion mới.
+
+QA UI dùng frontend 5180 và API 3002, chỉ MongoDB 27028; không chạy worker gửi tiền/email hay kết nối provider thật. Checkbox chỉ chọn trang hiện tại, “Xóa tất cả” theo toàn bộ bộ lọc. Xác nhận dialog trước mọi bulk operation. Khi hơn 1.000 bản ghi, thu hẹp bộ lọc; không tự chia nhỏ việc xóa thành các batch không được xem trước.
+
+### Xóa vĩnh viễn và chi tiết quản trị
+
+65/65 ca đạt trên MongoDB QA riêng ngày 01/10. Ca mới kiểm tra: cụm từ xác nhận bắt buộc; rollback toàn bộ nếu một mục stale; token không replay; bảo vệ đơn paid, vé, sự kiện và khách hàng liên quan; dấu vết đối soát phát sinh sau preview vẫn chặn xóa; chặn đơn mới/ghế held; cho phép đơn unpaid đủ tuổi đã đóng và sự kiện độc lập. Detail API chỉ dành cho admin, không lộ password/authVersion/QR version/hold token. Hồi quy quên mật khẩu kiểm tra tiêu thụ token một lần và thu hồi OTP/phiên cũ.
+
+Build frontend đạt, lint 0 lỗi/16 cảnh báo hiện hữu, audit cả hai package 0 lỗ hổng. UI dashboard/modal mới chưa được nghiệm thu trực quan: browser tool lỗi request-header policy hai lần. Khi kiểm tra deploy: mở dashboard ở desktop/390px; nhấn tên người mua/mã vé/mã đơn, kiểm tra modal/nền mờ/Escape; kiểm tra checkbox và preview xóa vĩnh viễn bằng dữ liệu QA. Không purge dữ liệu production để kiểm thử.

@@ -1,3 +1,5 @@
+import { useRecordSelection } from "../management/useRecordSelection.js";
+import BulkAction from "../management/BulkAction.jsx";
 import {
     useCallback,
     useEffect,
@@ -328,6 +330,8 @@ const AdminEvents = () => {
             filteredEvents,
             currentPage
         ]);
+
+    const selection = useRecordSelection(paginatedEvents, `${searchTerm}:${statusFilter}:${currentPage}`);
 
     const eventStats =
         useMemo(() => {
@@ -675,6 +679,8 @@ const AdminEvents = () => {
                         <span>+</span>
                         Tạo sự kiện
                     </Link>
+                    <div className="am-bulk-toolbar"><BulkAction kind="events" filters={{ids:selection.ids}} disabled={!selection.ids.length} label={`Xóa đã chọn (${selection.ids.length})`} onDone={() => {selection.clear(); loadEvents();}} />
+                    <BulkAction kind="events" filters={{q:searchTerm, status:statusFilter === "all" ? "" : statusFilter}} onDone={() => {selection.clear(); loadEvents();}} /></div>
                 </header>
 
                 <section className="admin-events-stats">
@@ -847,6 +853,7 @@ const AdminEvents = () => {
 
                                     <thead>
                                         <tr>
+                                            <th className="am-select-cell"><input type="checkbox" aria-label="Chọn tất cả sự kiện trên trang" checked={selection.all} disabled={selection.disabled} onChange={selection.toggleAll}/></th>
                                             <th>
                                                 SỰ KIỆN
                                             </th>
@@ -887,6 +894,7 @@ const AdminEvents = () => {
                                                         event._id
                                                     }
                                                 >
+                                                    <td className="am-select-cell"><input type="checkbox" aria-label={`Chọn ${event.title}`} checked={selection.ids.includes(event._id)} onChange={() => selection.toggle(event._id)}/></td>
                                                     <td>
                                                         <div className="admin-event-name">
 
@@ -1039,6 +1047,7 @@ const AdminEvents = () => {
 
                                                     <td>
                                                         <div className="admin-event-actions">
+                                                            <BulkAction kind="events" filters={{ids:[event._id || event.id]}} label="Xóa" onDone={() => loadEvents()} />
 
                                                             <Link
                                                                 to={`/events/${event.slug}`}
