@@ -66,3 +66,9 @@ Nguồn: [Vercel rewrites](https://vercel.com/docs/routing/rewrites), [SePay IPN
 ### Phân biệt webhook ngân hàng với gateway IPN
 
 Webhook ngân hàng có thể chứa PAY... thay vì mã FYCE; backend sẽ tra chính xác mã gateway qua REST merchant rồi đối chiếu invoice. HMAC dùng SEPAY_WEBHOOK_SECRET (hoặc tên cũ SEPAY_WEBHOOK_TOKEN), khác SEPAY_IPN_SECRET. Không bỏ xác thực để tránh 401. HTTP 200 có success:false không có nghĩa đã cấp vé; phải đọc response body trong lịch sử SePay. Lỗi 401/403 ở REST cần kiểm tra merchant/secret/môi trường **trên Render**, không chỉ .env local; 429 chờ retry. Tab đang giữ bundle cũ cần tải lại để nhận bản mới; refresh guest 401 không đồng nghĩa tài khoản mất dữ liệu.
+
+## Release 02/10/2026
+
+`f0e0104` đã push main. Vercel status success; production bundle `index-DHXL29tf.js` khớp local, health JSON200 qua Render và Vercel. Export XLSX endpoint mới chạy qua UI production với bộ lọc rỗng (chỉ header). Admin Day2:274 ghế available cùng màu. Frontend VI/EN/adminVI và Back giữ phiên đã xác minh.
+
+Render Dashboard chưa kiểm tra SHA/log: user đã cho phép Authorize GitHub nhưng account đó dẫn tới đăng ký mới; không tạo account, chờ chủ workspace đăng nhập tài khoản hiện có. Không cần migration/seed. QR riêng cũ vẫn hoạt động, email đã gửi không tự gửi lại. Không coi health200/export thành công là bằng chứng SMTP/SePay/camera thật hoàn tất.

@@ -1,6 +1,6 @@
 ## Đợt cập nhật 02/10/2026 — đọc mục này trước
 
-**█████████░ 90% — chức năng và kiểm thử QA hoàn tất; nghiệm thu dịch vụ thật còn mở.** Phạm vi là repository FYCEweb, không phải toàn bộ hệ điều hành. Commit phát hành xem Git history; trạng thái deploy cập nhật sau khi push.
+**█████████░ 90% — chức năng và kiểm thử QA hoàn tất; nghiệm thu dịch vụ thật còn mở.** Phạm vi là repository FYCEweb, không phải toàn bộ hệ điều hành. Commit chức năng **`f0e0104`** đã push `FYCE-Team/FYCE_Web/main`. Vercel báo success và domain chính có bundle `index-DHXL29tf.js` khớp build local. Render và Vercel proxy health đều 200; export XLSX qua production trả file hợp lệ (bộ lọc rỗng, chỉ header). Chưa xác minh SHA/log trong Render Dashboard: user đã cho phép Authorize nhưng GitHub đó dẫn tới tạo account mới; chờ đăng nhập workspace đúng.
 
 - [x] Giao diện user Việt/Anh qua nút header; lưu lựa chọn, không dịch tên/nội dung do người dùng nhập; admin luôn tiếng Việt. Mobile vẫn có nút ngôn ngữ.
 - [x] Xuất XLSX/CSV vé/khách mời, đơn vé và thanh toán theo bộ lọc hoặc lựa chọn; chỉ admin, chống công thức CSV, không xuất QR/secret, tối đa 10.000 dòng và 10 lượt/phút/admin.
@@ -9,6 +9,7 @@
 - [x] Màu ghế quản trị thống nhất theo trạng thái và khớp chú giải; hạng vé vẫn ở thông tin chi tiết. Không đổi hạng/giá/trạng thái trong DB.
 - [x] 69/69 integration backend; 8/8 frontend; build đạt, lint 0 lỗi/16 cảnh báo hiện hữu; audit hai package 0 lỗ hổng. MongoDB QA riêng 27028, không đọc .env/DB thật.
 - [x] Chrome QA: đổi ngôn ngữ và giữ nội dung nhập; mobile 390px, đơn 274 ghế chỉ một QR; admin giữ tiếng Việt; tải XLSX chọn một đơn; nhập mã đơn kiểm tra 274 vé đã check-in.
+- [x] Production chỉ đọc: VI/EN, adminVI, export XLSX rỗng; Day2 có 274 ghế trống cùng màu `#7db7f5`, không thay dữ liệu. Back về danh sách admin giữ phiên.
 - [ ] Camera vật lý, Google OAuth, giao dịch SePay mới và email đến inbox trên deploy chưa nghiệm thu trong đợt này. Không đánh dấu hoàn thành dựa trên mock/test.
 
 Không tự gửi lại email vé đã gửi trước đây. Người mua vẫn dùng QR cũ; mở chi tiết đơn để lấy QR nhóm mới. Khi khách đến riêng, nhân viên nhập mã TKT từng ghế; chỉ check-in nhóm khi cả nhóm có mặt.

@@ -6,7 +6,7 @@
     "total": 10,
     "percent": 90
   },
-  "status": "qa_passed_pending_release_and_external_acceptance",
+  "status": "released_frontend_and_backend_feature_verified_pending_provider_acceptance",
   "entrypoint": "/admin",
   "tests": {
     "integrationWritten": 69,
@@ -19,13 +19,13 @@
       "frontend": 0,
       "includesDevDependencies": true
     },
-    "backendSyntax": "passed (94 files)",
+    "backendSyntax": "passed (96 files)",
     "gitDiffCheck": "passed",
     "frontendUnitPassed": 8
   },
   "blockedChecks": [
-    "Production release verification pending push",
-    "Physical camera/Google OAuth/SePay new payment/inbox acceptance pending"
+    "Render workspace login: authorized GitHub account leads to new-account form; correct existing account needed for deployment SHA/log",
+    "Physical camera, Google OAuth, new SePay payment and email inbox acceptance pending"
   ],
   "knownLimits": [
     "External provider and deployed payment acceptance still pending",
@@ -82,5 +82,18 @@
     "one signed booking QR and email attachment; transactional group check-in",
     "persistent camera with duplicate-frame suppression",
     "admin seat colors by inventory status"
-  ]
+  ],
+  "release": {
+    "commit": "f0e0104",
+    "branch": "main",
+    "repository": "FYCE-Team/FYCE_Web",
+    "vercel": "success; production index-DHXL29tf.js matches local",
+    "render": "health 200; new authenticated XLSX export works through Vercel; dashboard SHA/log not inspected",
+    "productionReadOnlyChecks": [
+      "VI/EN; admin remains VI",
+      "XLSX zero-match filter: one header row only",
+      "Day2 274 available seats share #7db7f5; no database changes",
+      "Back retains admin session"
+    ]
+  }
 }
