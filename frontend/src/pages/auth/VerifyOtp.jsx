@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
   useEffect,
   useMemo,
@@ -33,6 +34,8 @@ const OTP_LENGTH = 6;
 const OTP_EXPIRE_SECONDS = 5 * 60;
 
 const VerifyOtp = () => {
+    const { t } = useLanguage();
+
   const navigate = useNavigate();
 const handleBackToRegister = () => {
   navigate("/register");
@@ -538,9 +541,7 @@ sessionStorage.removeItem(
     className="back-button"
     onClick={handleBackToRegister}
 >
-    <ArrowLeft size={18} />
-    Quay lại bước trước
-</button>
+    <ArrowLeft size={18} /> {t("Quay lại bước trước")} </button>
 
   /* =========================
      SUCCESS SCREEN
@@ -562,24 +563,15 @@ sessionStorage.removeItem(
               FYCE ACCOUNT
             </span>
 
-            <h1>
-              Kích hoạt tài khoản
-              thành công
-            </h1>
+            <h1> {t("Kích hoạt tài khoản thành công")} </h1>
 
-            <p className="success-description">
-              Tài khoản của bạn đã được
-              xác thực thành công.
-              Bạn có thể đăng nhập để
-              tiếp tục sử dụng hệ thống
-              FYCE.
-            </p>
+            <p className="success-description"> {t("Tài khoản của bạn đã được xác thực thành công. Bạn có thể đăng nhập để tiếp tục sử dụng hệ thống FYCE.")} </p>
 
             <div className="success-email">
               <Mail size={18} />
 
               <span>
-                {email}
+                {t(email)}
               </span>
             </div>
 
@@ -595,9 +587,7 @@ sessionStorage.removeItem(
                     }
                   )
                 }
-              >
-                Đăng nhập ngay
-                <ArrowRight
+              > {t("Đăng nhập ngay")} <ArrowRight
                   size={21}
                 />
               </button>
@@ -610,9 +600,7 @@ sessionStorage.removeItem(
                     "/"
                   )
                 }
-              >
-                Về trang chủ
-              </button>
+              > {t("Về trang chủ")} </button>
             </div>
           </div>
         </div>
@@ -630,9 +618,7 @@ sessionStorage.removeItem(
             className="verify-back"
             onClick={handleBackToRegister}
           >
-            <ArrowLeft size={20} />
-            Quay lại bước trước
-          </button>
+            <ArrowLeft size={20} /> {t("Quay lại bước trước")} </button>
 
           <section className="verify-layout">
 
@@ -655,28 +641,17 @@ sessionStorage.removeItem(
                   </div>
 
                   <div>
-                    <h1>
-                      Xác thực Mã
-                      Bảo mật
-                    </h1>
+                    <h1> {t("Xác thực Mã Bảo mật")} </h1>
 
-                    <p>
-                      Mã xác nhận 6 chữ số
-                      vừa được gửi đến
-                      email:
-                    </p>
+                    <p> {t("Mã xác nhận 6 chữ số vừa được gửi đến email:")} </p>
 
                     <p>
                       <strong>
-                        {maskedEmail}
+                        {t(maskedEmail)}
                       </strong>
                     </p>
 
-                    <p>
-                      Vui lòng kiểm tra
-                      hộp thư đến hoặc
-                      thư rác.
-                    </p>
+                    <p> {t("Vui lòng kiểm tra hộp thư đến hoặc thư rác.")} </p>
                   </div>
                 </div>
 
@@ -687,9 +662,7 @@ sessionStorage.removeItem(
                   }
                 >
                   <div className="otp-heading">
-                    <span>
-                      NHẬP 6 SỐ XÁC THỰC
-                    </span>
+                    <span> {t("NHẬP 6 SỐ XÁC THỰC")} </span>
 
                     <div
                       className={`otp-timer ${
@@ -701,12 +674,10 @@ sessionStorage.removeItem(
                     >
                       <Clock3 size={16} />
 
-                      <span>
-                        Mã có hiệu lực
-                        trong{" "}
+                      <span> {t("Mã có hiệu lực trong")}{t(" ")}
                         <strong>
                           {
-                            formattedTime
+                            t(formattedTime)
                           }
                         </strong>
                       </span>
@@ -719,7 +690,7 @@ sessionStorage.removeItem(
                       handlePaste
                     }
                   >
-                    {otp.map(
+                    {t(otp.map(
                       (
                         value,
                         index
@@ -759,37 +730,37 @@ sessionStorage.removeItem(
                               ? "one-time-code"
                               : "off"
                           }
-                          aria-label={`Số OTP ${
+                          aria-label={t(`Số OTP ${
                             index + 1
-                          }`}
+                          }`)}
                         />
                       )
-                    )}
+                    ))}
                   </div>
 
-                  {error && (
+                  {t(error && (
                     <div className="verify-error">
                       <CircleAlert
                         size={17}
                       />
 
                       <span>
-                        {error}
+                        {t(error)}
                       </span>
                     </div>
-                  )}
+                  ))}
 
-                  {success && (
+                  {t(success && (
                     <div className="verify-success">
                       <CheckCircle2
                         size={17}
                       />
 
                       <span>
-                        {success}
+                        {t(success)}
                       </span>
                     </div>
-                  )}
+                  ))}
 
                   <button
                     type="button"
@@ -807,12 +778,12 @@ sessionStorage.removeItem(
                       size={17}
                     />
 
-                    {resending
+                    {t(resending
                       ? "Đang gửi..."
                       : remainingSeconds >
                           0
                       ? `Gửi lại mã sau ${formattedTime}`
-                      : "Gửi lại mã ngay"}
+                      : "Gửi lại mã ngay")}
                   </button>
 
                   <button
@@ -827,9 +798,9 @@ sessionStorage.removeItem(
                     }
                   >
                     <span>
-                      {loading
+                      {t(loading
                         ? "Đang xác thực..."
-                        : "Xác nhận & Tiếp tục"}
+                        : "Xác nhận & Tiếp tục")}
                     </span>
 
                     <ArrowRight
@@ -843,17 +814,9 @@ sessionStorage.removeItem(
                     />
 
                     <div>
-                      <h3>
-                        Không nhận được
-                        mã?
-                      </h3>
+                      <h3> {t("Không nhận được mã?")} </h3>
 
-                      <p>
-                        Hãy kiểm tra mục
-                        Spam hoặc thư rác.
-                        Nếu vẫn không nhận
-                        được mã, liên hệ Ban
-                        lễ tân FYCE qua số{" "}
+                      <p> {t("Hãy kiểm tra mục Spam hoặc thư rác. Nếu vẫn không nhận được mã, liên hệ Ban lễ tân FYCE qua số")}{t(" ")}
                         <strong>
                           (024) 3888–8888
                         </strong>
@@ -878,13 +841,9 @@ sessionStorage.removeItem(
               <div className="progress-card">
 
                 <div className="progress-header">
-                  <span>
-                    TIẾN TRÌNH KÍCH HOẠT
-                  </span>
+                  <span> {t("TIẾN TRÌNH KÍCH HOẠT")} </span>
 
-                  <strong>
-                    65% Hoàn tất
-                  </strong>
+                  <strong> {t("65% Hoàn tất")} </strong>
                 </div>
 
                 <div className="progress-track">
@@ -894,10 +853,7 @@ sessionStorage.removeItem(
                 <div className="progress-item completed">
                   <CheckCircle2 size={20} />
 
-                  <span>
-                    Đăng ký thông tin
-                    (Đã xong)
-                  </span>
+                  <span> {t("Đăng ký thông tin (Đã xong)")} </span>
                 </div>
 
                 <div className="progress-item current">
@@ -905,10 +861,7 @@ sessionStorage.removeItem(
                     <span />
                   </div>
 
-                  <span>
-                    Xác minh mã hòm thư
-                    điện tử (Hiện tại)
-                  </span>
+                  <span> {t("Xác minh mã hòm thư điện tử (Hiện tại)")} </span>
                 </div>
 
                 <div className="verification-note">
@@ -916,13 +869,10 @@ sessionStorage.removeItem(
                     <span>!</span>
                   </div>
 
-                  <p>
-                    Nếu không thấy thư,
-                    hãy kiểm tra mục{" "}
+                  <p> {t("Nếu không thấy thư, hãy kiểm tra mục")}{t(" ")}
                     <strong>
                       Spam
-                    </strong>{" "}
-                    hoặc{" "}
+                    </strong>{t(" ")} {t("hoặc")}{t(" ")}
                     <strong>
                       Promotions
                     </strong>

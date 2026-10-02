@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMediaUrl } from "../../utils/media.js";
@@ -5,10 +6,10 @@ import "./EventDetail.css";
 
 import { API_BASE_URL } from "../../config/api.js";
 
-const formatDate = (date) => {
+const formatDate = (date, locale = "vi-VN") => {
     if (!date) return "";
 
-    return new Intl.DateTimeFormat("vi-VN", {
+    return new Intl.DateTimeFormat(locale, {
         weekday: "long",
         day: "2-digit",
         month: "2-digit",
@@ -16,17 +17,17 @@ const formatDate = (date) => {
     }).format(new Date(date));
 };
 
-const formatTime = (date) => {
+const formatTime = (date, locale = "vi-VN") => {
     if (!date) return "";
 
-    return new Intl.DateTimeFormat("vi-VN", {
+    return new Intl.DateTimeFormat(locale, {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
     }).format(new Date(date));
 };
 
-const formatPrice = (price) => {
+const formatPrice = (price, locale = "vi-VN") => {
     if (
         price === undefined ||
         price === null ||
@@ -35,7 +36,7 @@ const formatPrice = (price) => {
         return "Liên hệ";
     }
 
-    return `${Number(price).toLocaleString("vi-VN")} VNĐ`;
+    return `${Number(price).toLocaleString(locale)} VNĐ`;
 };
 
 const formatDuration = (minutes) => {
@@ -111,6 +112,8 @@ const getInitialTicketColor = (index) => {
 };
 
 const EventDetail = () => {
+    const { t, locale } = useLanguage();
+
     const { slug } = useParams();
 
     const [event, setEvent] = useState(null);
@@ -351,9 +354,7 @@ const backstageGallery = useMemo(() => {
             <section className="event-detail-state">
                 <div className="event-detail-spinner" />
 
-                <p>
-                    Đang tải thông tin chương trình...
-                </p>
+                <p> {t("Đang tải thông tin chương trình...")} </p>
             </section>
         );
     }
@@ -361,18 +362,14 @@ const backstageGallery = useMemo(() => {
     if (error) {
         return (
             <section className="event-detail-state event-detail-state-error">
-                <h1>
-                    Không thể tải chương trình
-                </h1>
+                <h1> {t("Không thể tải chương trình")} </h1>
 
-                <p>{error}</p>
+                <p>{t(error)}</p>
 
                 <Link
                     to="/"
                     className="event-detail-back-button"
-                >
-                    Về trang chủ
-                </Link>
+                > {t("Về trang chủ")} </Link>
             </section>
         );
     }
@@ -386,7 +383,7 @@ const backstageGallery = useMemo(() => {
             <main>
                 <section className="event-detail-hero">
                     <div className="event-detail-hero-media">
-                        {localVideoUrl ? (
+                        {t(localVideoUrl ? (
                             <video
                                 className="event-detail-hero-video"
                                 src={localVideoUrl}
@@ -411,7 +408,7 @@ const backstageGallery = useMemo(() => {
                                         ? `${displayVideoUrl}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&rel=0`
                                         : displayVideoUrl
                                 }
-                                title={event.title}
+                                title={t(event.title)}
                                 allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                                 allowFullScreen
                             />
@@ -421,13 +418,13 @@ const backstageGallery = useMemo(() => {
                                 src={getMediaUrl(
                                     event.coverImage
                                 )}
-                                alt={event.title}
+                                alt={t(event.title)}
                             />
                         ) : (
                             <div className="event-detail-hero-placeholder">
                                 FYCE
                             </div>
-                        )}
+                        ))}
                     </div>
 
                     <div className="event-detail-hero-overlay" />
@@ -435,49 +432,46 @@ const backstageGallery = useMemo(() => {
 
                     <div className="event-detail-hero-content event-detail-container">
                         <div className="event-detail-hero-text">
-                            {event.badge && (
+                            {t(event.badge && (
                                 <span className="event-detail-badge">
-                                    ✦ {event.badge}
+                                    ✦ {t(event.badge)}
                                 </span>
-                            )}
+                            ))}
 
                             <h1 className="event-detail-title">
-                                {event.title}
+                                {t(event.title)}
                             </h1>
 
-                            {event.subtitle && (
+                            {t(event.subtitle && (
                                 <p className="event-detail-subtitle">
-                                    {event.subtitle}
+                                    {t(event.subtitle)}
                                 </p>
-                            )}
+                            ))}
 
                             <div className="event-detail-hero-info">
                                 <div className="event-detail-hero-info-item">
                                     <span>◫</span>
 
                                     <div>
-                                        <small>
-                                            THỜI GIAN
-                                        </small>
+                                        <small> {t("THỜI GIAN")} </small>
 
                                         <strong>
-                                            {event.startAt
+                                            {t(event.startAt
                                                 ? `${formatTime(
-                                                      event.startAt
+                                                      event.startAt, locale
                                                   )} — ${formatDate(
-                                                      event.startAt
+                                                      event.startAt, locale
                                                   )}`
-                                                : "COMING SOON"}
+                                                : "COMING SOON")}
                                         </strong>
 
-                                        {event.endAt && (
-                                            <span>
-                                                Kết thúc:{" "}
-                                                {formatTime(
-                                                    event.endAt
-                                                )}
+                                        {t(event.endAt && (
+                                            <span> {t("Kết thúc:")}{t(" ")}
+                                                {t(formatTime(
+                                                    event.endAt, locale
+                                                ))}
                                             </span>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
 
@@ -485,31 +479,29 @@ const backstageGallery = useMemo(() => {
                                     <span>⌖</span>
 
                                     <div>
-                                        <small>
-                                            ĐỊA ĐIỂM
-                                        </small>
+                                        <small> {t("ĐỊA ĐIỂM")} </small>
 
                                         <strong>
-                                            {event.venue ||
-                                                "Đang cập nhật"}
+                                            {t(event.venue ||
+                                                "Đang cập nhật")}
                                         </strong>
 
-                                        {event.address && (
+                                        {t(event.address && (
                                             <span>
                                                 {
-                                                    event.address
+                                                    t(event.address)
                                                 }
                                             </span>
-                                        )}
+                                        ))}
                                     </div>
                                 </div>
                             </div>
 
-                            {event.description && (
+                            {t(event.description && (
                                 <p className="event-detail-description">
-                                    {event.description}
+                                    {t(event.description)}
                                 </p>
-                            )}
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -519,23 +511,17 @@ const backstageGallery = useMemo(() => {
                         <div className="event-detail-content">
                             <section className="event-detail-section">
                                 <div className="event-detail-section-heading">
-                                    <span>
-                                        ▪ CHƯƠNG TRÌNH & NHẠC MỤC BIỂU DIỄN
-                                    </span>
+                                    <span> {t("▪ CHƯƠNG TRÌNH & NHẠC MỤC BIỂU DIỄN")} </span>
 
-                                    <h2>
-                                        Tác Phẩm Thính
-                                        Phòng Mùa Biểu
-                                        Diễn
-                                    </h2>
+                                    <h2> {t("Tác Phẩm Thính Phòng Mùa Biểu Diễn")} </h2>
 
                                     <p>
-                                        {event.shortDescription ||
-                                            "Khám phá chương trình biểu diễn và những tác phẩm được lựa chọn cho mùa diễn."}
+                                        {t(event.shortDescription ||
+                                            "Khám phá chương trình biểu diễn và những tác phẩm được lựa chọn cho mùa diễn.")}
                                     </p>
                                 </div>
 
-{programParts.length > 0 && (
+{t(programParts.length > 0 && (
     <div className="event-detail-program-card">
         <div className="event-detail-program-card-header">
             <div className="event-detail-program-card-heading">
@@ -544,29 +530,27 @@ const backstageGallery = useMemo(() => {
                 </span>
 
                 <div>
-                    <span>
-                        NHẠC MỤC TRÌNH DIỄN CHÍNH THỨC
-                    </span>
+                    <span> {t("NHẠC MỤC TRÌNH DIỄN CHÍNH THỨC")} </span>
 
                     <small>
-                        {programParts.length}{" "}
-                        {programParts.length === 1
+                        {t(programParts.length)}{t(" ")}
+                        {t(programParts.length === 1
                             ? "PHẦN BIỂU DIỄN"
-                            : "PHẦN BIỂU DIỄN"}
+                            : "PHẦN BIỂU DIỄN")}
                     </small>
                 </div>
             </div>
 
             <span className="event-detail-program-count">
-                {programParts.length}{" "}
-                {programParts.length === 1
+                {t(programParts.length)}{t(" ")}
+                {t(programParts.length === 1
                     ? "PHẦN"
-                    : "PHẦN"}
+                    : "PHẦN")}
             </span>
         </div>
 
         <div className="event-detail-program-parts">
-            {programParts.map(
+            {t(programParts.map(
                 (part, partIndex) => (
                     <article
                         className={`event-detail-program-part event-detail-program-part-${partIndex % 3}`}
@@ -576,47 +560,45 @@ const backstageGallery = useMemo(() => {
                         }
                     >
                         <div className="event-detail-program-part-number">
-                            {["I", "II", "III", "IV", "V"][
+                            {t(["I", "II", "III", "IV", "V"][
                                 partIndex
                             ] ||
                                 String(
                                     partIndex + 1
-                                )}
+                                ))}
                         </div>
 
                         <div className="event-detail-program-part-main">
                             <div className="event-detail-program-part-header">
                                 <div>
                                     <h3>
-                                        {part.title}
+                                        {t(part.title)}
                                     </h3>
 
-                                    {part.subtitle && (
+                                    {t(part.subtitle && (
                                         <p>
                                             {
-                                                part.subtitle
+                                                t(part.subtitle)
                                             }
                                         </p>
-                                    )}
+                                    ))}
                                 </div>
 
                                 <span className="event-detail-program-part-work-count">
-                                    {part.works?.length || 0}{" "}
-                                    tác phẩm
-                                </span>
+                                    {t(part.works?.length || 0)}{t(" ")} {t("tác phẩm")} </span>
                             </div>
 
-                            {part.description && (
+                            {t(part.description && (
                                 <p className="event-detail-program-part-description">
                                     {
-                                        part.description
+                                        t(part.description)
                                     }
                                 </p>
-                            )}
+                            ))}
 
-                            {part.works?.length > 0 && (
+                            {t(part.works?.length > 0 && (
                                 <div className="event-detail-program-works">
-                                    {part.works.map(
+                                    {t(part.works.map(
                                         (
                                             work,
                                             workIndex
@@ -629,64 +611,64 @@ const backstageGallery = useMemo(() => {
                                                 }
                                             >
                                                 <span className="event-detail-program-work-number">
-                                                    {String(
+                                                    {t(String(
                                                         workIndex +
                                                             1
                                                     ).padStart(
                                                         2,
                                                         "0"
-                                                    )}
+                                                    ))}
                                                 </span>
 
                                                 <div className="event-detail-program-work-info">
                                                     <strong>
                                                         {
-                                                            work.title
+                                                            t(work.title)
                                                         }
                                                     </strong>
 
-                                                    {work.subtitle && (
+                                                    {t(work.subtitle && (
                                                         <span>
                                                             {
-                                                                work.subtitle
+                                                                t(work.subtitle)
                                                             }
                                                         </span>
-                                                    )}
+                                                    ))}
 
-                                                    {work.composer && (
+                                                    {t(work.composer && (
                                                         <small>
                                                             {
-                                                                work.composer
+                                                                t(work.composer)
                                                             }
                                                         </small>
-                                                    )}
+                                                    ))}
                                                 </div>
 
-                                                {work.durationMinutes !=
+                                                {t(work.durationMinutes !=
                                                     null &&
                                                     work.durationMinutes !==
                                                         "" && (
                                                         <span className="event-detail-program-work-duration">
-                                                            {formatDuration(
+                                                            {t(formatDuration(
                                                                 work.durationMinutes
-                                                            )}
+                                                            ))}
                                                         </span>
-                                                    )}
+                                                    ))}
                                             </div>
                                         )
-                                    )}
+                                    ))}
                                 </div>
-                            )}
+                            ))}
                         </div>
                     </article>
                 )
-            )}
+            ))}
         </div>
     </div>
-)}
-                                {programGallery.length > 0 && (
+))}
+                                {t(programGallery.length > 0 && (
                                     <div className="event-detail-program-gallery">
-                                        {programGallery.map(
+                                        {t(programGallery.map(
                                             (
                                                 image,
                                                 index
@@ -702,31 +684,29 @@ const backstageGallery = useMemo(() => {
                                                             image.image
                                                         )}
                                                         alt={
-                                                            image.caption ||
-                                                            event.title
+                                                            t(image.caption ||
+                                                            event.title)
                                                         }
                                                     />
 
-                                                    {image.caption && (
+                                                    {t(image.caption && (
                                                         <figcaption>
                                                             {
-                                                                image.caption
+                                                                t(image.caption)
                                                             }
                                                         </figcaption>
-                                                    )}
+                                                    ))}
                                                 </figure>
                                             )
-                                        )}
+                                        ))}
                                     </div>
-                                )}
+                                ))}
                             </section>
 
-                            {event.artists?.length > 0 && (
+                            {t(event.artists?.length > 0 && (
                                 <section className="event-detail-section">
                                     <div className="event-detail-section-heading">
-                                        <span>
-                                            ▪ NGHỆ SĨ & BAN ĐIỀU HÀNH BIỂU DIỄN
-                                        </span>
+                                        <span> {t("▪ NGHỆ SĨ & BAN ĐIỀU HÀNH BIỂU DIỄN")} </span>
 
                                         <h2>
                                             Fantasy Youth Chamber Ensemble
@@ -741,7 +721,7 @@ const backstageGallery = useMemo(() => {
                                                 : ""
                                         }`}
                                     >
-                                        {event.artists.map(
+                                        {t(event.artists.map(
                                             (
                                                 artist,
                                                 index
@@ -754,61 +734,61 @@ const backstageGallery = useMemo(() => {
                                                     }
                                                 >
                                                     <div className="artist-image-wrapper">
-                                                        {artist.image ? (
+                                                        {t(artist.image ? (
                                                             <img
                                                                 src={getMediaUrl(
                                                                     artist.image
                                                                 )}
                                                                 alt={
-                                                                    artist.name
+                                                                    t(artist.name)
                                                                 }
                                                             />
                                                         ) : (
                                                             <div className="artist-placeholder">
                                                                 FYCE
                                                             </div>
-                                                        )}
+                                                        ))}
 
-                                                        {artist.role && (
+                                                        {t(artist.role && (
                                                             <span className="artist-role">
                                                                 {
-                                                                    artist.role
+                                                                    t(artist.role)
                                                                 }
                                                             </span>
-                                                        )}
+                                                        ))}
                                                     </div>
 
                                                     <div className="artist-content">
                                                         <h3>
                                                             {
-                                                                artist.name
+                                                                t(artist.name)
                                                             }
                                                         </h3>
 
-                                                        {artist.instrument && (
+                                                        {t(artist.instrument && (
                                                             <span className="artist-instrument">
                                                                 {
-                                                                    artist.instrument
+                                                                    t(artist.instrument)
                                                                 }
                                                             </span>
-                                                        )}
+                                                        ))}
 
-                                                        {artist.bio && (
+                                                        {t(artist.bio && (
                                                             <p>
                                                                 {
-                                                                    artist.bio
+                                                                    t(artist.bio)
                                                                 }
                                                             </p>
-                                                        )}
+                                                        ))}
                                                     </div>
                                                 </article>
                                             )
-                                        )}
+                                        ))}
                                     </div>
                                 </section>
-                            )}
+                            ))}
 
-                            {event.policies?.length > 0 && (
+                            {t(event.policies?.length > 0 && (
                                 <section
                                     className="event-detail-section"
                                     id="event-policies"
@@ -818,18 +798,14 @@ const backstageGallery = useMemo(() => {
                                             <span>♢</span>
 
                                             <div>
-                                                <small>
-                                                    QUY ĐỊNH
-                                                </small>
+                                                <small> {t("QUY ĐỊNH")} </small>
 
-                                                <h2>
-                                                    Quy Định Khán Phòng & Thưởng Thức Âm Nhạc
-                                                </h2>
+                                                <h2> {t("Quy Định Khán Phòng & Thưởng Thức Âm Nhạc")} </h2>
                                             </div>
                                         </div>
 
                                         <div className="event-detail-policies-grid">
-                                            {[...event.policies]
+                                            {t([...event.policies]
                                                 .sort(
                                                     (a, b) =>
                                                         (a.sortOrder ||
@@ -850,47 +826,39 @@ const backstageGallery = useMemo(() => {
                                                             }
                                                         >
                                                             <div className="policy-icon">
-                                                                {policy.icon ||
-                                                                    "•"}
+                                                                {t(policy.icon ||
+                                                                    "•")}
                                                             </div>
 
                                                             <div>
                                                                 <h3>
                                                                     {
-                                                                        policy.title
+                                                                        t(policy.title)
                                                                     }
                                                                 </h3>
 
                                                                 <p>
                                                                     {
-                                                                        policy.description
+                                                                        t(policy.description)
                                                                     }
                                                                 </p>
                                                             </div>
                                                         </article>
                                                     )
-                                                )}
+                                                ))}
                                         </div>
                                     </div>
                                 </section>
-                            )}
+                            ))}
 
-{backstageGallery.length > 0 && (
+{t(backstageGallery.length > 0 && (
     <section className="event-detail-section">
         <div className="event-detail-section-heading">
-            <span>
-                ▪ PHÍA SAU ĐÊM DIỄN
-            </span>
+            <span> {t("▪ PHÍA SAU ĐÊM DIỄN")} </span>
 
-            <h2>
-                Hậu Trường & Khoảnh Khắc
-            </h2>
+            <h2> {t("Hậu Trường & Khoảnh Khắc")} </h2>
 
-            <p>
-                Những khoảnh khắc phía sau
-                sân khấu và quá trình chuẩn bị
-                cho đêm diễn.
-            </p>
+            <p> {t("Những khoảnh khắc phía sau sân khấu và quá trình chuẩn bị cho đêm diễn.")} </p>
         </div>
 
         <div
@@ -900,7 +868,7 @@ const backstageGallery = useMemo(() => {
                     : ""
             }`}
         >
-            {backstageGallery.map(
+            {t(backstageGallery.map(
                 (image, index) => (
                     <figure
                         className={
@@ -918,24 +886,24 @@ const backstageGallery = useMemo(() => {
                                 image.image
                             )}
                             alt={
-                                image.caption ||
-                                `${event.title} backstage`
+                                t(image.caption ||
+                                `${event.title} backstage`)
                             }
                         />
 
-                        {image.caption && (
+                        {t(image.caption && (
                             <figcaption>
                                 {
-                                    image.caption
+                                    t(image.caption)
                                 }
                             </figcaption>
-                        )}
+                        ))}
                     </figure>
                 )
-            )}
+            ))}
         </div>
     </section>
-)}
+))}
                         </div>
 
                         <aside
@@ -945,13 +913,9 @@ const backstageGallery = useMemo(() => {
                             <div className="ticket-sidebar-card">
                                 <div className="ticket-sidebar-heading">
                                     <div>
-                                        <span>
-                                            BẢNG GIÁ VÉ MỞ BÁN
-                                        </span>
+                                        <span> {t("BẢNG GIÁ VÉ MỞ BÁN")} </span>
 
-                                        <h2>
-                                            Chọn Hạng Ghế Thính Phòng
-                                        </h2>
+                                        <h2> {t("Chọn Hạng Ghế Thính Phòng")} </h2>
                                     </div>
 
                                     <span className="ticket-sidebar-symbol">
@@ -960,7 +924,7 @@ const backstageGallery = useMemo(() => {
                                 </div>
 
                                 <div className="ticket-sidebar-status">
-                                    {event.allowBooking ===
+                                    {t(event.allowBooking ===
                                     false
                                         ? "Tạm ngưng bán vé"
                                         : event.status ===
@@ -972,13 +936,13 @@ const backstageGallery = useMemo(() => {
                                           ) <
                                               new Date()
                                         ? "Đã đóng bán vé"
-                                        : "Đang mở bán"}
+                                        : "Đang mở bán")}
                                 </div>
 
-                                {activeTicketCategories.length >
+                                {t(activeTicketCategories.length >
                                 0 ? (
                                     <div className="ticket-categories">
-                                        {activeTicketCategories.map(
+                                        {t(activeTicketCategories.map(
                                             (
                                                 category,
                                                 index
@@ -1011,39 +975,39 @@ const backstageGallery = useMemo(() => {
                                                                 <div>
                                                                     <strong>
                                                                         {
-                                                                            category.name
+                                                                            t(category.name)
                                                                         }
                                                                     </strong>
 
-                                                                    {category.description && (
+                                                                    {t(category.description && (
                                                                         <small>
                                                                             {
-                                                                                category.description
+                                                                                t(category.description)
                                                                             }
                                                                         </small>
-                                                                    )}
+                                                                    ))}
                                                                 </div>
                                                             </div>
 
                                                             <strong className="ticket-category-price">
-                                                                {formatPrice(
-                                                                    category.price
-                                                                )}
+                                                                {t(formatPrice(
+                                                                    category.price, locale
+                                                                ))}
                                                             </strong>
                                                         </div>
 
-                                                        {category.seatType && (
+                                                        {t(category.seatType && (
                                                             <div className="ticket-category-meta">
                                                                 {
-                                                                    category.seatType
+                                                                    t(category.seatType)
                                                                 }
                                                             </div>
-                                                        )}
+                                                        ))}
 
-                                                        {category.benefits?.length >
+                                                        {t(category.benefits?.length >
                                                             0 && (
                                                             <div className="ticket-benefits">
-                                                                {category.benefits
+                                                                {t(category.benefits
                                                                     .slice(
                                                                         0,
                                                                         3
@@ -1058,38 +1022,32 @@ const backstageGallery = useMemo(() => {
                                                                                     benefitIndex
                                                                                 }
                                                                             >
-                                                                                ✓{" "}
+                                                                                ✓{t(" ")}
                                                                                 {
-                                                                                    benefit
+                                                                                    t(benefit)
                                                                                 }
                                                                             </span>
                                                                         )
-                                                                    )}
+                                                                    ))}
                                                             </div>
-                                                        )}
+                                                        ))}
                                                     </article>
                                                 );
                                             }
-                                        )}
+                                        ))}
                                     </div>
                                 ) : (
                                     <div className="ticket-coming-soon">
-                                        <strong>
-                                            Thông tin vé sẽ được cập nhật
-                                        </strong>
+                                        <strong> {t("Thông tin vé sẽ được cập nhật")} </strong>
 
-                                        <span>
-                                            Hạng ghế và giá vé đang được hoàn thiện.
-                                        </span>
+                                        <span> {t("Hạng ghế và giá vé đang được hoàn thiện.")} </span>
                                     </div>
-                                )}
+                                ))}
 
-                                {event.seatingChartImage && (
+                                {t(event.seatingChartImage && (
                                     <div className="ticket-seating-chart">
                                         <div className="ticket-seating-heading">
-                                            <span>
-                                                SƠ ĐỒ PHÂN BỐ KHÁN PHÒNG
-                                            </span>
+                                            <span> {t("SƠ ĐỒ PHÂN BỐ KHÁN PHÒNG")} </span>
 
                                             <button
                                                 type="button"
@@ -1099,10 +1057,8 @@ const backstageGallery = useMemo(() => {
                                                         true
                                                     )
                                                 }
-                                                aria-label="Phóng to sơ đồ khán phòng"
-                                            >
-                                                PHÓNG TO
-                                            </button>
+                                                aria-label={t("Phóng to sơ đồ khán phòng")}
+                                            > {t("PHÓNG TO")} </button>
                                         </div>
 
                                         <button
@@ -1113,63 +1069,56 @@ const backstageGallery = useMemo(() => {
                                                     true
                                                 )
                                             }
-                                            aria-label="Xem sơ đồ khán phòng"
+                                            aria-label={t("Xem sơ đồ khán phòng")}
                                         >
                                             <img
                                                 src={getMediaUrl(
                                                     event.seatingChartImage
                                                 )}
-                                                alt="Sơ đồ khán phòng"
+                                                alt={t("Sơ đồ khán phòng")}
                                             />
                                         </button>
                                     </div>
-                                )}
+                                ))}
 
-                                {event.allowBooking ? (
+                                {t(event.allowBooking ? (
                                     <Link
                                         to={`/events/${slug}/seats`}
                                         className="ticket-book-button"
-                                    >
-                                        ▣ Chọn Ghế & Đặt Vé Ngay
-                                    </Link>
+                                    > {t("▣ Chọn Ghế & Đặt Vé Ngay")} </Link>
                                 ) : (
-                                    <div className="ticket-book-button ticket-book-button-disabled">
-                                        Thông tin đặt vé sẽ được cập nhật
-                                    </div>
-                                )}
+                                    <div className="ticket-book-button ticket-book-button-disabled"> {t("Thông tin đặt vé sẽ được cập nhật")} </div>
+                                ))}
 
                                 <div className="ticket-support">
-                                    <span>♧</span>
-                                    Hỗ trợ đặt vé / cơ quan:
-                                    <strong>
+                                    <span>♧</span> {t("Hỗ trợ đặt vé / cơ quan:")} <strong>
                                         1900 8888 68
                                     </strong>
                                 </div>
 
-                                {startingPrice !==
+                                {t(startingPrice !==
                                     null && (
-                                    <div className="ticket-start-price">
-                                        Giá vé từ{" "}
+                                    <div className="ticket-start-price"> {t("Giá vé từ")}{t(" ")}
                                         <strong>
-                                            {formatPrice(
-                                                startingPrice
-                                            )}
+                                            {t(formatPrice(
+                                                startingPrice, locale
+                                            ))}
                                         </strong>
                                     </div>
-                                )}
+                                ))}
                             </div>
                         </aside>
                     </div>
                 </section>
             </main>
 
-            {isSeatingChartOpen &&
+            {t(isSeatingChartOpen &&
                 event.seatingChartImage && (
                     <div
                         className="seating-chart-modal"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Sơ đồ khán phòng phóng to"
+                        aria-label={t("Sơ đồ khán phòng phóng to")}
                         onMouseDown={(e) => {
                             if (
                                 e.target ===
@@ -1190,21 +1139,19 @@ const backstageGallery = useMemo(() => {
                                         false
                                     )
                                 }
-                                aria-label="Đóng sơ đồ khán phòng"
-                            >
-                                ×
-                            </button>
+                                aria-label={t("Đóng sơ đồ khán phòng")}
+                            > × </button>
 
                             <img
                                 src={getMediaUrl(
                                     event.seatingChartImage
                                 )}
-                                alt="Sơ đồ khán phòng phóng to"
+                                alt={t("Sơ đồ khán phòng phóng to")}
                                 className="seating-chart-modal-image"
                             />
                         </div>
                     </div>
-                )}
+                ))}
         </div>
     );
 };

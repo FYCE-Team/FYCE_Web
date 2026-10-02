@@ -149,20 +149,8 @@ const AdminSeatIcon = ({
         .trim()
         .toUpperCase();
 
-    const availableColor =
-        category?.colorCode ||
-        (categoryCode === "VIP"
-            ? "#f06a73"
-            : "#7db7f5");
-
-    const fill =
-        seat.status === "blocked"
-            ? "#90979e"
-            : seat.status === "held"
-            ? "#a8b6c8"
-            : seat.status === "sold"
-            ? "#d9e0e7"
-            : availableColor;
+    // Management colors represent inventory status, consistently across categories/events.
+    const fill = { available: "#7db7f5", blocked: "#90979e", held: "#a8b6c8", sold: "#d9e0e7" }[seat.status] || "#90979e";
 
     const status =
         getStatusMeta(
@@ -810,7 +798,7 @@ const AdminSeatManager = ({
                                         category={
                                             categoriesById.get(
                                                 String(
-                                                    seat.ticketCategoryId
+                                                    seat.ticketCategoryId?._id || seat.ticketCategoryId
                                                 )
                                             ) || null
                                         }

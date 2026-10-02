@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     useCallback,
     useEffect,
@@ -18,7 +19,6 @@ import {
     Clock3,
     CreditCard,
     MapPin,
-    QrCode,
     ReceiptText,
     Ticket,
     XCircle
@@ -30,17 +30,17 @@ import "./TicketPages.css";
 
 import { API_BASE_URL } from "../../config/api.js";
 
-const formatPrice = (value) =>
-    `${new Intl.NumberFormat("vi-VN").format(
+const formatPrice = (value, locale = "vi-VN") =>
+    `${new Intl.NumberFormat(locale).format(
         Number(value) || 0
     )}đ`;
 
-const formatDateTime = (value) => {
+const formatDateTime = (value, locale = "vi-VN") => {
     if (!value) {
         return "Đang cập nhật";
     }
 
-    return new Intl.DateTimeFormat("vi-VN", {
+    return new Intl.DateTimeFormat(locale, {
         weekday: "long",
         day: "2-digit",
         month: "2-digit",
@@ -96,6 +96,9 @@ const getBookingState = (booking) => {
 };
 
 const BookingDetailsPage = () => {
+    const { t, locale } = useLanguage();
+
+    const [bookingPass,setBookingPass]=useState(null);
     const { bookingCode } = useParams();
     const location = useLocation();
     const paymentStatusQuery = useMemo(
@@ -265,12 +268,13 @@ const BookingDetailsPage = () => {
 
                 const data =
                     await authenticatedRequest(
-                        `/tickets/booking/${bookingCode}`,
+                        `/tickets/booking/${bookingCode}?pass=booking`,
                         {
                             method: "GET"
                         }
                     );
 
+                setBookingPass(data?.bookingPass || null);
                 setIssuedTickets(
                     Array.isArray(data?.tickets)
                         ? data.tickets
@@ -510,7 +514,7 @@ const BookingDetailsPage = () => {
         async () => {
             const accepted =
                 window.confirm(
-                    "Hủy đơn này sẽ nhả ghế để người khác có thể đặt. Bạn có chắc muốn tiếp tục?"
+                    t("Hủy đơn này sẽ nhả ghế để người khác có thể đặt. Bạn có chắc muốn tiếp tục?")
                 );
 
             if (!accepted) {
@@ -550,10 +554,8 @@ const BookingDetailsPage = () => {
             <section className="ticket-state">
                 <div className="ticket-state-card">
                     <div className="ticket-spinner" />
-                    <h2>Đang tải vé</h2>
-                    <p>
-                        FYCE đang kiểm tra trạng thái đơn và thanh toán của bạn.
-                    </p>
+                    <h2>{t("Đang tải vé")}</h2>
+                    <p> {t("FYCE đang kiểm tra trạng thái đơn và thanh toán của bạn.")} </p>
                 </div>
             </section>
         );
@@ -567,16 +569,12 @@ const BookingDetailsPage = () => {
                         size={36}
                         strokeWidth={1.8}
                     />
-                    <h2>
-                        Không thể mở vé
-                    </h2>
-                    <p>{error}</p>
+                    <h2> {t("Không thể mở vé")} </h2>
+                    <p>{t(error)}</p>
                     <Link
                         className="ticket-action ticket-action--primary"
                         to="/my-tickets"
-                    >
-                        Về Vé của tôi
-                    </Link>
+                    > {t("Về Vé của tôi")} </Link>
                 </div>
             </section>
         );
@@ -615,12 +613,8 @@ const BookingDetailsPage = () => {
                             <Ticket size={15} />
                             FYCE E-TICKET
                         </span>
-                        <h1>
-                            Chi tiết vé
-                        </h1>
-                        <p>
-                            Thông tin đơn đặt vé, trạng thái thanh toán và mã QR vào cửa của bạn.
-                        </p>
+                        <h1> {t("Chi tiết vé")} </h1>
+                        <p> {t("Thông tin đơn đặt vé, trạng thái thanh toán và mã QR vào cửa của bạn.")} </p>
                     </div>
 
                     <Link
@@ -629,12 +623,10 @@ const BookingDetailsPage = () => {
                     >
                         <ArrowLeft
                             size={16}
-                        />
-                        Vé của tôi
-                    </Link>
+                        /> {t("Vé của tôi")} </Link>
                 </header>
 
-                {paymentStatusQuery ===
+                {t(paymentStatusQuery ===
                     "success" &&
                     !isValidTicket &&
                     !isInactive && (
@@ -642,24 +634,20 @@ const BookingDetailsPage = () => {
                             <Clock3
                                 size={18}
                             />
-                            <span>
-                                Giao dịch đã quay về từ SePay. FYCE đang đối chiếu trực tiếp trạng thái đơn hàng với SePay; vé sẽ tự chuyển sang đã thanh toán ngay khi SePay xác nhận giao dịch.
-                            </span>
+                            <span> {t("Giao dịch đã quay về từ SePay. FYCE đang đối chiếu trực tiếp trạng thái đơn hàng với SePay; vé sẽ tự chuyển sang đã thanh toán ngay khi SePay xác nhận giao dịch.")} </span>
                         </div>
-                    )}
+                    ))}
 
-                {isValidTicket && (
+                {t(isValidTicket && (
                         <div className="ticket-alert ticket-alert--success">
                             <CheckCircle2
                                 size={18}
                             />
-                            <span>
-                                Thanh toán đã được xác nhận. Vé của bạn đã sẵn sàng sử dụng.
-                            </span>
+                            <span> {t("Thanh toán đã được xác nhận. Vé của bạn đã sẵn sàng sử dụng.")} </span>
                         </div>
-                    )}
+                    ))}
 
-                {paymentStatusQuery ===
+                {t(paymentStatusQuery ===
                     "cancel" &&
                     booking.status ===
                         "pending_payment" && (
@@ -667,53 +655,47 @@ const BookingDetailsPage = () => {
                             <AlertTriangle
                                 size={18}
                             />
-                            <span>
-                                Bạn đã đóng hoặc hủy thao tác tại cổng thanh toán. Đơn vẫn còn hiệu lực trong thời gian giữ ghế; bạn có thể thanh toán lại hoặc hủy đơn để nhả ghế.
-                            </span>
+                            <span> {t("Bạn đã đóng hoặc hủy thao tác tại cổng thanh toán. Đơn vẫn còn hiệu lực trong thời gian giữ ghế; bạn có thể thanh toán lại hoặc hủy đơn để nhả ghế.")} </span>
                         </div>
-                    )}
+                    ))}
 
-                {paymentStatusQuery ===
+                {t(paymentStatusQuery ===
                     "error" && !isValidTicket && !booking.paymentReviewRequired && (
                         <div className="ticket-alert ticket-alert--danger">
                             <XCircle
                                 size={18}
                             />
-                            <span>
-                                Cổng thanh toán trả về thông báo lỗi. FYCE đang kiểm tra lại trạng thái thực tế; nếu bạn đã chuyển khoản, không thanh toán lần nữa.
-                            </span>
+                            <span> {t("Cổng thanh toán trả về thông báo lỗi. FYCE đang kiểm tra lại trạng thái thực tế; nếu bạn đã chuyển khoản, không thanh toán lần nữa.")} </span>
                         </div>
-                    )}
+                    ))}
 
-                {syncError && !isValidTicket && <div className="ticket-alert ticket-alert--warning" role="status">{syncError}</div>}
-                {booking.paymentReviewRequired && <div className="ticket-alert ticket-alert--warning" role="alert">FYCE đã nhận thông báo giao dịch nhưng cần đối chiếu ghế/số tiền. Không chuyển khoản lại; liên hệ admin với mã đơn {booking.bookingCode}. Vé chỉ được phát hành khi đối chiếu hợp lệ.</div>}
-                {error && (
+                {t(syncError && !isValidTicket && <div className="ticket-alert ticket-alert--warning" role="status">{t(syncError)}</div>)}
+                {t(booking.paymentReviewRequired && <div className="ticket-alert ticket-alert--warning" role="alert">{t("FYCE đã nhận thông báo giao dịch nhưng cần đối chiếu ghế/số tiền. Không chuyển khoản lại; liên hệ admin với mã đơn")} {t(booking.bookingCode)}{t(". Vé chỉ được phát hành khi đối chiếu hợp lệ.")}</div>)}
+                {t(error && (
                     <div className="ticket-alert ticket-alert--danger">
                         <AlertTriangle
                             size={18}
                         />
-                        <span>{error}</span>
+                        <span>{t(error)}</span>
                     </div>
-                )}
+                ))}
 
                 <section className="ticket-card ticket-hero">
                     <div className="ticket-hero-top">
                         <div className="ticket-hero-title">
                             <h2>
                                 {
-                                    booking
+                                    t(booking
                                         .eventSnapshot
-                                        .title
+                                        .title)
                                 }
                             </h2>
                             <div className="ticket-booking-code">
                                 <ReceiptText
                                     size={15}
-                                />
-                                Mã đơn
-                                <strong>
+                                /> {t("Mã đơn")} <strong>
                                     {
-                                        booking.bookingCode
+                                        t(booking.bookingCode)
                                     }
                                 </strong>
                             </div>
@@ -726,7 +708,7 @@ const BookingDetailsPage = () => {
                                 size={15}
                             />
                             {
-                                bookingState.label
+                                t(bookingState.label)
                             }
                         </span>
                     </div>
@@ -737,15 +719,13 @@ const BookingDetailsPage = () => {
                                 size={18}
                             />
                             <div>
-                                <small>
-                                    Thời gian
-                                </small>
+                                <small> {t("Thời gian")} </small>
                                 <strong>
-                                    {formatDateTime(
+                                    {t(formatDateTime(
                                         booking
                                             .eventSnapshot
-                                            .startAt
-                                    )}
+                                            .startAt, locale
+                                    ))}
                                 </strong>
                             </div>
                         </div>
@@ -755,14 +735,12 @@ const BookingDetailsPage = () => {
                                 size={18}
                             />
                             <div>
-                                <small>
-                                    Địa điểm
-                                </small>
+                                <small> {t("Địa điểm")} </small>
                                 <strong>
-                                    {booking
+                                    {t(booking
                                         .eventSnapshot
                                         .venue ||
-                                        "Đang cập nhật"}
+                                        "Đang cập nhật")}
                                 </strong>
                             </div>
                         </div>
@@ -772,27 +750,21 @@ const BookingDetailsPage = () => {
                                 size={18}
                             />
                             <div>
-                                <small>
-                                    Tổng tiền
-                                </small>
+                                <small> {t("Tổng tiền")} </small>
                                 <strong>
-                                    {formatPrice(
-                                        booking.totalAmount
-                                    )}
+                                    {t(formatPrice(
+                                        booking.totalAmount, locale
+                                    ))}
                                 </strong>
                             </div>
                         </div>
                     </div>
 
-                    {canPay && (
+                    {t(canPay && (
                         <div className="ticket-payment-box">
                             <div className="ticket-payment-copy">
-                                <strong>
-                                    Đơn đang chờ thanh toán
-                                </strong>
-                                <span>
-                                    Hoàn tất thanh toán trước khi hết thời gian giữ ghế để nhận mã QR.
-                                </span>
+                                <strong> {t("Đơn đang chờ thanh toán")} </strong>
+                                <span> {t("Hoàn tất thanh toán trước khi hết thời gian giữ ghế để nhận mã QR.")} </span>
                             </div>
 
                             <div className="ticket-actions">
@@ -809,9 +781,9 @@ const BookingDetailsPage = () => {
                                     <CreditCard
                                         size={16}
                                     />
-                                    {actionLoading
+                                    {t(actionLoading
                                         ? "Đang xử lý..."
-                                        : "Thanh toán"}
+                                        : "Thanh toán")}
                                 </button>
                                 <button
                                     type="button"
@@ -825,19 +797,17 @@ const BookingDetailsPage = () => {
                                 >
                                     <XCircle
                                         size={16}
-                                    />
-                                    Hủy đơn
-                                </button>
+                                    /> {t("Hủy đơn")} </button>
                             </div>
                         </div>
-                    )}
+                    ))}
                 </section>
 
-                {isInactive ? (
+                {t(isInactive ? (
                     <section className="ticket-section">
                         <div className="ticket-card ticket-invalid-card">
                             <div className="ticket-invalid-icon">
-                                {booking.status ===
+                                {t(booking.status ===
                                 "cancelled" ? (
                                     <XCircle
                                         size={28}
@@ -846,22 +816,22 @@ const BookingDetailsPage = () => {
                                     <Clock3
                                         size={28}
                                     />
-                                )}
+                                ))}
                             </div>
                             <h3>
-                                {booking.status ===
+                                {t(booking.status ===
                                 "cancelled"
                                     ? "Đơn đã hủy — không còn vé hợp lệ"
-                                    : "Đơn đã hết hạn — không còn vé hợp lệ"}
+                                    : "Đơn đã hết hạn — không còn vé hợp lệ")}
                             </h3>
                             <p>
-                                {booking.paymentStatus === "refunded"
+                                {t(booking.paymentStatus === "refunded"
                                     ? "Các vé đã hủy sau hoàn tiền thủ công. Ghế được mở bán lại, QR cũ không còn hiệu lực."
-                                    : "Đơn không còn hiệu lực. Các ghế đã được trả lại hệ thống để người khác có thể đặt."}
+                                    : "Đơn không còn hiệu lực. Các ghế đã được trả lại hệ thống để người khác có thể đặt.")}
                             </p>
-                            <h4>Lịch sử ghế trong đơn</h4>
-                            <ul>{booking.items.map(item => <li key={item.ticketCode}>{item.seatLabel} · {item.ticketCode} · {formatPrice(item.unitPrice)}</li>)}</ul>
-                            {booking.refundedAmount > 0 && <p>Đã ghi nhận hoàn: {formatPrice(booking.refundedAmount)}</p>}
+                            <h4>{t("Lịch sử ghế trong đơn")}</h4>
+                            <ul>{t(booking.items.map(item => <li key={item.ticketCode}>{t(item.seatLabel)} · {t(item.ticketCode)} · {t(formatPrice(item.unitPrice, locale))}</li>))}</ul>
+                            {t(booking.refundedAmount > 0 && <p>{t("Đã ghi nhận hoàn:")} {t(formatPrice(booking.refundedAmount, locale))}</p>)}
                         </div>
                     </section>
                 ) : (
@@ -871,17 +841,25 @@ const BookingDetailsPage = () => {
                                 <Armchair
                                     size={18}
                                 />
-                                {isValidTicket
+                                {t(isValidTicket
                                     ? "Vé của bạn"
-                                    : "Ghế đang giữ"}
+                                    : "Ghế đang giữ")}
                             </h3>
                             <span>
-                                {booking.items.length} ghế
-                            </span>
+                                {t(booking.items.length)} {t("ghế")} </span>
                         </div>
 
-                        <div className="ticket-grid">
-                            {booking.items.map(
+                        {t(isValidTicket && <section className="ticket-card booking-group-pass" aria-label={t("QR chung của đơn")}>
+                            <div>{t(bookingPass?.qrPayload ? <QRCodeSVG value={bookingPass.qrPayload} size={240} level="M" marginSize={4}/> : <CheckCircle2 size={48}/>)}</div>
+                            <div><h2>{t("Một QR cho cả đơn vé")}</h2><strong>{t(booking.bookingCode)}</strong>
+                            <p>{t(bookingPass?.validCount || 0)} {t("ghế còn hiệu lực ·")} {t(bookingPass?.checkedInCount || 0)} {t("đã check-in")}</p>
+                            <p>{t("Xuất trình QR khi cả nhóm đã có mặt. Một lần xác nhận sẽ check-in tất cả ghế còn hiệu lực; ghế đã hủy hoặc hoàn tiền không được sử dụng.")}</p>
+                            <p>{t("Khách đến riêng có thể cung cấp mã vé TKT của từng ghế cho nhân viên.")}</p>
+                            {t(!bookingPass?.qrPayload && <p>{t(ticketsLoading ? "Đang phát hành QR..." : bookingPass?.checkedInCount ? "Tất cả vé còn hiệu lực đã check-in." : "Chưa lấy được QR vé")}</p>)}
+                            <small>{t("Không chia sẻ QR hoặc mã vé với người khác.")}</small></div>
+                        </section>)}
+                        <details className="ticket-seat-details" open={booking.items.length <= 8}><summary>{t("Danh sách ghế trong đơn")} ({booking.items.length})</summary><div className="ticket-grid">
+                            {t(booking.items.map(
                                 (item) => (
                                     <article
                                         key={
@@ -892,31 +870,29 @@ const BookingDetailsPage = () => {
                                     >
                                         <div className="ticket-pass-content">
                                             <div className="ticket-pass-seat">
-                                                {item.row}
-                                                {item.number}
+                                                {t(item.row)}
+                                                {t(item.number)}
                                             </div>
 
                                             <div className="ticket-pass-info">
                                                 <strong>
                                                     {
-                                                        item.ticketCategoryName
+                                                        t(item.ticketCategoryName)
                                                     }
                                                 </strong>
-                                                <span>
-                                                    Khu vực: {item.section}
+                                                <span> {t("Khu vực:")} {t(item.section)}
+                                                </span>
+                                                <span> {t("Hàng")} {t(item.row)} {t("· Ghế")} {t(item.number)}
                                                 </span>
                                                 <span>
-                                                    Hàng {item.row} · Ghế {item.number}
-                                                </span>
-                                                <span>
-                                                    {formatPrice(
-                                                        item.unitPrice
-                                                    )}
+                                                    {t(formatPrice(
+                                                        item.unitPrice, locale
+                                                    ))}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        {isValidTicket ? (() => {
+                                        {t(isValidTicket ? (() => {
                                             const issuedTicket =
                                                 issuedTickets.find(
                                                     (ticket) =>
@@ -928,12 +904,8 @@ const BookingDetailsPage = () => {
                                                 return (
                                                     <div className="ticket-qr-wrap">
                                                         <div className="ticket-payment-copy">
-                                                            <strong>
-                                                                Đang phát hành QR...
-                                                            </strong>
-                                                            <span>
-                                                                FYCE đang lấy mã vé bảo mật từ máy chủ.
-                                                            </span>
+                                                            <strong> {t("Đang phát hành QR...")} </strong>
+                                                            <span> {t("FYCE đang lấy mã vé bảo mật từ máy chủ.")} </span>
                                                         </div>
                                                     </div>
                                                 );
@@ -948,63 +920,30 @@ const BookingDetailsPage = () => {
                                                         <CheckCircle2
                                                             size={28}
                                                         />
-                                                        <strong>
-                                                            Đã check-in
-                                                        </strong>
+                                                        <strong> {t("Đã check-in")} </strong>
                                                         <span>
-                                                            {formatDateTime(
-                                                                issuedTicket.checkedInAt
-                                                            )}
+                                                            {t(formatDateTime(
+                                                                issuedTicket.checkedInAt, locale
+                                                            ))}
                                                         </span>
-                                                        <small>
-                                                            QR đã vô hiệu sau khi vào cửa.
-                                                        </small>
+                                                        <small> {t("QR đã vô hiệu sau khi vào cửa.")} </small>
                                                     </div>
                                                 );
                                             }
 
                                             if (["refunded", "cancelled"].includes(issuedTicket?.status)) {
-                                                return <div className="ticket-qr-wrap ticket-qr-used"><strong>Vé đã hủy sau hoàn tiền</strong><span>QR cũ đã vô hiệu. Lịch sử mua ghế vẫn được lưu.</span></div>;
+                                                return <div className="ticket-qr-wrap ticket-qr-used"><strong>{t("Vé đã hủy sau hoàn tiền")}</strong><span>{t("QR cũ đã vô hiệu. Lịch sử mua ghế vẫn được lưu.")}</span></div>;
                                             }
 
-                                            if (issuedTicket?.qrPayload) {
-                                                return (
-                                                    <div className="ticket-qr-wrap">
-                                                        <div className="ticket-qr">
-                                                            <QRCodeSVG
-                                                                value={
-                                                                    issuedTicket.qrPayload
-                                                                }
-                                                                size={132}
-                                                                level="H"
-                                                            />
-                                                        </div>
-                                                        <div className="ticket-qr-meta">
-                                                            <div className="ticket-code-text">
-                                                                <QrCode
-                                                                    size={16}
-                                                                />
-                                                                <span>
-                                                                    {issuedTicket.ticketCode}
-                                                                </span>
-                                                            </div>
-                                                            <small className="ticket-qr-security">
-                                                                QR được ký bởi FYCE và không chứa thông tin cá nhân. Không chia sẻ ảnh QR cho người khác.
-                                                            </small>
-                                                        </div>
-                                                    </div>
-                                                );
+                                            if (issuedTicket?.status === "valid") {
+                                                return <div className="ticket-qr-wrap"><strong>{t("Vé còn hiệu lực")}</strong><span>{t(issuedTicket.ticketCode)}</span><small>{t("Dùng QR chung của đơn phía trên để vào cửa.")}</small></div>;
                                             }
 
                                             return (
                                                 <div className="ticket-qr-wrap">
                                                     <div className="ticket-payment-copy">
-                                                        <strong>
-                                                            Chưa lấy được QR vé
-                                                        </strong>
-                                                        <span>
-                                                            Hãy tải lại trang. Vé đã thanh toán sẽ được phát hành tự động.
-                                                        </span>
+                                                        <strong> {t("Chưa lấy được QR vé")} </strong>
+                                                        <span> {t("Hãy tải lại trang. Vé đã thanh toán sẽ được phát hành tự động.")} </span>
                                                     </div>
                                                 </div>
                                             );
@@ -1012,20 +951,20 @@ const BookingDetailsPage = () => {
                                             <div className="ticket-qr-wrap">
                                                 <div className="ticket-payment-copy">
                                                     <strong>
-                                                        {booking.paymentStatus === "refunded" ? "Vé đã hủy sau hoàn tiền" : "QR chưa được phát hành"}
+                                                        {t(booking.paymentStatus === "refunded" ? "Vé đã hủy sau hoàn tiền" : "QR chưa được phát hành")}
                                                     </strong>
                                                     <span>
-                                                        {booking.paymentStatus === "refunded" ? "QR cũ đã vô hiệu. Lịch sử mua ghế được giữ nguyên." : "Mã vào cửa chỉ xuất hiện sau khi thanh toán được xác nhận."}
+                                                        {t(booking.paymentStatus === "refunded" ? "QR cũ đã vô hiệu. Lịch sử mua ghế được giữ nguyên." : "Mã vào cửa chỉ xuất hiện sau khi thanh toán được xác nhận.")}
                                                     </span>
                                                 </div>
                                             </div>
-                                        )}
+                                        ))}
                                     </article>
                                 )
-                            )}
-                        </div>
+                            ))}
+                        </div></details>
                     </section>
-                )}
+                ))}
             </div>
         </main>
     );

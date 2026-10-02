@@ -1143,7 +1143,7 @@ export const resetPassword = async (
         return res.status(400).json({
           success: false,
           message:
-            "Mật khẩu không được vượt quá 128 ký tự"
+            "Mật khẩu không được vượt quá 72 byte"
         });
 
       case "PASSWORD_NO_UPPERCASE":

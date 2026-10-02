@@ -840,3 +840,6 @@
     color: #ffffff;
   }
 }
+
+/* Keep the language control available on phones as well as desktop. */
+@media(max-width:850px){.site-header-actions .site-language-switcher{display:inline-flex;flex-shrink:0}.site-language-option{min-width:28px;padding:7px 6px}.site-header-actions{gap:6px}}

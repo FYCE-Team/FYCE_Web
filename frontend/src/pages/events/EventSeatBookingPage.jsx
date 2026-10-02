@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     useCallback,
     useEffect,
@@ -20,13 +21,13 @@ import "./EventSeatBookingPage.css";
 
 import { API_BASE_URL } from "../../config/api.js";
 
-const formatDate = (date) => {
+const formatDate = (date, locale = "vi-VN") => {
     if (!date) {
         return "";
     }
 
     return new Intl.DateTimeFormat(
-        "vi-VN",
+        locale,
         {
             weekday: "long",
             day: "2-digit",
@@ -36,13 +37,13 @@ const formatDate = (date) => {
     ).format(new Date(date));
 };
 
-const formatTime = (date) => {
+const formatTime = (date, locale = "vi-VN") => {
     if (!date) {
         return "";
     }
 
     return new Intl.DateTimeFormat(
-        "vi-VN",
+        locale,
         {
             hour: "2-digit",
             minute: "2-digit",
@@ -51,9 +52,9 @@ const formatTime = (date) => {
     ).format(new Date(date));
 };
 
-const formatPrice = (value) =>
+const formatPrice = (value, locale = "vi-VN") =>
     `${new Intl.NumberFormat(
-        "vi-VN"
+        locale
     ).format(Number(value) || 0)}đ`;
 
 const fallbackColors = [
@@ -337,6 +338,8 @@ const requestAuthenticatedGet = async (
 };
 
 const EventSeatBookingPage = () => {
+    const { t, locale } = useLanguage();
+
     const { slug } = useParams();
     const navigate = useNavigate();
 
@@ -1298,9 +1301,7 @@ const [
         return (
             <section className="seat-booking-state">
                 <div className="seat-booking-spinner" />
-                <p>
-                    Đang tải trang chọn ghế...
-                </p>
+                <p> {t("Đang tải trang chọn ghế...")} </p>
             </section>
         );
     }
@@ -1308,19 +1309,15 @@ const [
     if (error || !event) {
         return (
             <section className="seat-booking-state">
-                <h1>
-                    Không thể mở trang chọn ghế
-                </h1>
+                <h1> {t("Không thể mở trang chọn ghế")} </h1>
                 <p>
-                    {error ||
-                        "Không tìm thấy sự kiện."}
+                    {t(error ||
+                        "Không tìm thấy sự kiện.")}
                 </p>
                 <Link
                     className="seat-booking-state__back"
                     to={`/events/${slug}`}
-                >
-                    ← Quay lại sự kiện
-                </Link>
+                > {t("← Quay lại sự kiện")} </Link>
             </section>
         );
     }
@@ -1331,46 +1328,44 @@ const [
                 <section className="seat-booking-hero">
                     <div className="seat-booking-hero__content">
                         <div className="seat-booking-hero__badges">
-                            {event.badge && (
+                            {t(event.badge && (
                                 <span className="seat-booking-badge seat-booking-badge--green">
-                                    ✦ {event.badge}
+                                    ✦ {t(event.badge)}
                                 </span>
-                            )}
+                            ))}
 
-                            <span className="seat-booking-badge seat-booking-badge--warm">
-                                ♬ Chọn ghế trực tuyến
-                            </span>
+                            <span className="seat-booking-badge seat-booking-badge--warm"> {t("♬ Chọn ghế trực tuyến")} </span>
                         </div>
 
                         <h1>
-                            {event.title}
+                            {t(event.title)}
                         </h1>
 
-                        {event.subtitle && (
+                        {t(event.subtitle && (
                             <p className="seat-booking-hero__subtitle">
-                                {event.subtitle}
+                                {t(event.subtitle)}
                             </p>
-                        )}
+                        ))}
 
                         <div className="seat-booking-hero__meta">
                             <span>
-                                ◫{" "}
-                                {event.startAt
+                                ◫{t(" ")}
+                                {t(event.startAt
                                     ? `${formatTime(
-                                          event.startAt
+                                          event.startAt, locale
                                       )} • ${formatDate(
-                                          event.startAt
+                                          event.startAt, locale
                                       )}`
-                                    : "Đang cập nhật thời gian"}
+                                    : "Đang cập nhật thời gian")}
                             </span>
 
                             <span>
-                                ⌖{" "}
-                                {event.venue ||
-                                    "Đang cập nhật địa điểm"}
-                                {event.address
+                                ⌖{t(" ")}
+                                {t(event.venue ||
+                                    "Đang cập nhật địa điểm")}
+                                {t(event.address
                                     ? `, ${event.address}`
-                                    : ""}
+                                    : "")}
                             </span>
                         </div>
                     </div>
@@ -1383,75 +1378,57 @@ const [
                                     : ""
                             }`}
                         >
-                            <small>
-                                THỜI GIAN GIỮ GHẾ
-                            </small>
+                            <small> {t("THỜI GIAN GIỮ GHẾ")} </small>
 
                             <strong>
-                                {holdToken
+                                {t(holdToken
                                     ? formatCountdown(
                                           remainingSeconds
                                       )
-                                    : "--:--"}
+                                    : "--:--")}
                             </strong>
                         </div>
 
                         <Link
                             to={`/events/${slug}`}
                             className="seat-booking-link-button"
-                        >
-                            ← Chi tiết sự kiện
-                        </Link>
+                        > {t("← Chi tiết sự kiện")} </Link>
 
                         <a
                             href="#seat-map"
                             className="seat-booking-link-button seat-booking-link-button--primary"
-                        >
-                            Chọn ghế ↓
-                        </a>
+                        > {t("Chọn ghế ↓")} </a>
                     </div>
                 </section>
 
                 <section className="seat-status-bar">
-                    <strong>
-                        TRẠNG THÁI GHẾ
-                    </strong>
+                    <strong> {t("TRẠNG THÁI GHẾ")} </strong>
 
                     <span>
-                        <i className="seat-status-dot seat-status-dot--empty" />
-                        Còn trống
-                    </span>
+                        <i className="seat-status-dot seat-status-dot--empty" /> {t("Còn trống")} </span>
 
                     <span>
-                        <i className="seat-status-dot seat-status-dot--selected" />
-                        Đang chọn
-                    </span>
+                        <i className="seat-status-dot seat-status-dot--selected" /> {t("Đang chọn")} </span>
 
                     <span>
-                        <i className="seat-status-dot seat-status-dot--sold" />
-                        Đã đặt
-                    </span>
+                        <i className="seat-status-dot seat-status-dot--sold" /> {t("Đã đặt")} </span>
 
                     <span>
-                        <i className="seat-status-dot seat-status-dot--held" />
-                        Đang giữ
-                    </span>
+                        <i className="seat-status-dot seat-status-dot--held" /> {t("Đang giữ")} </span>
 
-                    <small>
-                        Chạm hoặc click vào icon ghế để chọn vị trí
-                    </small>
+                    <small> {t("Chạm hoặc click vào icon ghế để chọn vị trí")} </small>
                 </section>
 
-                {holdMessage && (
+                {t(holdMessage && (
                     <div className="seat-hold-message">
-                        {holdMessage}
+                        {t(holdMessage)}
                     </div>
-                )}
+                ))}
 
-                {ticketCategories.length >
+                {t(ticketCategories.length >
                     0 && (
                     <section className="seat-ticket-grid">
-                        {ticketCategories.map(
+                        {t(ticketCategories.map(
                             (
                                 category,
                                 index
@@ -1478,28 +1455,28 @@ const [
 
                                     <div>
                                         <small>
-                                            {category.name}
+                                            {t(category.name)}
                                         </small>
 
                                         <strong>
-                                            {formatPrice(
-                                                category.price
-                                            )}
+                                            {t(formatPrice(
+                                                category.price, locale
+                                            ))}
                                         </strong>
 
-                                        {category.seatType && (
+                                        {t(category.seatType && (
                                             <span>
                                                 {
-                                                    category.seatType
+                                                    t(category.seatType)
                                                 }
                                             </span>
-                                        )}
+                                        ))}
                                     </div>
                                 </article>
                             )
-                        )}
+                        ))}
                     </section>
-                )}
+                ))}
 
                 <section
                     className="seat-map-card"
@@ -1507,18 +1484,12 @@ const [
                 >
                     <div className="seat-map-card__heading">
                         <div>
-                            <span>
-                                SƠ ĐỒ KHÁN PHÒNG
-                            </span>
-                            <h2>
-                                Chọn vị trí của bạn
-                            </h2>
+                            <span> {t("SƠ ĐỒ KHÁN PHÒNG")} </span>
+                            <h2> {t("Chọn vị trí của bạn")} </h2>
                         </div>
 
                         <div className="seat-map-card__hint">
-                            ♬ {selectedSeats.length}{" "}
-                            ghế đã chọn
-                        </div>
+                            ♬ {t(selectedSeats.length)}{t(" ")} {t("ghế đã chọn")} </div>
                     </div>
 
                     <SeatMap
@@ -1549,20 +1520,16 @@ const [
                 <section className="seat-booking-summary">
                     <div className="seat-booking-summary__left">
                         <div className="seat-booking-summary__heading">
-                            <h2>
-                                Thông tin vé chọn
-                            </h2>
+                            <h2> {t("Thông tin vé chọn")} </h2>
 
                             <span>
-                                {selectedSeats.length}{" "}
-                                ghế
-                            </span>
+                                {t(selectedSeats.length)}{t(" ")} {t("ghế")} </span>
                         </div>
 
-                        {selectedSeatDetails.length >
+                        {t(selectedSeatDetails.length >
                         0 ? (
                             <div className="selected-seat-price-list">
-                                {selectedSeatDetails.map(
+                                {t(selectedSeatDetails.map(
                                     (seat) => (
                                         <div
                                             className="selected-seat-price-row"
@@ -1572,62 +1539,54 @@ const [
                                         >
                                             <span>
                                                 <strong>
-                                                    {seat.label}
+                                                    {t(seat.label)}
                                                 </strong>
-                                                {" — "}
-                                                {seat
+                                                {t(" — ")}
+                                                {t(seat
                                                     .resolvedCategory
                                                     ?.name ||
                                                     inferFyceCategoryCode(
                                                         seat
-                                                    )}
+                                                    ))}
                                             </span>
 
                                             <strong>
-                                                {formatPrice(
-                                                    seat.resolvedPrice
-                                                )}
+                                                {t(formatPrice(
+                                                    seat.resolvedPrice, locale
+                                                ))}
                                             </strong>
                                         </div>
                                     )
-                                )}
+                                ))}
 
-                                {selectedSeatDetails.some(
+                                {t(selectedSeatDetails.some(
                                     (seat) =>
                                         !seat.resolvedCategory
                                 ) && (
-                                    <small className="selected-seat-price-warning">
-                                        Có ghế chưa đồng bộ hạng vé. Hãy tải lại trang hoặc kiểm tra cấu hình ticket category.
-                                    </small>
-                                )}
+                                    <small className="selected-seat-price-warning"> {t("Có ghế chưa đồng bộ hạng vé. Hãy tải lại trang hoặc kiểm tra cấu hình ticket category.")} </small>
+                                ))}
                             </div>
                         ) : (
-                            <p>
-                                Vui lòng chọn ghế trên sơ đồ khán phòng.
-                            </p>
-                        )}
+                            <p> {t("Vui lòng chọn ghế trên sơ đồ khán phòng.")} </p>
+                        ))}
                     </div>
 
                     <div className="seat-booking-summary__prices">
                         <div>
-                            <small>
-                                Tạm tính
-                            </small>
+                            <small> {t("Tạm tính")} </small>
                             <strong>
-                                {formatPrice(
-                                    totalPrice
-                                )}
+                                {t(formatPrice(
+                                    totalPrice, locale
+                                ))}
                             </strong>
                         </div>
 
                         <div>
-                            <small>
-                                Tổng thanh toán
-                            </small>
+                            <small> {t("Tổng thanh toán")} </small>
                             <strong>
-                                {formatPrice(
-                                    totalPrice
-                                )}
+                                {t(formatPrice(
+                                    totalPrice, locale
+                                ))}
                             </strong>
                         </div>
                     </div>
@@ -1645,9 +1604,9 @@ const [
                             openingCheckout
                         }
                     >
-                        {openingCheckout
+                        {t(openingCheckout
                             ? "Đang mở checkout..."
-                            : "Tiếp tục"}
+                            : "Tiếp tục")}
                     </button>
                 </section>
             </div>

@@ -1,3 +1,5 @@
+import {LanguageProvider} from "./i18n/LanguageContext.jsx";
+import {useLanguage} from "./i18n/useLanguage.js";
 import { lazy, Suspense } from "react";
 import {
     BrowserRouter,
@@ -48,6 +50,7 @@ import "./pages/admin/management/AdminManagement.css";
 const GOOGLE_CLIENT_ID =
     import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+function LoadingPage(){ const {t}=useLanguage(); return <p role="status" style={{padding:32}}>{t("Đang tải trang…")}</p>; }
 function App() {
     return (
         <GoogleOAuthProvider
@@ -55,7 +58,8 @@ function App() {
         >
             <AuthProvider>
                 <BrowserRouter>
-                    <Suspense fallback={<p role="status" style={{ padding: 32 }}>Đang tải trang…</p>}>
+                    <LanguageProvider>
+                    <Suspense fallback={<LoadingPage />}>
                     <Routes>
 
                         {/* =================================================
@@ -224,6 +228,7 @@ function App() {
 
                     </Routes>
                     </Suspense>
+                </LanguageProvider>
                 </BrowserRouter>
             </AuthProvider>
         </GoogleOAuthProvider>

@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
@@ -17,6 +18,8 @@ import { useNavigate } from "react-router-dom";
 import { register } from "../../services/auth.service";
 
 const RegisterForm = () => {
+    const { t } = useLanguage();
+
   const navigate = useNavigate();
 
   const [form, setForm] = useState(() => {
@@ -346,7 +349,7 @@ const handleSubmit = async (e) => {
 
           <section className="register-card">
             <div className="register-card-header">
-              <h1>Đăng Ký</h1>
+              <h1>{t("Đăng Ký")}</h1>
             </div>
 
             <div className="register-separator" />
@@ -362,18 +365,14 @@ const handleSubmit = async (e) => {
                     <UserRoundPlus size={20} />
                   </div>
 
-                  <h2>1. Thông tin</h2>
+                  <h2>{t("1. Thông tin")}</h2>
                 </div>
 
                 <div className="form-grid">
                   {/* FULL NAME */}
                   <div className="form-field">
-                    <label htmlFor="fullName">
-                      Họ và tên đầy đủ
-                      <span>*</span>
-                      <small>
-                        In trên vé mời
-                      </small>
+                    <label htmlFor="fullName"> {t("Họ và tên đầy đủ")} <span>*</span>
+                      <small> {t("In trên vé mời")} </small>
                     </label>
 
                     <div
@@ -395,21 +394,17 @@ const handleSubmit = async (e) => {
                       />
                     </div>
 
-                    {errors.fullName && (
+                    {t(errors.fullName && (
                       <p className="field-error">
-                        {errors.fullName}
+                        {t(errors.fullName)}
                       </p>
-                    )}
+                    ))}
                   </div>
 
                   {/* USERNAME */}
                   <div className="form-field">
-                    <label htmlFor="username">
-                      Tên tài khoản / Username
-                      <span>*</span>
-                      <small>
-                        Duy nhất
-                      </small>
+                    <label htmlFor="username"> {t("Tên tài khoản / Username")} <span>*</span>
+                      <small> {t("Duy nhất")} </small>
                     </label>
 
                     <div
@@ -431,18 +426,16 @@ const handleSubmit = async (e) => {
                       />
                     </div>
 
-                    {errors.username && (
+                    {t(errors.username && (
                       <p className="field-error">
-                        {errors.username}
+                        {t(errors.username)}
                       </p>
-                    )}
+                    ))}
                   </div>
 
                   {/* EMAIL */}
                   <div className="form-field">
-                    <label htmlFor="email">
-                      Địa chỉ Email của bạn
-                      <span>*</span>
+                    <label htmlFor="email"> {t("Địa chỉ Email của bạn")} <span>*</span>
                     </label>
 
                     <div
@@ -464,23 +457,18 @@ const handleSubmit = async (e) => {
                       />
                     </div>
 
-                    {errors.email && (
+                    {t(errors.email && (
                       <p className="field-error">
-                        {errors.email}
+                        {t(errors.email)}
                       </p>
-                    )}
+                    ))}
 
-                    <p className="field-description">
-                      Dùng để nhận e-Ticket và
-                      nhạc mục chính phòng
-                    </p>
+                    <p className="field-description"> {t("Dùng để nhận e-Ticket và nhạc mục chính phòng")} </p>
                   </div>
 
                   {/* PHONE */}
                   <div className="form-field">
-                    <label htmlFor="phone">
-                      Số điện thoại liên hệ
-                      <span>*</span>
+                    <label htmlFor="phone"> {t("Số điện thoại liên hệ")} <span>*</span>
                     </label>
 
                     <div
@@ -502,16 +490,13 @@ const handleSubmit = async (e) => {
                       />
                     </div>
 
-                    {errors.phone && (
+                    {t(errors.phone && (
                       <p className="field-error">
-                        {errors.phone}
+                        {t(errors.phone)}
                       </p>
-                    )}
+                    ))}
 
-                    <p className="field-description">
-                      Dùng nhận vé SMS / Zalo
-                      khi check-in tại khán phòng
-                    </p>
+                    <p className="field-description"> {t("Dùng nhận vé SMS / Zalo khi check-in tại khán phòng")} </p>
                   </div>
                 </div>
               </div>
@@ -523,15 +508,13 @@ const handleSubmit = async (e) => {
                     <LockKeyhole size={20} />
                   </div>
 
-                  <h2>2. Mật khẩu</h2>
+                  <h2>{t("2. Mật khẩu")}</h2>
                 </div>
 
                 <div className="form-grid">
                   {/* PASSWORD */}
                   <div className="form-field">
-                    <label htmlFor="password">
-                      Mật khẩu bảo vệ
-                      <span>*</span>
+                    <label htmlFor="password"> {t("Mật khẩu bảo vệ")} <span>*</span>
                     </label>
 
                     <div
@@ -565,31 +548,30 @@ const handleSubmit = async (e) => {
                           )
                         }
                         aria-label={
-                          showPassword
+                          t(showPassword
                             ? "Ẩn mật khẩu"
-                            : "Hiện mật khẩu"
+                            : "Hiện mật khẩu")
                         }
                       >
-                        {showPassword ? (
+                        {t(showPassword ? (
                           <EyeOff size={20} />
                         ) : (
                           <Eye size={20} />
-                        )}
+                        ))}
                       </button>
                     </div>
 
-                    {errors.password && (
+                    {t(errors.password && (
                       <p className="field-error">
-                        {errors.password}
+                        {t(errors.password)}
                       </p>
-                    )}
+                    ))}
 
                     <div className="password-strength">
                       <div className="strength-info">
-                        <span>
-                          Độ mạnh:{" "}
+                        <span> {t("Độ mạnh:")}{t(" ")}
                           {
-                            passwordStrength.text
+                            t(passwordStrength.text)
                           }
                         </span>
                       </div>
@@ -608,9 +590,7 @@ const handleSubmit = async (e) => {
 
                   {/* CONFIRM PASSWORD */}
                   <div className="form-field">
-                    <label htmlFor="confirmPassword">
-                      Xác nhận lại mật khẩu
-                      <span>*</span>
+                    <label htmlFor="confirmPassword"> {t("Xác nhận lại mật khẩu")} <span>*</span>
                     </label>
 
                     <div
@@ -646,41 +626,38 @@ const handleSubmit = async (e) => {
                           )
                         }
                         aria-label={
-                          showConfirmPassword
+                          t(showConfirmPassword
                             ? "Ẩn mật khẩu"
-                            : "Hiện mật khẩu"
+                            : "Hiện mật khẩu")
                         }
                       >
-                        {showConfirmPassword ? (
+                        {t(showConfirmPassword ? (
                           <EyeOff size={20} />
                         ) : (
                           <Eye size={20} />
-                        )}
+                        ))}
                       </button>
                     </div>
 
-                    {errors.confirmPassword && (
+                    {t(errors.confirmPassword && (
                       <p className="field-error">
                         {
-                          errors.confirmPassword
+                          t(errors.confirmPassword)
                         }
                       </p>
-                    )}
+                    ))}
 
-                    <p className="field-description">
-                      Nhập lại chính xác chuỗi
-                      mật khẩu vừa tạo
-                    </p>
+                    <p className="field-description"> {t("Nhập lại chính xác chuỗi mật khẩu vừa tạo")} </p>
                   </div>
                 </div>
               </div>
 
               {/* GENERAL API ERROR */}
-              {errors.general && (
+              {t(errors.general && (
                 <div className="form-message error">
-                  {errors.general}
+                  {t(errors.general)}
                 </div>
-              )}
+              ))}
 
               {/* TERMS */}
               <div className="terms-wrapper">
@@ -701,47 +678,39 @@ const handleSubmit = async (e) => {
                         : ""
                     }`}
                   >
-                    {form.termsAccepted && (
+                    {t(form.termsAccepted && (
                       <Check size={14} />
-                    )}
+                    ))}
                   </span>
 
-                  <span className="terms-text">
-                    Tôi đồng ý với{" "}
+                  <span className="terms-text"> {t("Tôi đồng ý với")}{t(" ")}
                     <button
                       type="button"
                       onClick={(e) =>
                         e.preventDefault()
                       }
-                    >
-                      Điều khoản Dịch vụ
-                    </button>{" "}
-                    và{" "}
+                    > {t("Điều khoản Dịch vụ")} </button>{t(" ")} {t("và")}{t(" ")}
                     <button
                       type="button"
                       onClick={(e) =>
                         e.preventDefault()
                       }
-                    >
-                      Chính sách Bảo mật
-                    </button>{" "}
-                    Vé của FYCE.
-                  </span>
+                    > {t("Chính sách Bảo mật")} </button>{t(" ")} {t("Vé của FYCE.")} </span>
                 </label>
 
-                {errors.termsAccepted && (
+                {t(errors.termsAccepted && (
                   <p className="field-error terms-error">
-                    {errors.termsAccepted}
+                    {t(errors.termsAccepted)}
                   </p>
-                )}
+                ))}
               </div>
 
               {/* SUCCESS */}
-              {success && (
+              {t(success && (
                 <div className="form-message success">
-                  {success}
+                  {t(success)}
                 </div>
-              )}
+              ))}
 
               {/* SUBMIT */}
               <button
@@ -752,28 +721,24 @@ const handleSubmit = async (e) => {
                 <Ticket size={19} />
 
                 <span>
-                  {loading
+                  {t(loading
                     ? "Đang xử lý..."
                     : isResumingRegistration
                     ? "Cập nhật thông tin & Nhận mã mới"
-                    : "Hoàn tất Đăng ký & Nhận mã kích hoạt"}
+                    : "Hoàn tất Đăng ký & Nhận mã kích hoạt")}
                 </span>
               </button>
 
               {/* LOGIN */}
               <div className="login-link-wrapper">
-                <span>
-                  Đã có tài khoản?
-                </span>
+                <span> {t("Đã có tài khoản?")} </span>
 
                 <button
                   type="button"
                   onClick={() =>
                     navigate("/login")
                   }
-                >
-                  Đăng nhập ngay
-                  <ArrowRight size={17} />
+                > {t("Đăng nhập ngay")} <ArrowRight size={17} />
                 </button>
               </div>
 
@@ -781,11 +746,7 @@ const handleSubmit = async (e) => {
               <div className="otp-info">
                 <ShieldCheck size={17} />
 
-                <span>
-                  Mã kích hoạt điện tử (OTP) sẽ
-                  được gửi tới Email của bạn
-                  trong vòng 30 giây.
-                </span>
+                <span> {t("Mã kích hoạt điện tử (OTP) sẽ được gửi tới Email của bạn trong vòng 30 giây.")} </span>
               </div>
             </form>
           </section>

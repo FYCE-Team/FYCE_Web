@@ -107,3 +107,18 @@ export const verifyTicketQrPayload = (
         qrVersion: String(payload.ver)
     };
 };
+
+// Separate signed type/audience: a booking pass cannot be mistaken for one seat.
+export const createBookingQrPayload = (booking, issuedAt = null) => `FYCEB1:${jwt.sign({
+    typ: "fyce-booking", bid: String(booking._id),
+    ...(issuedAt ? { iat: Math.floor(new Date(issuedAt).getTime() / 1000) } : {})
+}, getTicketQrSecret(), { algorithm: "HS256", issuer: "fyce-api", audience: "fyce-booking-checkin", expiresIn: process.env.TICKET_QR_EXPIRES || "365d" })}`;
+export const verifyBookingQrPayload = raw => {
+    const value=String(raw || "").trim();
+    if(!value.startsWith("FYCEB1:")) throw new Error("TICKET_QR_INVALID");
+    try {
+        const payload=jwt.verify(value.slice(7),getTicketQrSecret(),{algorithms:["HS256"],issuer:"fyce-api",audience:"fyce-booking-checkin"});
+        if(payload.typ!=="fyce-booking" || !/^[a-f\d]{24}$/i.test(payload.bid))throw new Error("TICKET_QR_INVALID");
+        return payload.bid;
+    }catch(error){throw new Error(error.name==="TokenExpiredError"?"TICKET_QR_EXPIRED":"TICKET_QR_INVALID");}
+};

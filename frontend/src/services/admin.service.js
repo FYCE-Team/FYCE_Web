@@ -6,7 +6,7 @@ export const mediaUrl = (value) =>
 export function useAdminApi() {
   const { accessToken, refreshSession } = useAuth();
   return useCallback(
-    async (path, { method = "GET", body, signal } = {}) => {
+    async (path, { method = "GET", body, signal, download = false } = {}) => {
       const send = (token) =>
         fetch(`${base}${path}`, {
           method,
@@ -28,6 +28,7 @@ export function useAdminApi() {
           throw new Error("Phiên đăng nhập đã hết hạn.");
         response = await send(session.accessToken);
       }
+      if(download && response.ok)return response.blob();
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success)
         throw new Error(result.message || "Không thể xử lý yêu cầu.");

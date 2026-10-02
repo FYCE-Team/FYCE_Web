@@ -1,16 +1,16 @@
 {
-  "updatedAt": "2026-10-01",
+  "updatedAt": "2026-10-02",
   "scope": "FYCEweb repository only",
   "acceptance": {
-    "completed": 8,
+    "completed": 9,
     "total": 10,
-    "percent": 80
+    "percent": 90
   },
-  "status": "local_checks_passed_pending_new_ui_and_production_acceptance",
+  "status": "qa_passed_pending_release_and_external_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 65,
-    "integrationPassed": 65,
+    "integrationWritten": 69,
+    "integrationPassed": 69,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,
@@ -20,13 +20,12 @@
       "includesDevDependencies": true
     },
     "backendSyntax": "passed (94 files)",
-    "gitDiffCheck": "passed"
+    "gitDiffCheck": "passed",
+    "frontendUnitPassed": 8
   },
   "blockedChecks": [
-    "Render dashboard login pending; underlying historic 502 deployment log not yet inspected",
-    "New deployment end-to-end payment and inbox delivery acceptance pending",
-    "Google OAuth/mobile/physical camera acceptance pending",
-    "2026-10-01 new dashboard/modal visual check: browser request-header policy failed twice"
+    "Production release verification pending push",
+    "Physical camera/Google OAuth/SePay new payment/inbox acceptance pending"
   ],
   "knownLimits": [
     "External provider and deployed payment acceptance still pending",
@@ -46,7 +45,7 @@
     "Docs/DEPLOYMENT.md"
   ],
   "existingUntrackedData": "fyce_backup/ untouched and excluded; only the two missing public GridFS images were selectively read/restored, never used as fixtures",
-  "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180. QA processes stopped after tests; no production database/provider used.",
+  "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180; no production database/provider used.",
   "runtime": {
     "productionFrontend": "https://fyce-web.vercel.app",
     "productionBackend": "https://fyce-web.onrender.com",
@@ -76,5 +75,12 @@
       "production_otp_inbox_google_camera_and_new_payment_acceptance",
       "new_dashboard_modal_visual_acceptance_browser_tool_unavailable"
     ]
-  }
+  },
+  "currentFeatures": [
+    "user vi/en; admin vi",
+    "admin filtered/selected XLSX CSV",
+    "one signed booking QR and email attachment; transactional group check-in",
+    "persistent camera with duplicate-frame suppression",
+    "admin seat colors by inventory status"
+  ]
 }

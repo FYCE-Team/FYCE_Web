@@ -55,3 +55,11 @@ export const bulkExecute = respond(req => trash.executeBulk(req.body || {}, req.
 export const trashList = respond(req => trash.listTrash(req.params.kind, req.query));
 export const reorderGallery = respond(req => content.reorderGallery(req.body || {}, req.user.userId));
 export const detail = respond(req => service.getAdminDetail(req.params.kind, req.params.id));
+
+export const exportRecords = async(req,res,next)=>{
+  try {
+    const {createAdminExport}=await import("../services/adminExport.service.js");
+    const file=await createAdminExport(req.params.kind,req.query);
+    res.set("Content-Type",file.type).set("Content-Disposition",`attachment; filename="${file.filename}"`).send(file.buffer);
+  }catch(error){next(error);}
+};

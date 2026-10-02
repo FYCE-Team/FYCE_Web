@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     Navigate,
     Outlet,
@@ -9,6 +10,8 @@ import {
 } from "../../../context/AuthContext.jsx";
 
 const ProtectedRoute = () => {
+    const { t } = useLanguage();
+
     const {
         sessionError,
         refreshSession,
@@ -20,13 +23,11 @@ const ProtectedRoute = () => {
     const location =
         useLocation();
 
-    if (sessionError) return <div role="alert"><p>{sessionError}</p><button onClick={() => refreshSession()}>Thử khôi phục phiên</button></div>;
+    if (sessionError) return <div role="alert"><p>{t(sessionError)}</p><button onClick={() => refreshSession()}>{t("Thử khôi phục phiên")}</button></div>;
 
     if (loading) {
         return (
-            <div>
-                Đang kiểm tra đăng nhập...
-            </div>
+            <div> {t("Đang kiểm tra đăng nhập...")} </div>
         );
     }
 

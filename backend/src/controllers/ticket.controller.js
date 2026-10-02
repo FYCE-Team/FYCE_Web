@@ -1,3 +1,4 @@
+import { getBookingPass } from "../services/bookingPass.service.js";
 import {
     checkInTicketForAdmin,
     getTicketsForBooking,
@@ -104,7 +105,7 @@ export const getBookingTickets =
                 await getTicketsForBooking(
                     req.params.bookingCode,
                     req.user.userId,
-                    req.body?.eventId
+                    req.query.pass !== "booking"
                 );
 
             res.set(
@@ -118,6 +119,7 @@ export const getBookingTickets =
                     "Lấy vé đã phát hành thành công",
                 data: {
                     tickets,
+                    bookingPass: await getBookingPass(req.params.bookingCode,req.user.userId),
                     count:
                         tickets.length
                 }

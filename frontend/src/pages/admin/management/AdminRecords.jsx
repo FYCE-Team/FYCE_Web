@@ -1,3 +1,4 @@
+import ExportRecords from "./ExportRecords.jsx";
 import AdminModal from "./AdminModal.jsx";
 import AdminRecordDetails from "./AdminRecordDetails.jsx";
 import { useRecordSelection } from "./useRecordSelection.js";
@@ -206,6 +207,7 @@ export default function AdminRecords({ kind }) {
             Quét vé check-in
           </Link>
         )}
+        {kind !== "users" && <ExportRecords kind={kind} filters={Object.fromEntries(params)} ids={selection.ids}/> }
         <BulkAction kind={kind} filters={{...Object.fromEntries(params), ids:selection.ids}} disabled={!selection.ids.length || busy} label={`Xóa đã chọn (${selection.ids.length})`} onDone={() => setRevision(x => x + 1)} />
         <BulkAction kind={kind} filters={Object.fromEntries(params)} onDone={() => setRevision(x => x + 1)} />
       </PageTitle>

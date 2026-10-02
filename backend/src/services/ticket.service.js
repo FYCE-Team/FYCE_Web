@@ -1,3 +1,4 @@
+import { isBookingPass, verifyBookingPass, checkInBookingPass } from "./bookingPass.service.js";
 import mongoose from "mongoose";
 import { randomBytes } from "node:crypto";
 
@@ -48,7 +49,7 @@ const normalizeBookingCode = (
 };
 
 const toUserTicketDto = (
-    ticket
+    ticket, includeIndividualQr = true
 ) => ({
     id: String(ticket._id),
     ticketCode: ticket.ticketCode,
@@ -73,7 +74,7 @@ const toUserTicketDto = (
     checkedInAt:
         ticket.checkedInAt || null,
     qrPayload:
-        ticket.status === "valid"
+        includeIndividualQr && ticket.status === "valid"
             ? createTicketQrPayload(
                   ticket
               )
@@ -212,7 +213,8 @@ export const ensureTicketsForBooking =
 export const getTicketsForBooking =
     async (
         bookingCode,
-        userId
+        userId,
+        includeIndividualQr = true
     ) => {
         const normalizedCode =
             normalizeBookingCode(
@@ -252,9 +254,7 @@ export const getTicketsForBooking =
                 booking
             );
 
-        return tickets.map(
-            toUserTicketDto
-        );
+        return tickets.map(ticket => toUserTicketDto(ticket, includeIndividualQr));
     };
 
 const loadTicketFromQr = async (
@@ -302,6 +302,7 @@ const assertAdmission = async (ticket, eventId) => {
 
 export const verifyTicketForAdmin =
     async (qrPayload, eventId) => {
+        if(isBookingPass(qrPayload))return verifyBookingPass(qrPayload,eventId);
         const ticket =
             await loadTicketFromQr(
                 qrPayload
@@ -357,6 +358,7 @@ export const checkInTicketForAdmin =
         eventId
     ) => {
         const normalizedAdminId = ensureObjectId(adminUserId, "USER_ID");
+        if(isBookingPass(qrPayload))return checkInBookingPass(qrPayload,normalizedAdminId,eventId);
         const currentTicket = await loadTicketFromQr(qrPayload);
         const normalizedTicketId = currentTicket._id;
         const qrVersion = currentTicket.qrVersion;

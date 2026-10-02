@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     useCallback,
     useEffect,
@@ -20,17 +21,17 @@ import "./TicketPages.css";
 
 import { API_BASE_URL } from "../../config/api.js";
 
-const formatPrice = (value) =>
-    `${new Intl.NumberFormat("vi-VN").format(
+const formatPrice = (value, locale = "vi-VN") =>
+    `${new Intl.NumberFormat(locale).format(
         Number(value) || 0
     )}đ`;
 
-const formatDateTime = (value) => {
+const formatDateTime = (value, locale = "vi-VN") => {
     if (!value) {
         return "Đang cập nhật";
     }
 
-    return new Intl.DateTimeFormat("vi-VN", {
+    return new Intl.DateTimeFormat(locale, {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -65,6 +66,8 @@ const getVisibleBookingState = (booking) => {
 };
 
 const MyTicketsPage = () => {
+    const { t, locale } = useLanguage();
+
     const {
         accessToken,
         refreshSession
@@ -166,12 +169,8 @@ const MyTicketsPage = () => {
             <section className="ticket-state">
                 <div className="ticket-state-card">
                     <div className="ticket-spinner" />
-                    <h2>
-                        Đang tải vé của bạn
-                    </h2>
-                    <p>
-                        FYCE đang đồng bộ trạng thái các đơn đặt vé.
-                    </p>
+                    <h2> {t("Đang tải vé của bạn")} </h2>
+                    <p> {t("FYCE đang đồng bộ trạng thái các đơn đặt vé.")} </p>
                 </div>
             </section>
         );
@@ -185,17 +184,13 @@ const MyTicketsPage = () => {
                         size={38}
                         strokeWidth={1.7}
                     />
-                    <h2>
-                        Không thể tải vé
-                    </h2>
-                    <p>{error}</p>
+                    <h2> {t("Không thể tải vé")} </h2>
+                    <p>{t(error)}</p>
                     <button
                         type="button"
                         className="ticket-action ticket-action--primary"
                         onClick={loadBookings}
-                    >
-                        Thử lại
-                    </button>
+                    > {t("Thử lại")} </button>
                 </div>
             </section>
         );
@@ -212,30 +207,25 @@ const MyTicketsPage = () => {
                             />
                             FYCE WALLET
                         </span>
-                        <h1>Vé của tôi</h1>
-                        <p>
-                            Quản lý vé, đơn đang chờ thanh toán và lịch sử hoàn vé.
-                        </p>
+                        <h1>{t("Vé của tôi")}</h1>
+                        <p> {t("Quản lý vé, đơn đang chờ thanh toán và lịch sử hoàn vé.")} </p>
                     </div>
 
                     <Link
                         className="ticket-back-link"
                         to="/"
-                    >
-                        Khám phá sự kiện
-                    </Link>
+                    > {t("Khám phá sự kiện")} </Link>
                 </header>
 
-                {hiddenInactiveCount > 0 && (
+                {t(hiddenInactiveCount > 0 && (
                     <div className="ticket-alert ticket-alert--info">
                         <Ticket size={18} />
                         <span>
-                            {hiddenInactiveCount} đơn đã hủy hoặc hết hạn không được hiển thị ở “Vé của tôi” vì các ghế đó đã được nhả lại hệ thống.
-                        </span>
+                            {t(hiddenInactiveCount)} {t("đơn đã hủy hoặc hết hạn không được hiển thị ở “Vé của tôi” vì các ghế đó đã được nhả lại hệ thống.")} </span>
                     </div>
-                )}
+                ))}
 
-                {activeBookings.length ===
+                {t(activeBookings.length ===
                 0 ? (
                     <section className="ticket-card ticket-empty">
                         <div className="ticket-empty-icon">
@@ -243,22 +233,16 @@ const MyTicketsPage = () => {
                                 size={30}
                             />
                         </div>
-                        <h2>
-                            Bạn chưa có vé nào
-                        </h2>
-                        <p>
-                            Khi bạn thanh toán thành công hoặc đang có một đơn còn hiệu lực, vé sẽ xuất hiện tại đây.
-                        </p>
+                        <h2> {t("Bạn chưa có vé nào")} </h2>
+                        <p> {t("Khi bạn thanh toán thành công hoặc đang có một đơn còn hiệu lực, vé sẽ xuất hiện tại đây.")} </p>
                         <Link
                             className="ticket-action ticket-action--primary"
                             to="/"
-                        >
-                            Khám phá sự kiện
-                        </Link>
+                        > {t("Khám phá sự kiện")} </Link>
                     </section>
                 ) : (
                     <section className="ticket-list">
-                        {activeBookings.map(
+                        {t(activeBookings.map(
                             (booking) => {
                                 const state =
                                     getVisibleBookingState(
@@ -278,9 +262,9 @@ const MyTicketsPage = () => {
                                             <div className="ticket-list-title-row">
                                                 <h2>
                                                     {
-                                                        booking
+                                                        t(booking
                                                             .eventSnapshot
-                                                            .title
+                                                            .title)
                                                     }
                                                 </h2>
                                                 <span
@@ -290,7 +274,7 @@ const MyTicketsPage = () => {
                                                         size={14}
                                                     />
                                                     {
-                                                        state.label
+                                                        t(state.label)
                                                     }
                                                 </span>
                                             </div>
@@ -300,39 +284,36 @@ const MyTicketsPage = () => {
                                                     <CalendarDays
                                                         size={14}
                                                     />
-                                                    {formatDateTime(
+                                                    {t(formatDateTime(
                                                         booking
                                                             .eventSnapshot
-                                                            .startAt
-                                                    )}
+                                                            .startAt, locale
+                                                    ))}
                                                 </span>
                                                 <span>
                                                     <MapPin
                                                         size={14}
                                                     />
-                                                    {booking
+                                                    {t(booking
                                                         .eventSnapshot
                                                         .venue ||
-                                                        "Đang cập nhật"}
+                                                        "Đang cập nhật")}
                                                 </span>
-                                                <span>
-                                                    Mã đơn: {booking.bookingCode}
+                                                <span> {t("Mã đơn:")} {t(booking.bookingCode)}
                                                 </span>
                                             </div>
 
                                             <div className="ticket-list-bottom">
                                                 <span className="ticket-list-price">
-                                                    {formatPrice(
-                                                        booking.totalAmount
-                                                    )}
+                                                    {t(formatPrice(
+                                                        booking.totalAmount, locale
+                                                    ))}
                                                 </span>
                                                 <span className="ticket-list-seat-count">
-                                                    {booking
+                                                    {t(booking
                                                         .items
                                                         ?.length ||
-                                                        0}{" "}
-                                                    ghế
-                                                </span>
+                                                        0)}{t(" ")} {t("ghế")} </span>
                                             </div>
                                         </div>
 
@@ -340,14 +321,14 @@ const MyTicketsPage = () => {
                                             className="ticket-action ticket-action--primary"
                                             to={`/bookings/${booking.bookingCode}`}
                                         >
-                                            {state.actionLabel}
+                                            {t(state.actionLabel)}
                                         </Link>
                                     </article>
                                 );
                             }
-                        )}
+                        ))}
                     </section>
-                )}
+                ))}
             </div>
         </main>
     );

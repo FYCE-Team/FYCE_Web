@@ -1,3 +1,5 @@
+import {useLanguage} from "../../i18n/useLanguage.js";
+
 import { useEffect, useRef } from "react";
 import { useGoogleOAuth } from "@react-oauth/google";
 
@@ -5,6 +7,9 @@ import { useGoogleOAuth } from "@react-oauth/google";
 let initializedClient = null;
 const listeners = new Map();
 export default function GoogleSignInButton({ onSuccess, onError, width = 360, shape = "pill", theme = "outline", size = "large" }) {
+
+
+    const {language}=useLanguage();
     const root = useRef(null);
     const callbacks = useRef({ onSuccess, onError });
     const { clientId, scriptLoadedSuccessfully } = useGoogleOAuth();
@@ -23,8 +28,8 @@ export default function GoogleSignInButton({ onSuccess, onError, width = 360, sh
             } });
             initializedClient = clientId;
         }
-        gis.renderButton(element, { type: "standard", theme, size, shape, width });
+        gis.renderButton(element, { type: "standard", locale: language, theme, size, shape, width });
         return () => { listeners.delete(element); element.replaceChildren(); };
-    }, [clientId, scriptLoadedSuccessfully, theme, size, shape, width]);
+    }, [clientId, scriptLoadedSuccessfully, theme, size, shape, width, language]);
     return <div ref={root} />;
 }

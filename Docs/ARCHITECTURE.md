@@ -108,3 +108,13 @@ Các service CMS cũ vẫn cho phép gọi không có version token; giao diện
 - Purge sự kiện độc lập dọn seats/config/history của sự kiện, bỏ Hero.featuredEvent; giữ venue/layout dùng chung. CMS purge không xóa GridFS vì ảnh có thể được dùng nhiều nơi. Không có migration hoặc thao tác purge production tự động.
 - `GET /api/admin/details/:kind/:id` (users/bookings/tickets) yêu cầu admin và no-store. DTO không có password/authVersion/hold secret/qrVersion. Giao diện hiển thị người đặt vé, không khẳng định đó là người đứng tên tài khoản chuyển tiền. Modal native dialog hỗ trợ focus trap/Escape và backdrop blur.
 - Quên mật khẩu cũng tiêu thụ reset token và cập nhật password/authVersion, thu hồi refresh/profile OTP trong cùng transaction.
+
+## Bổ sung 02/10/2026: locale, xuất dữ liệu, QR nhóm và scanner
+
+`frontend/src/i18n` là context/catalog nội bộ, chỉ áp dụng giao diện user. `/admin` luôn `vi`; không sửa locale preference của user khi vào admin. Nội dung CMS và tên sự kiện không tự dịch vì chưa có trường dịch đã duyệt.
+
+`GET /api/admin/export/:kind` nhận tickets/bookings/payments, format=xlsx|csv, bộ lọc danh sách và ids tùy chọn (tối đa 1.000). Phân quyền admin/no-store; rate limit riêng 10/phút; tối đa 10.000 dòng, quá giới hạn phải thu hẹp lọc. Cột thanh toán thể hiện trạng thái và thực thu sau hoàn; xuất không thay đổi dữ liệu.
+
+`GET /api/tickets/booking/:bookingCode?pass=booking` vẫn kiểm tra chủ đơn; trả thêm bookingPass, bỏ tạo QR từng ghế khi có pass=booking. Client cũ mặc định vẫn nhận QR từng Ticket. Token FYCEB1 ký HS256 với audience riêng, chỉ chứa ID đơn. Backend đối chiếu live Booking/Ticket trước verify/check-in. Không đổi schema, không gộp/xóa Ticket và không tác động thanh toán. Email mới có một attachment QR cho toàn đơn. Check-in nhóm dùng transaction snapshot/majority; refund và check-in ghi cùng Ticket nên chỉ một nghiệp vụ thắng cạnh tranh.
+
+`qrCamera.js` quản lý stream độc lập với API vé; pause/resume chỉ điều khiển detector. Stop/unmount giải phóng media, generation chặn stream/detector đến muộn. QR đang trong khung không gọi API lặp; sau ba khung trống được nhận lại và server vẫn kiểm tra chống vào cổng hai lần. UI luôn cần xác nhận check-in.

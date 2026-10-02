@@ -1,9 +1,12 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout.jsx";
 import { forgotPassword } from "../../services/auth.service.js";
 import "../../components/auth/ForgotPassword.css";
 function ForgotPasswordForm() {
+    const { t } = useLanguage();
+
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -47,13 +50,9 @@ function ForgotPasswordForm() {
     <AuthLayout>
       <div className="auth-form-content">
         <div className="auth-form-heading">
-          <h1>Khôi phục Mật khẩu</h1>
+          <h1>{t("Khôi phục Mật khẩu")}</h1>
 
-          <p>
-            Đừng lo lắng! Hãy nhập email đã đăng ký
-            tài khoản FYCE, chúng tôi sẽ gửi mã xác
-            thực khôi phục ngay lập tức.
-          </p>
+          <p> {t("Đừng lo lắng! Hãy nhập email đã đăng ký tài khoản FYCE, chúng tôi sẽ gửi mã xác thực khôi phục ngay lập tức.")} </p>
         </div>
 
         <form
@@ -61,9 +60,7 @@ function ForgotPasswordForm() {
           className="auth-form"
         >
           <div className="auth-field">
-            <label htmlFor="email">
-              Địa chỉ Email đã đăng ký
-              <span>*</span>
+            <label htmlFor="email"> {t("Địa chỉ Email đã đăng ký")} <span>*</span>
             </label>
 
             <div className="auth-input-wrapper">
@@ -87,42 +84,37 @@ function ForgotPasswordForm() {
           <div className="otp-security-note">
             <span>🛡</span>
 
-            <span>
-              Mã xác minh an toàn 6 số sẽ có hiệu lực
-              trong vòng 5 phút.
-            </span>
+            <span> {t("Mã xác minh an toàn 6 số sẽ có hiệu lực trong vòng 5 phút.")} </span>
           </div>
 
-          {error && (
+          {t(error && (
             <div className="auth-error">
-              {error}
+              {t(error)}
             </div>
-          )}
+          ))}
 
           <button
             type="submit"
             className="auth-submit-button"
             disabled={loading}
           >
-            {loading
+            {t(loading
               ? "Đang gửi..."
-              : "Gửi Mã Xác Thực OTP"}
+              : "Gửi Mã Xác Thực OTP")}
 
-            {!loading && <span>➤</span>}
+            {t(!loading && <span>➤</span>)}
           </button>
         </form>
 
         <div className="auth-divider">
-          <span>HOẶC</span>
+          <span>{t("HOẶC")}</span>
         </div>
 
         <button
           type="button"
           className="auth-back-link"
           onClick={() => navigate("/login")}
-        >
-          ← Quay lại Đăng nhập
-        </button>
+        > {t("← Quay lại Đăng nhập")} </button>
       </div>
     </AuthLayout>
     </div>

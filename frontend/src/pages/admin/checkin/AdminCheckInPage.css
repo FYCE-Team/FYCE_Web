@@ -468,3 +468,5 @@
         flex-direction: column;
     }
 }
+
+.admin-checkin-group-summary{padding:16px;border-radius:12px;background:#edf5fc;border:1px solid #bfd8e9;margin:16px 0;line-height:1.6}.admin-checkin-details strong{overflow-wrap:anywhere;max-height:220px;overflow:auto}

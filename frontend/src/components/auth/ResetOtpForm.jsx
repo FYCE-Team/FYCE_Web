@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout.jsx";
@@ -7,6 +8,8 @@ import {
 } from "../../services/auth.service.js";
 import "./ResetOtp.css";
 function ResetOtpForm() {
+    const { t } = useLanguage();
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -132,14 +135,12 @@ function ResetOtpForm() {
     <AuthLayout>
       <div className="auth-form-content">
         <div className="auth-form-heading">
-          <h1>Xác minh tài khoản</h1>
+          <h1>{t("Xác minh tài khoản")}</h1>
 
-          <p>
-            Mã OTP đã được gửi đến
-          </p>
+          <p> {t("Mã OTP đã được gửi đến")} </p>
 
           <strong className="reset-email">
-            {maskedEmail}
+            {t(maskedEmail)}
           </strong>
         </div>
 
@@ -148,9 +149,7 @@ function ResetOtpForm() {
           className="auth-form"
         >
           <div className="otp-input-group">
-            <label htmlFor="otp">
-              Mã xác thực OTP
-            </label>
+            <label htmlFor="otp"> {t("Mã xác thực OTP")} </label>
 
             <input
               id="otp"
@@ -163,32 +162,30 @@ function ResetOtpForm() {
               autoComplete="one-time-code"
             />
 
-            <p>
-              Mã OTP có hiệu lực trong 5 phút.
-            </p>
+            <p> {t("Mã OTP có hiệu lực trong 5 phút.")} </p>
           </div>
 
-          {error && (
+          {t(error && (
             <div className="auth-error">
-              {error}
+              {t(error)}
             </div>
-          )}
+          ))}
 
           <button
             type="submit"
             className="auth-submit-button"
             disabled={loading}
           >
-            {loading
+            {t(loading
               ? "Đang xác minh..."
-              : "Xác nhận OTP"}
+              : "Xác nhận OTP")}
 
-            {!loading && <span>➤</span>}
+            {t(!loading && <span>➤</span>)}
           </button>
         </form>
 
         <div className="resend-otp-section">
-          <span>Chưa nhận được mã?</span>
+          <span>{t("Chưa nhận được mã?")}</span>
 
           <button
             type="button"
@@ -197,11 +194,11 @@ function ResetOtpForm() {
               countdown > 0 || resending
             }
           >
-            {resending
+            {t(resending
               ? "Đang gửi..."
               : countdown > 0
               ? `Gửi lại sau ${countdown}s`
-              : "Gửi lại mã OTP"}
+              : "Gửi lại mã OTP")}
           </button>
         </div>
 
@@ -211,9 +208,7 @@ function ResetOtpForm() {
           onClick={() =>
             navigate("/forgot-password")
           }
-        >
-          ← Quay lại
-        </button>
+        > {t("← Quay lại")} </button>
       </div>
     </AuthLayout>
     </div>

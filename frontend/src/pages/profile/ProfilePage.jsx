@@ -1,9 +1,12 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { useAdminApi, mediaUrl } from "../../services/admin.service.js";
 import "./ProfilePage.css";
 export default function ProfilePage() {
+    const { t } = useLanguage();
+
   const { user, updateProfile, refreshSession, logout } = useAuth();
   const api = useAdminApi(),
     navigate = useNavigate();
@@ -43,20 +46,18 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <aside className="profile-summary">
-        <span className="profile-eyebrow">TÀI KHOẢN FYCE</span>
+        <span className="profile-eyebrow">{t("TÀI KHOẢN FYCE")}</span>
         <div className="profile-avatar">
-          {avatar ? (
-            <img src={mediaUrl(avatar)} alt="Ảnh đại diện" />
+          {t(avatar ? (
+            <img src={mediaUrl(avatar)} alt={t("Ảnh đại diện")} />
           ) : (
-            <span>{(user?.fullName || "F").slice(0, 1).toUpperCase()}</span>
-          )}
+            <span>{t((user?.fullName || "F").slice(0, 1).toUpperCase())}</span>
+          ))}
         </div>
-        <h1>{user?.fullName}</h1>
-        <p>{user?.email}</p>
-        <label className="profile-upload">
-          Thay ảnh đại diện
-          <input
-            aria-label="Chọn ảnh đại diện"
+        <h1>{t(user?.fullName)}</h1>
+        <p>{t(user?.email)}</p>
+        <label className="profile-upload"> {t("Thay ảnh đại diện")} <input
+            aria-label={t("Chọn ảnh đại diện")}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             disabled={busy}
@@ -66,22 +67,22 @@ export default function ProfilePage() {
             }}
           />
         </label>
-        <small>JPG, PNG hoặc WebP · tối đa 5MB</small>
+        <small>{t("JPG, PNG hoặc WebP · tối đa 5MB")}</small>
       </aside>
       <div className="profile-panels">
-        {error && (
+        {t(error && (
           <p className="profile-feedback profile-error" role="alert">
-            {error}
+            {t(error)}
           </p>
-        )}
-        {message && (
+        ))}
+        {t(message && (
           <p className="profile-feedback" role="status">
-            {message}
+            {t(message)}
           </p>
-        )}
+        ))}
         <section className="profile-panel">
-          <h2>Thông tin cá nhân</h2>
-          <p>Cập nhật thông tin để FYCE có thể liên hệ với bạn.</p>
+          <h2>{t("Thông tin cá nhân")}</h2>
+          <p>{t("Cập nhật thông tin để FYCE có thể liên hệ với bạn.")}</p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -92,9 +93,7 @@ export default function ProfilePage() {
             }}
           >
             <fieldset disabled={busy}>
-              <label>
-                Họ và tên
-                <input
+              <label> {t("Họ và tên")} <input
                   required
                   maxLength={150}
                   autoComplete="name"
@@ -102,9 +101,7 @@ export default function ProfilePage() {
                   onChange={(e) => setFullName(e.target.value)}
                 />
               </label>
-              <label>
-                Số điện thoại
-                <input
+              <label> {t("Số điện thoại")} <input
                   type="tel"
                   autoComplete="tel"
                   value={phone}
@@ -116,16 +113,13 @@ export default function ProfilePage() {
                 Email
                 <input type="email" value={user?.email || ""} readOnly />
               </label>
-              <button type="submit">Lưu thông tin</button>
+              <button type="submit">{t("Lưu thông tin")}</button>
             </fieldset>
           </form>
         </section>
         <section className="profile-panel">
-          <h2>Mật khẩu & bảo mật</h2>
-          <p>
-            Mã xác minh được gửi đến email tài khoản. Sau khi đổi mật khẩu, bạn
-            cần đăng nhập lại trên các thiết bị.
-          </p>
+          <h2>{t("Mật khẩu & bảo mật")}</h2>
+          <p> {t("Mã xác minh được gửi đến email tài khoản. Sau khi đổi mật khẩu, bạn cần đăng nhập lại trên các thiết bị.")} </p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -157,11 +151,9 @@ export default function ProfilePage() {
                   })
                 }
               >
-                {sent ? "Gửi lại mã xác minh" : "Gửi mã xác minh qua email"}
+                {t(sent ? "Gửi lại mã xác minh" : "Gửi mã xác minh qua email")}
               </button>
-              <label>
-                Mã xác minh
-                <input
+              <label> {t("Mã xác minh")} <input
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   pattern="[0-9]{6}"
@@ -171,9 +163,7 @@ export default function ProfilePage() {
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                 />
               </label>
-              <label>
-                Mật khẩu mới
-                <input
+              <label> {t("Mật khẩu mới")} <input
                   type="password"
                   autoComplete="new-password"
                   required
@@ -182,12 +172,8 @@ export default function ProfilePage() {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </label>
-              <small>
-                Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số; tối đa 72 byte.
-              </small>
-              <label>
-                Nhập lại mật khẩu
-                <input
+              <small> {t("Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số; tối đa 72 byte.")} </small>
+              <label> {t("Nhập lại mật khẩu")} <input
                   type="password"
                   autoComplete="new-password"
                   required
@@ -195,9 +181,7 @@ export default function ProfilePage() {
                   onChange={(e) => setRepeat(e.target.value)}
                 />
               </label>
-              <button type="submit" disabled={!sent}>
-                Đổi mật khẩu
-              </button>
+              <button type="submit" disabled={!sent}> {t("Đổi mật khẩu")} </button>
             </fieldset>
           </form>
         </section>

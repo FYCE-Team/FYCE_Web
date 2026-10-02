@@ -23,6 +23,7 @@ import {
     useAuth
 } from "../../../../context/AuthContext.jsx";
 import "./AdminCheckInPage.css";
+import { createQrCamera } from "./qrCamera.js";
 
 import { API_BASE_URL } from "../../../config/api.js";
 
@@ -54,9 +55,10 @@ const AdminCheckInPage = () => {
     const [events, setEvents] = useState([]);
 
     const videoRef = useRef(null);
-    const streamRef = useRef(null);
-    const intervalRef = useRef(null);
-    const detectBusyRef = useRef(false);
+    const cameraRef = useRef(null);
+    const verifyRef = useRef(null);
+    const requestBusyRef = useRef(false);
+    const [cameraStarting, setCameraStarting] = useState(false);
 
     const [cameraActive, setCameraActive] =
         useState(false);
@@ -188,38 +190,23 @@ const AdminCheckInPage = () => {
         return () => { active = false; };
     }, [authenticatedRequest]);
 
-    const stopCamera = useCallback(
-        () => {
-            if (intervalRef.current) {
-                window.clearInterval(
-                    intervalRef.current
-                );
-                intervalRef.current =
-                    null;
-            }
+    const stopCamera = useCallback(() => { cameraRef.current?.stop(); }, []);
 
-            if (streamRef.current) {
-                streamRef.current
-                    .getTracks()
-                    .forEach((track) =>
-                        track.stop()
-                    );
-                streamRef.current =
-                    null;
-            }
-
-            if (videoRef.current) {
-                videoRef.current.srcObject =
-                    null;
-            }
-
-            setCameraActive(false);
-        },
-        []
-    );
+    useEffect(() => {
+        const camera = createQrCamera({
+            getStream: () => navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false }),
+            getVideo: () => videoRef.current,
+            createDetector: () => new window.BarcodeDetector({ formats: ["qr_code"] }),
+            onCode: code => verifyRef.current?.(code),
+            onActive: setCameraActive
+        });
+        cameraRef.current = camera;
+        return () => { camera.stop(); cameraRef.current = null; };
+    }, []);
 
     const verifyQr = useCallback(
         async (rawValue) => {
+            if (requestBusyRef.current) return;
             const qrPayload = String(
                 rawValue || ""
             ).trim();
@@ -231,9 +218,11 @@ const AdminCheckInPage = () => {
             if (
                 !qrPayload.startsWith(
                     "FYCE1:"
-                ) && !/^TKT-[A-Z0-9-]{4,64}$/i.test(qrPayload)
+                ) && !qrPayload.startsWith("FYCEB1:") && !/^FYCE-\d{8}-[A-Z0-9]+$/i.test(qrPayload) && !/^TKT-[A-Z0-9-]{4,64}$/i.test(qrPayload)
             ) {
+                setCurrentQr("");
                 setVerification(null);
+                cameraRef.current?.resume();
                 setError(
                     "Nhập mã vé TKT-… hoặc nội dung QR FYCE hợp lệ."
                 );
@@ -243,7 +232,8 @@ const AdminCheckInPage = () => {
             try {
                 setLoading(true);
                 setError("");
-                stopCamera();
+                requestBusyRef.current = true;
+                cameraRef.current?.pause();
 
                 const data =
                     await authenticatedRequest(
@@ -258,143 +248,44 @@ const AdminCheckInPage = () => {
 
                 setCurrentQr(qrPayload);
                 setVerification(data);
+                if (!data.canCheckIn) cameraRef.current?.resume();
             } catch (err) {
                 setCurrentQr("");
                 setVerification(null);
+                cameraRef.current?.resume();
                 setError(
                     err.message ||
                         "Không thể xác thực vé"
                 );
             } finally {
+                requestBusyRef.current = false;
                 setLoading(false);
             }
         },
         [
             authenticatedRequest,
-            eventId,
-            stopCamera
+            eventId
         ]
     );
 
-    const startCamera = useCallback(
-        async () => {
-            setError("");
-            setCameraError("");
-            setVerification(null);
-            setCurrentQr("");
+    useEffect(() => { verifyRef.current = verifyQr; }, [verifyQr]);
 
-            if (
-                !("BarcodeDetector" in
-                    window)
-            ) {
-                setCameraError(
-                    "Trình duyệt này chưa hỗ trợ quét QR trực tiếp. Hãy dùng Chrome/Edge mới hoặc dán nội dung QR vào ô kiểm tra thủ công bên dưới."
-                );
-                return;
-            }
-
-            if (
-                !navigator.mediaDevices
-                    ?.getUserMedia
-            ) {
-                setCameraError(
-                    "Thiết bị không hỗ trợ truy cập camera."
-                );
-                return;
-            }
-
-            try {
-                stopCamera();
-
-                const stream =
-                    await navigator.mediaDevices.getUserMedia(
-                        {
-                            video: {
-                                facingMode: {
-                                    ideal:
-                                        "environment"
-                                }
-                            },
-                            audio: false
-                        }
-                    );
-
-                streamRef.current =
-                    stream;
-
-                if (videoRef.current) {
-                    videoRef.current.srcObject =
-                        stream;
-                    await videoRef.current.play();
-                }
-
-                const detector =
-                    new window.BarcodeDetector(
-                        {
-                            formats: [
-                                "qr_code"
-                            ]
-                        }
-                    );
-
-                setCameraActive(true);
-
-                intervalRef.current =
-                    window.setInterval(
-                        async () => {
-                            if (
-                                detectBusyRef.current ||
-                                !videoRef.current ||
-                                videoRef.current
-                                    .readyState < 2
-                            ) {
-                                return;
-                            }
-
-                            try {
-                                detectBusyRef.current =
-                                    true;
-                                const codes =
-                                    await detector.detect(
-                                        videoRef.current
-                                    );
-
-                                const rawValue =
-                                    codes?.[0]
-                                        ?.rawValue;
-
-                                if (rawValue) {
-                                    await verifyQr(
-                                        rawValue
-                                    );
-                                }
-                            } catch {
-                                // A single failed frame must not stop the scanner.
-                            } finally {
-                                detectBusyRef.current =
-                                    false;
-                            }
-                        },
-                        450
-                    );
-            } catch (err) {
-                stopCamera();
-                setCameraError(
-                    err?.name ===
-                    "NotAllowedError"
-                        ? "Bạn chưa cấp quyền camera cho trình duyệt."
-                        : "Không thể mở camera. Hãy kiểm tra quyền camera và thử lại."
-                );
-            }
-        },
-        [stopCamera, verifyQr]
-    );
-
-    useEffect(() => {
-        return () => {
-            stopCamera();
-        };
-    }, [stopCamera]);
+    const startCamera = async () => {
+        if (cameraActive || cameraStarting) return;
+        setCameraError("");
+        if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+            setCameraError("Trình duyệt này chưa hỗ trợ camera quét QR. Hãy dùng Chrome/Edge tương thích hoặc nhập mã vé bên dưới.");
+            return;
+        }
+        setCameraStarting(true);
+        try {
+            if (verification?.canCheckIn) cameraRef.current?.pause();
+            else cameraRef.current?.resume();
+            await cameraRef.current?.start();
+        } catch (err) {
+            setCameraError(err?.name === "NotAllowedError" ? "Bạn chưa cấp quyền camera cho trình duyệt." : "Không thể mở camera. Hãy kiểm tra quyền camera và thử lại.");
+        } finally { setCameraStarting(false); }
+    };
 
     const handleManualVerify =
         async (event) => {
@@ -403,11 +294,13 @@ const AdminCheckInPage = () => {
         };
 
     const handleCheckIn = async () => {
-        if (!currentQr) {
+        if (!currentQr || requestBusyRef.current) {
             return;
         }
 
         try {
+            requestBusyRef.current = true;
+            cameraRef.current?.pause();
             setLoading(true);
             setError("");
 
@@ -425,6 +318,7 @@ const AdminCheckInPage = () => {
                 );
 
             setVerification(data);
+            cameraRef.current?.resume();
         } catch (err) {
             setError(
                 err.message ||
@@ -435,6 +329,7 @@ const AdminCheckInPage = () => {
                 err.code ===
                 "TICKET_ALREADY_CHECKED_IN"
             ) {
+                cameraRef.current?.resume();
                 setVerification(
                     (current) => ({
                         ...(current || {}),
@@ -458,11 +353,13 @@ const AdminCheckInPage = () => {
                 );
             }
         } finally {
+            requestBusyRef.current = false;
             setLoading(false);
         }
     };
 
     const resetScanner = () => {
+        cameraRef.current?.resume();
         setVerification(null);
         setCurrentQr("");
         setManualValue("");
@@ -506,7 +403,7 @@ const AdminCheckInPage = () => {
                             Xác thực tại server
                         </strong>
                         <span>
-                            Biết mã TKT không đủ để vào cửa. Chỉ QR có chữ ký hợp lệ mới được chấp nhận.
+                            Chỉ nhân viên được phân quyền có thể xác thực QR hoặc mã vé. Trạng thái vé luôn được kiểm tra tại máy chủ.
                         </span>
                     </div>
                 </div>
@@ -514,7 +411,7 @@ const AdminCheckInPage = () => {
 
             <section className="admin-checkin-panel" style={{ marginBottom: 24 }}>
                 <label htmlFor="checkin-event">Sự kiện tại cổng check-in</label>
-                <select id="checkin-event" disabled={loading || cameraActive} value={eventId} onChange={event => { setEventId(event.target.value); setVerification(null); setCurrentQr(""); }} style={{ display: "block", padding: 12, marginTop: 10, maxWidth: "100%" }}>
+                <select id="checkin-event" disabled={loading || cameraActive || cameraStarting} value={eventId} onChange={event => { setEventId(event.target.value); setVerification(null); setCurrentQr(""); }} style={{ display: "block", padding: 12, marginTop: 10, maxWidth: "100%" }}>
                     <option value="">Kiểm tra tất cả sự kiện</option>
                     {events.map(event => <option key={event._id} value={event._id}>{event.title}</option>)}
                 </select>
@@ -562,7 +459,7 @@ const AdminCheckInPage = () => {
                             </div>
                         )}
 
-                        {cameraActive && (
+                        {(cameraActive || cameraStarting) && (
                             <div className="admin-scanner-target">
                                 <span />
                             </div>
@@ -587,17 +484,17 @@ const AdminCheckInPage = () => {
                             onClick={
                                 startCamera
                             }
-                            disabled={loading}
+                            disabled={loading || cameraActive || cameraStarting}
                         >
                             <Camera
                                 size={17}
                             />
                             {cameraActive
-                                ? "Đang quét..."
+                                ? "Camera đang mở"
                                 : "Bật camera"}
                         </button>
 
-                        {cameraActive && (
+                        {(cameraActive || cameraStarting) && (
                             <button
                                 type="button"
                                 className="admin-checkin-btn"
@@ -609,6 +506,8 @@ const AdminCheckInPage = () => {
                             </button>
                         )}
                     </div>
+
+                    {cameraActive && <p role="status">{verification?.canCheckIn ? "Camera vẫn mở. Xác nhận vé hoặc chọn quét vé khác để tiếp tục." : "Camera vẫn mở và sẵn sàng nhận mã tiếp theo. Đưa mã vừa quét ra khỏi khung hình."}</p>}
 
                     <form
                         className="admin-checkin-manual"
@@ -637,7 +536,7 @@ const AdminCheckInPage = () => {
                                             .value
                                     )
                                 }
-                                placeholder="TKT-… hoặc FYCE1:eyJ…"
+                                placeholder="Mã đơn FYCE-…, mã vé TKT-… hoặc QR"
                                 autoComplete="off"
                                 spellCheck="false"
                             />
@@ -730,6 +629,7 @@ const AdminCheckInPage = () => {
                                 </div>
                             </div>
 
+                            {verification?.group && <div className="admin-checkin-group-summary"><strong>{verification.admittedCount ? `Đã check-in ${verification.admittedCount} ghế` : `${verification.validCount} ghế sẽ được check-in cùng lúc`}</strong><p>{verification.checkedInCount} đã vào cổng · {verification.excludedCount} đã hủy/hoàn · Tổng {verification.totalCount} ghế</p><p>Chỉ xác nhận khi cả nhóm đã có mặt. Muốn đón riêng từng khách, nhập mã TKT của từng ghế.</p></div>}
                             <div className="admin-checkin-ticket-code">
                                 <span>
                                     Mã vé
@@ -804,7 +704,7 @@ const AdminCheckInPage = () => {
                                     />
                                     {loading
                                         ? "Đang xác nhận..."
-                                        : "Xác nhận check-in"}
+                                        : verification?.group ? `Xác nhận ${verification.validCount} ghế` : "Xác nhận check-in"}
                                 </button>
                             )}
 

@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import TicketEmail from "../models/TicketEmail.js";
 import Booking from "../models/Booking.js";
 import Ticket from "../models/Ticket.js";
-import { createTicketQrPayload } from "../utils/ticketQr.js";
+import { createBookingQrPayload } from "../utils/ticketQr.js";
 import { sendMail, isEmailConfigured } from "./email.service.js";
 
 export const enqueueTicketEmail = async (bookingId, session) => TicketEmail.updateOne(
@@ -11,16 +11,14 @@ export const enqueueTicketEmail = async (bookingId, session) => TicketEmail.upda
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 export const buildTicketEmail = async (booking, tickets) => {
     const attachments = [], blocks = [];
-    for (const ticket of tickets) {
-        const cid = `ticket-${ticket._id}@fyce`;
-        const png = await QRCode.toBuffer(createTicketQrPayload(ticket, ticket.createdAt || booking.confirmedAt || booking.createdAt), { type: "png", width: 360, margin: 4, errorCorrectionLevel: "M" });
-        attachments.push({ filename: `${ticket.ticketCode}.png`, content: png, cid, contentType: "image/png" });
-        blocks.push(`<section><h3>Ghế ${escape(ticket.seatLabel)} · ${escape(ticket.ticketCategoryName)}</h3><p>Mã vé: ${escape(ticket.ticketCode)}</p><img src="cid:${cid}" width="240" height="240" alt="QR vé ${escape(ticket.ticketCode)}" /></section>`);
-    }
+    const cid = `booking-${booking._id}@fyce`;
+    const png = await QRCode.toBuffer(createBookingQrPayload(booking, booking.confirmedAt || booking.createdAt), { type: "png", width: 400, margin: 4, errorCorrectionLevel: "M" });
+    attachments.push({filename:`${booking.bookingCode}.png`,content:png,cid,contentType:"image/png"});
+    blocks.push(`<section><h3>Một QR cho ${tickets.length} ghế / One QR for ${tickets.length} seats</h3><p>${escape(booking.bookingCode)}</p><img src="cid:${cid}" width="280" height="280" alt="QR ${escape(booking.bookingCode)}"/><p>Xuất trình khi cả nhóm đã đến. Một lần xác nhận check-in áp dụng cho mọi ghế còn hợp lệ trong đơn. / Present when your group is together. One check-in admits all remaining valid seats.</p><ul>${tickets.map(t=>`<li>${escape(t.seatLabel)} · ${escape(t.ticketCategoryName)} · ${escape(t.ticketCode)}</li>`).join("")}</ul></section>`);
     const url = new URL(`/bookings/${encodeURIComponent(booking.bookingCode)}`, process.env.CLIENT_URL || "http://localhost:5173").href;
     return { to: booking.customer.email, subject: `Vé FYCE · ${booking.bookingCode}`,
         messageId: `<fyce-ticket-${booking._id}@fyce.local>`,
-        text: `Xin chào ${booking.customer.fullName}. Đã xác nhận thanh toán đơn ${booking.bookingCode}. Sự kiện: ${booking.eventSnapshot.title}. Vé: ${tickets.map(t => `${t.seatLabel} (${t.ticketCode})`).join(", ")}. QR nằm trong các ảnh đính kèm. Xem vé: ${url}. Không chia sẻ QR.`,
+        text: `Xin chào ${booking.customer.fullName}. Đã xác nhận thanh toán đơn ${booking.bookingCode}. Sự kiện: ${booking.eventSnapshot.title}. Vé: ${tickets.map(t => `${t.seatLabel} (${t.ticketCode})`).join(", ")}. Một QR chung trong ảnh đính kèm cho tất cả ghế còn hiệu lực. Xuất trình khi cả nhóm đã đến. One QR admits all remaining valid seats. Xem vé: ${url}. Không chia sẻ QR.`,
         html: `<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto"><h2>Vé của bạn đã sẵn sàng</h2><p>Xin chào ${escape(booking.customer.fullName)}.</p><p>Đã xác nhận thanh toán đơn <strong>${escape(booking.bookingCode)}</strong>.</p><h3>${escape(booking.eventSnapshot.title)}</h3><p>${escape(booking.eventSnapshot.venue)} · ${booking.eventSnapshot.startAt ? escape(new Date(booking.eventSnapshot.startAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })) : "Thời gian xem trên trang vé"}</p>${blocks.join("")}<p><a href="${escape(url)}">Mở vé trên FYCE</a></p><p>Không chia sẻ QR. QR của vé đã hủy/hoàn hoặc đã check-in không còn hiệu lực.</p></div>`, attachments };
 };
 

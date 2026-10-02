@@ -78,3 +78,11 @@ QA UI dùng frontend 5180 và API 3002, chỉ MongoDB 27028; không chạy worke
 65/65 ca đạt trên MongoDB QA riêng ngày 01/10. Ca mới kiểm tra: cụm từ xác nhận bắt buộc; rollback toàn bộ nếu một mục stale; token không replay; bảo vệ đơn paid, vé, sự kiện và khách hàng liên quan; dấu vết đối soát phát sinh sau preview vẫn chặn xóa; chặn đơn mới/ghế held; cho phép đơn unpaid đủ tuổi đã đóng và sự kiện độc lập. Detail API chỉ dành cho admin, không lộ password/authVersion/QR version/hold token. Hồi quy quên mật khẩu kiểm tra tiêu thụ token một lần và thu hồi OTP/phiên cũ.
 
 Build frontend đạt, lint 0 lỗi/16 cảnh báo hiện hữu, audit cả hai package 0 lỗ hổng. UI dashboard/modal mới chưa được nghiệm thu trực quan: browser tool lỗi request-header policy hai lần. Khi kiểm tra deploy: mở dashboard ở desktop/390px; nhấn tên người mua/mã vé/mã đơn, kiểm tra modal/nền mờ/Escape; kiểm tra checkbox và preview xóa vĩnh viễn bằng dữ liệu QA. Không purge dữ liệu production để kiểm thử.
+
+## Kết quả 02/10/2026
+
+69/69 backend integration, 8/8 frontend (`npm test --prefix frontend`), build đạt; lint 0 lỗi/16 cảnh báo hiện hữu. Audit cả hai package: 0. QA riêng localhost:27028, API3002, Vite5180, không đọc .env/provider thật.
+
+Ca mới: QR nhóm 274 ghế/1 email attachment; owner/role/event/tamper, scan đồng thời chỉ một lần; partial/full refund, QR cũ từng ghế và group/refund race; CSV BOM/quotes/formula injection và XLSX typed text, lọc/chọn/không lộ secret. Frontend kiểm tra catalog locale/user input/admin locale và media lifecycle: giữ stream qua nhiều mã, chống lặp, stop khi permission pending, bỏ detector result sau stop. Camera tests dùng stream giả, không thay cho nghiệm thu thiết bị thật.
+
+Chrome QA xác nhận VI/EN lưu lựa chọn và giữ input, header mobile390px, một QR cho đơn274ghế, giao diện adminVI, xuất XLSX chọn một đơn và nhập mã đơn đã check-in. Ảnh QA lưu /tmp/fyce-qa-evidence/group-qr-en.jpg (không đưa dữ liệu/QR vào Git).

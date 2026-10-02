@@ -1252,3 +1252,75 @@ test("admin detail endpoints enforce roles and omit authentication and hold secr
   assert.equal(ticketDetail.data.booking.holdToken,undefined);
   assert.equal(ticketDetail.data.ticket.userId.email,user.email);
 });
+
+test("booking QR admits 274 seats once, issues one email QR and enforces owner/event/role",async()=>{
+  const {createBookingQrPayload,verifyBookingQrPayload}=await import("../src/utils/ticketQr.js");
+  const pending=await pendingFixture();
+  const extra=Array.from({length:273},(_,i)=>({...pending.items[0].toObject(),_id:oid(),seatId:oid(),seatLabel:`G${i+2}`,row:"G",number:i+2,ticketCode:`TKT-GROUP-${sequence}-${i+2}`}));
+  pending.items.push(...extra);pending.totalAmount=pending.subtotal=27400000;pending.status="confirmed";pending.paymentStatus="paid";pending.confirmedAt=new Date();await pending.save();
+  const tickets=await ensureTicketsForBooking(pending);
+  assert.equal(tickets.length,274);
+  const qr=createBookingQrPayload(pending);
+  assert.equal(verifyBookingQrPayload(qr),pending.id);
+  const ownerToken=generateAccessToken(await User.findById(user._id));
+  const mine=await request(`/tickets/booking/${pending.bookingCode}?pass=booking`,{token:ownerToken});
+  assert.equal(mine.status,200,mine.message);assert.equal(mine.data.bookingPass.validCount,274);
+  assert.equal(mine.data.tickets.filter(t=>t.qrPayload).length,0,"one shared QR, no per-seat QR for group clients");
+  assert.equal((await request(`/tickets/booking/${pending.bookingCode}?pass=booking`)).status,404,"admin cannot use another buyer's private route");
+  const email=await buildTicketEmail(pending,tickets);
+  assert.equal(email.attachments.length,1);assert.match(email.html,/274/);assert.match(email.html,/G274/);
+  assert.equal((await request("/tickets/admin/verify",{method:"POST",token:ownerToken,body:{qrPayload:qr}})).status,403);
+  assert.equal((await request("/tickets/admin/verify",{method:"POST",body:{qrPayload:qr,eventId:String(oid())}})).status,409);
+  const bad=qr.slice(0,-8)+"tampered";
+  assert.equal((await request("/tickets/admin/verify",{method:"POST",body:{qrPayload:bad}})).status,400);
+  const verified=await request("/tickets/admin/verify",{method:"POST",body:{qrPayload:pending.bookingCode.toLowerCase()}});
+  assert.equal(verified.data.validCount,274);assert.equal(verified.data.group,true);
+  const scans=await Promise.all([qr,pending.bookingCode].map(qrPayload=>request("/tickets/admin/check-in",{method:"POST",body:{qrPayload,eventId:String(pending.eventId)}})));
+  assert.deepEqual(scans.map(r=>r.status).sort(),[200,409]);assert.equal(scans.find(r=>r.status===200).data.admittedCount,274);
+  assert.equal(await Ticket.countDocuments({bookingId:pending._id,status:"checked_in"}),274);
+  const after=await request(`/tickets/booking/${pending.bookingCode}?pass=booking`,{token:ownerToken});assert.equal(after.data.bookingPass.qrPayload,null);
+});
+test("group pass skips refunded and individually admitted seats; full refund invalidates group",async()=>{
+  const {createBookingQrPayload}=await import("../src/utils/ticketQr.js");
+  const {paid,tickets}=await paidFixture(true);const qr=createBookingQrPayload(paid);
+  assert.equal((await request(`/admin/bookings/${paid.id}/refund`,{method:"POST",body:refundBody(paid,[tickets[0]])})).status,200);
+  const verification=await request("/tickets/admin/verify",{method:"POST",body:{qrPayload:qr}});
+  assert.equal(verification.data.validCount,1);assert.equal(verification.data.excludedCount,1);
+  const scan=await request("/tickets/admin/check-in",{method:"POST",body:{qrPayload:qr}});assert.equal(scan.data.admittedCount,1);
+  assert.equal((await Ticket.findById(tickets[0]._id)).status,"refunded");
+  const second=await paidFixture(true);
+  await request("/tickets/admin/check-in",{method:"POST",body:{qrPayload:createTicketQrPayload(second.tickets[0])}});
+  const remaining=await request("/tickets/admin/check-in",{method:"POST",body:{qrPayload:createBookingQrPayload(second.paid)}});assert.equal(remaining.data.admittedCount,1);assert.equal(remaining.data.checkedInCount,2);
+  const full=await paidFixture();const old=createBookingQrPayload(full.paid);
+  await request(`/admin/bookings/${full.paid.id}/refund`,{method:"POST",body:refundBody(full.paid,full.tickets)});
+  assert.equal((await request("/tickets/admin/check-in",{method:"POST",body:{qrPayload:old}})).status,409);
+});
+test("group admission competing with refund cannot admit a refunded seat or partially commit",async()=>{
+  const {createBookingQrPayload}=await import("../src/utils/ticketQr.js");
+  const {paid,tickets}=await paidFixture(true);
+  const [refund,scan]=await Promise.all([
+    request(`/admin/bookings/${paid.id}/refund`,{method:"POST",body:refundBody(paid,tickets)}),
+    request("/tickets/admin/check-in",{method:"POST",body:{qrPayload:createBookingQrPayload(paid)}})
+  ]);
+  assert.deepEqual([refund.status,scan.status].sort(),[200,409]);
+  const current=await Ticket.find({bookingId:paid._id});assert.equal(new Set(current.map(t=>t.status)).size,1);
+  assert.ok(["refunded","checked_in"].includes(current[0].status));
+});
+test("CSV/XLSX exports enforce admin scope, filters, safe cells and no ticket secrets",async()=>{
+  const {default:ExcelJS}=await import("exceljs");
+  const {csvCell}=await import("../src/services/adminExport.service.js");
+  for(const value of ['=1+1',' +CMD','@SUM(1)','\t=1','\r=1','-1+2'])assert.ok(csvCell(value).startsWith('"\''));
+  assert.equal(csvCell('Xin chào,"FYCE"'), '"Xin chào,""FYCE"""');
+  const {paid,tickets}=await paidFixture(true);
+  await Booking.updateOne({_id:paid._id},{"customer.fullName":"=HYPERLINK(\"bad\")","customer.phone":"0123456789"});
+  const url=`${base}/admin/export/tickets?eventId=${paid.eventId}&format=csv`;
+  assert.equal((await fetch(url)).status,401);
+  assert.equal((await fetch(url,{headers:{Authorization:`Bearer ${generateAccessToken(await User.findById(user._id))}`}})).status,403);
+  const csv=await fetch(url,{headers:{Authorization:`Bearer ${adminToken}`}});
+  assert.equal(csv.status,200);assert.match(csv.headers.get("cache-control"),/no-store/);assert.match(csv.headers.get("content-disposition"),/attachment/);
+  const bytes=Buffer.from(await csv.arrayBuffer());assert.deepEqual([...bytes.subarray(0,3)],[239,187,191]);const text=bytes.toString();assert.match(text,/'=HYPERLINK/);assert.match(text,/0123456789/);assert.equal(text.split("\r\n").length,3);assert.ok(!text.includes(tickets[0].qrVersion));
+  const xlsx=await fetch(`${base}/admin/export/bookings?format=xlsx&ids=${paid.id}`,{headers:{Authorization:`Bearer ${adminToken}`}});assert.equal(xlsx.status,200);
+  const wb=new ExcelJS.Workbook();await wb.xlsx.load(Buffer.from(await xlsx.arrayBuffer()));const sheet=wb.worksheets[0];assert.equal(sheet.rowCount,2);assert.equal(sheet.getCell("C2").type,ExcelJS.ValueType.String);assert.equal(sheet.getCell("C2").value,'=HYPERLINK("bad")');assert.equal(sheet.getCell("E2").value,"0123456789");assert.equal(sheet.getCell("H2").value,200000);
+  const payment=await fetch(`${base}/admin/export/payments?format=csv&eventId=${paid.eventId}&paymentStatus=unpaid`,{headers:{Authorization:`Bearer ${adminToken}`}});assert.equal((await payment.text()).split("\r\n").length,1);
+  assert.equal((await request('/admin/export/bookings?format=bad')).status,400);
+});

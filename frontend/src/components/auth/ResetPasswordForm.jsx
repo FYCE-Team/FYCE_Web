@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "./AuthLayout.jsx";
@@ -5,6 +6,8 @@ import { resetPassword } from "../../services/auth.service.js";
 import "./ResetPassword.css";
 
 function EyeIcon() {
+
+
   return (
     <svg
       viewBox="0 0 24 24"
@@ -31,6 +34,8 @@ function EyeIcon() {
 }
 
 function EyeOffIcon() {
+
+
   return (
     <svg
       viewBox="0 0 24 24"
@@ -57,6 +62,8 @@ function EyeOffIcon() {
 }
 
 function ResetPasswordForm() {
+    const { t } = useLanguage();
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -171,12 +178,9 @@ function ResetPasswordForm() {
       <AuthLayout>
         <div className="auth-form-content">
           <div className="auth-form-heading">
-            <h1>Đặt lại Mật khẩu</h1>
+            <h1>{t("Đặt lại Mật khẩu")}</h1>
 
-            <p>
-              Tạo mật khẩu mới cho tài khoản FYCE của
-              bạn.
-            </p>
+            <p> {t("Tạo mật khẩu mới cho tài khoản FYCE của bạn.")} </p>
           </div>
 
           <form
@@ -184,9 +188,7 @@ function ResetPasswordForm() {
             className="auth-form"
           >
             <div className="auth-field">
-              <label htmlFor="password">
-                Mật khẩu mới
-                <span>*</span>
+              <label htmlFor="password"> {t("Mật khẩu mới")} <span>*</span>
               </label>
 
               <div className="auth-input-wrapper">
@@ -198,7 +200,7 @@ function ResetPasswordForm() {
                       ? "text"
                       : "password"
                   }
-                  placeholder="Nhập mật khẩu mới"
+                  placeholder={t("Nhập mật khẩu mới")}
                   value={password}
                   onChange={(event) => {
                     setPassword(
@@ -218,24 +220,22 @@ function ResetPasswordForm() {
                     )
                   }
                   aria-label={
-                    showPassword
+                    t(showPassword
                       ? "Ẩn mật khẩu"
-                      : "Hiện mật khẩu"
+                      : "Hiện mật khẩu")
                   }
                 >
-                  {showPassword ? (
+                  {t(showPassword ? (
                     <EyeOffIcon />
                   ) : (
                     <EyeIcon />
-                  )}
+                  ))}
                 </button>
               </div>
             </div>
 
             <div className="auth-field">
-              <label htmlFor="confirmPassword">
-                Xác nhận mật khẩu
-                <span>*</span>
+              <label htmlFor="confirmPassword"> {t("Xác nhận mật khẩu")} <span>*</span>
               </label>
 
               <div className="auth-input-wrapper">
@@ -247,7 +247,7 @@ function ResetPasswordForm() {
                       ? "text"
                       : "password"
                   }
-                  placeholder="Nhập lại mật khẩu"
+                  placeholder={t("Nhập lại mật khẩu")}
                   value={confirmPassword}
                   onChange={(event) => {
                     setConfirmPassword(
@@ -267,22 +267,22 @@ function ResetPasswordForm() {
                     )
                   }
                   aria-label={
-                    showConfirmPassword
+                    t(showConfirmPassword
                       ? "Ẩn mật khẩu xác nhận"
-                      : "Hiện mật khẩu xác nhận"
+                      : "Hiện mật khẩu xác nhận")
                   }
                 >
-                  {showConfirmPassword ? (
+                  {t(showConfirmPassword ? (
                     <EyeOffIcon />
                   ) : (
                     <EyeIcon />
-                  )}
+                  ))}
                 </button>
               </div>
             </div>
 
             <div className="password-rules">
-              <p>Mật khẩu phải có:</p>
+              <p>{t("Mật khẩu phải có:")}</p>
 
               <div
                 className={
@@ -291,11 +291,9 @@ function ResetPasswordForm() {
                     : ""
                 }
               >
-                {passwordChecks.length
+                {t(passwordChecks.length
                   ? "✓"
-                  : "○"}{" "}
-                Tối thiểu 8 ký tự
-              </div>
+                  : "○")}{t(" ")} {t("Tối thiểu 8 ký tự")} </div>
 
               <div
                 className={
@@ -304,11 +302,9 @@ function ResetPasswordForm() {
                     : ""
                 }
               >
-                {passwordChecks.uppercase
+                {t(passwordChecks.uppercase
                   ? "✓"
-                  : "○"}{" "}
-                Ít nhất 1 chữ hoa
-              </div>
+                  : "○")}{t(" ")} {t("Ít nhất 1 chữ hoa")} </div>
 
               <div
                 className={
@@ -317,11 +313,9 @@ function ResetPasswordForm() {
                     : ""
                 }
               >
-                {passwordChecks.lowercase
+                {t(passwordChecks.lowercase
                   ? "✓"
-                  : "○"}{" "}
-                Ít nhất 1 chữ thường
-              </div>
+                  : "○")}{t(" ")} {t("Ít nhất 1 chữ thường")} </div>
 
               <div
                 className={
@@ -330,29 +324,27 @@ function ResetPasswordForm() {
                     : ""
                 }
               >
-                {passwordChecks.number
+                {t(passwordChecks.number
                   ? "✓"
-                  : "○"}{" "}
-                Ít nhất 1 chữ số
-              </div>
+                  : "○")}{t(" ")} {t("Ít nhất 1 chữ số")} </div>
             </div>
 
-            {error && (
+            {t(error && (
               <div className="auth-error">
-                {error}
+                {t(error)}
               </div>
-            )}
+            ))}
 
             <button
               type="submit"
               className="auth-submit-button"
               disabled={loading}
             >
-              {loading
+              {t(loading
                 ? "Đang cập nhật..."
-                : "Đặt lại Mật khẩu"}
+                : "Đặt lại Mật khẩu")}
 
-              {!loading && <span>➤</span>}
+              {t(!loading && <span>➤</span>)}
             </button>
           </form>
 
@@ -362,9 +354,7 @@ function ResetPasswordForm() {
             onClick={() =>
               navigate("/login")
             }
-          >
-            ← Quay lại Đăng nhập
-          </button>
+          > {t("← Quay lại Đăng nhập")} </button>
         </div>
       </AuthLayout>
     </div>

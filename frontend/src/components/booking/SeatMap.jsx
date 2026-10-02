@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     useEffect,
     useMemo,
@@ -111,8 +112,8 @@ const getVisualCategory = (
         : "STANDARD";
 };
 
-const formatPrice = (value) =>
-    new Intl.NumberFormat("vi-VN").format(
+const formatPrice = (value, locale = "vi-VN") =>
+    new Intl.NumberFormat(locale).format(
         Number(value) || 0
     );
 
@@ -433,6 +434,8 @@ const SeatIcon = ({
     busy = false,
     onSelect
 }) => {
+    const { t, locale } = useLanguage();
+
     const x = Number(
         seat?.position?.x
     );
@@ -516,7 +519,7 @@ const SeatIcon = ({
         getPrice(
             seat,
             ticketCategories
-        )
+        ), locale
     );
 
     return (
@@ -531,7 +534,7 @@ const SeatIcon = ({
             }
             aria-disabled={!selectable}
             aria-pressed={selected}
-            aria-label={`Ghế ${seat.label}, ${visualCategory}, ${price} VND`}
+            aria-label={t(`Ghế ${seat.label}, ${visualCategory}, ${price} VND`)}
             onClick={activate}
             onKeyDown={(event) => {
                 if (
@@ -545,7 +548,7 @@ const SeatIcon = ({
             }}
         >
             <title>
-                {`${seat.label} · ${visualCategory} · ${price} VND`}
+                {t(`${seat.label} · ${visualCategory} · ${price} VND`)}
             </title>
 
             {/* Backrest */}
@@ -609,7 +612,7 @@ const SeatIcon = ({
                 textAnchor="middle"
                 dominantBaseline="middle"
             >
-                {seat.number}
+                {t(seat.number)}
             </text>
         </g>
     );
@@ -627,6 +630,8 @@ const SeatMap = ({
     showLegend = true,
     showFooter = true
 }) => {
+    const { t, locale } = useLanguage();
+
     const [seats, setSeats] =
         useState([]);
     const [loading, setLoading] =
@@ -1362,9 +1367,7 @@ const SeatMap = ({
         return (
             <div
                 className={`seatmap-ui seatmap-ui--state ${className}`}
-            >
-                Đang tải sơ đồ ghế...
-            </div>
+            > {t("Đang tải sơ đồ ghế...")} </div>
         );
     }
 
@@ -1373,7 +1376,7 @@ const SeatMap = ({
             <div
                 className={`seatmap-ui seatmap-ui--state ${className}`}
             >
-                {error}
+                {t(error)}
             </div>
         );
     }
@@ -1382,41 +1385,29 @@ const SeatMap = ({
         <section
             className={`seatmap-ui ${className}`}
         >
-            {showLegend && (
+            {t(showLegend && (
                 <div className="seatmap-ui__legend">
                     <span>
-                        <i className="legend-swatch legend-swatch--standard" />
-                        Còn trống
-                    </span>
+                        <i className="legend-swatch legend-swatch--standard" /> {t("Còn trống")} </span>
                     <span>
-                        <i className="legend-swatch legend-swatch--selected" />
-                        Đang chọn
-                    </span>
+                        <i className="legend-swatch legend-swatch--selected" /> {t("Đang chọn")} </span>
                     <span>
-                        <i className="legend-swatch legend-swatch--sold" />
-                        Đã bán
-                    </span>
+                        <i className="legend-swatch legend-swatch--sold" /> {t("Đã bán")} </span>
                     <span>
-                        <i className="legend-swatch legend-swatch--held" />
-                        Đang giữ
-                    </span>
+                        <i className="legend-swatch legend-swatch--held" /> {t("Đang giữ")} </span>
                 </div>
-            )}
+            ))}
 
             <div className="seatmap-ui__zoom-bar">
                 <div className="seatmap-ui__zoom-help">
-                    <strong>
-                        Phóng to sơ đồ
-                    </strong>
-                    <span>
-                        Chụm 2 ngón tay để zoom • kéo để di chuyển
-                    </span>
+                    <strong> {t("Phóng to sơ đồ")} </strong>
+                    <span> {t("Chụm 2 ngón tay để zoom • kéo để di chuyển")} </span>
                 </div>
 
                 <div
                     className="seatmap-ui__zoom-controls"
                     role="group"
-                    aria-label="Điều khiển phóng to sơ đồ"
+                    aria-label={t("Điều khiển phóng to sơ đồ")}
                 >
                     <button
                         type="button"
@@ -1436,9 +1427,9 @@ const SeatMap = ({
                     </button>
 
                     <output>
-                        {Math.round(
+                        {t(Math.round(
                             zoom * 100
-                        )}
+                        ))}
                         %
                     </output>
 
@@ -1463,9 +1454,7 @@ const SeatMap = ({
                         type="button"
                         className="seatmap-ui__fit-button"
                         onClick={resetZoom}
-                    >
-                        Vừa khung
-                    </button>
+                    > {t("Vừa khung")} </button>
                 </div>
             </div>
 
@@ -1482,7 +1471,7 @@ const SeatMap = ({
                     viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
                     preserveAspectRatio="xMidYMid meet"
                     role="img"
-                    aria-label="Sơ đồ ghế FYCE"
+                    aria-label={t("Sơ đồ ghế FYCE")}
                     onPointerDown={
                         handlePointerDown
                     }
@@ -1542,9 +1531,7 @@ const SeatMap = ({
                         x="728"
                         y="242"
                         textAnchor="middle"
-                    >
-                        SÂN KHẤU
-                    </text>
+                    > {t("SÂN KHẤU")} </text>
 
                     <polygon
                         className="rest-area"
@@ -1560,15 +1547,11 @@ const SeatMap = ({
                         <tspan
                             x="195"
                             dy="0"
-                        >
-                            KHU VỰC GIẢI LAO
-                        </tspan>
+                        > {t("KHU VỰC GIẢI LAO")} </tspan>
                         <tspan
                             x="195"
                             dy="19"
-                        >
-                            NHÀ VỆ SINH
-                        </tspan>
+                        > {t("NHÀ VỆ SINH")} </tspan>
                     </text>
 
                     <polygon
@@ -1585,15 +1568,11 @@ const SeatMap = ({
                         <tspan
                             x="1261"
                             dy="0"
-                        >
-                            KHU VỰC GIẢI LAO
-                        </tspan>
+                        > {t("KHU VỰC GIẢI LAO")} </tspan>
                         <tspan
                             x="1261"
                             dy="19"
-                        >
-                            NHÀ VỆ SINH
-                        </tspan>
+                        > {t("NHÀ VỆ SINH")} </tspan>
                     </text>
 
                     <rect
@@ -1609,11 +1588,9 @@ const SeatMap = ({
                         x="713.5"
                         y="928"
                         textAnchor="middle"
-                    >
-                        PHÒNG KỸ THUẬT
-                    </text>
+                    > {t("PHÒNG KỸ THUẬT")} </text>
 
-                    {[
+                    {t([
                         [430, 695],
                         [560, 695],
                         [865, 695],
@@ -1626,9 +1603,9 @@ const SeatMap = ({
                             cy={y}
                             r="8"
                         />
-                    ))}
+                    )))}
 
-                    {rowLabels.map(
+                    {t(rowLabels.map(
                         (label) => (
                             <text
                                 key={
@@ -1645,12 +1622,12 @@ const SeatMap = ({
                                         : undefined
                                 }
                             >
-                                {label.row}
+                                {t(label.row)}
                             </text>
                         )
-                    )}
+                    ))}
 
-                    {visibleSeats.map(
+                    {t(visibleSeats.map(
                         (seat) => (
                             <SeatIcon
                                 key={
@@ -1675,14 +1652,14 @@ const SeatMap = ({
                                 }
                             />
                         )
-                    )}
+                    ))}
                 </svg>
             </div>
 
-            {showFooter && (
+            {t(showFooter && (
                 <div className="seatmap-ui__footer">
                     <span className="seatmap-ui__selection">
-                        {selectedSeats.length ===
+                        {t(selectedSeats.length ===
                         0
                             ? "Chưa chọn ghế"
                             : selectedSeats
@@ -1690,17 +1667,17 @@ const SeatMap = ({
                                       (seat) =>
                                           seat.label
                                   )
-                                  .join(", ")}
+                                  .join(", "))}
                     </span>
 
                     <strong>
-                        {formatPrice(
-                            totalPrice
-                        )}{" "}
+                        {t(formatPrice(
+                            totalPrice, locale
+                        ))}{t(" ")}
                         VND
                     </strong>
                 </div>
-            )}
+            ))}
         </section>
     );
 };

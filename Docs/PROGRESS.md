@@ -1,3 +1,22 @@
+## Đợt cập nhật 02/10/2026 — đọc mục này trước
+
+**█████████░ 90% — chức năng và kiểm thử QA hoàn tất; nghiệm thu dịch vụ thật còn mở.** Phạm vi là repository FYCEweb, không phải toàn bộ hệ điều hành. Commit phát hành xem Git history; trạng thái deploy cập nhật sau khi push.
+
+- [x] Giao diện user Việt/Anh qua nút header; lưu lựa chọn, không dịch tên/nội dung do người dùng nhập; admin luôn tiếng Việt. Mobile vẫn có nút ngôn ngữ.
+- [x] Xuất XLSX/CSV vé/khách mời, đơn vé và thanh toán theo bộ lọc hoặc lựa chọn; chỉ admin, chống công thức CSV, không xuất QR/secret, tối đa 10.000 dòng và 10 lượt/phút/admin.
+- [x] Một QR theo đơn nhiều ghế trên trang vé và email mới; vẫn giữ Ticket theo ghế và QR cũ. Một lần xác nhận check-in toàn bộ vé valid còn lại của đơn, không nhận vé đã hoàn/đã dùng; transaction chống check-in cạnh tranh hoàn vé. Không gộp hai đơn/hai sự kiện.
+- [x] Camera giữ stream sau xác thực/check-in; tạm ngừng nhận mã khi chờ xác nhận, tự sẵn sàng sau thành công; chặn mã lặp trong khung; dừng khi bấm Dừng hoặc rời trang; giải phóng stream nếu cấp quyền đến sau khi rời trang.
+- [x] Màu ghế quản trị thống nhất theo trạng thái và khớp chú giải; hạng vé vẫn ở thông tin chi tiết. Không đổi hạng/giá/trạng thái trong DB.
+- [x] 69/69 integration backend; 8/8 frontend; build đạt, lint 0 lỗi/16 cảnh báo hiện hữu; audit hai package 0 lỗ hổng. MongoDB QA riêng 27028, không đọc .env/DB thật.
+- [x] Chrome QA: đổi ngôn ngữ và giữ nội dung nhập; mobile 390px, đơn 274 ghế chỉ một QR; admin giữ tiếng Việt; tải XLSX chọn một đơn; nhập mã đơn kiểm tra 274 vé đã check-in.
+- [ ] Camera vật lý, Google OAuth, giao dịch SePay mới và email đến inbox trên deploy chưa nghiệm thu trong đợt này. Không đánh dấu hoàn thành dựa trên mock/test.
+
+Không tự gửi lại email vé đã gửi trước đây. Người mua vẫn dùng QR cũ; mở chi tiết đơn để lấy QR nhóm mới. Khi khách đến riêng, nhân viên nhập mã TKT từng ghế; chỉ check-in nhóm khi cả nhóm có mặt.
+
+Thay đổi riêng `package.json`/`package-lock.json` ở root không thuộc bản phát hành. Frontend/backend có package riêng và lockfile được kiểm tra.
+
+---
+
 ## Đợt cập nhật 01/10/2026 — đọc mục này trước
 
 Commit chức năng: `85a6587` trên nhánh `main`. Giữ nguyên thay đổi riêng ở `package.json`/`package-lock.json` thư mục gốc, không đưa vào commit này.

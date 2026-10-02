@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     useState
 } from "react";
@@ -24,6 +25,8 @@ import "./LoginForm.css";
 import AuthLayout from "./AuthLayout";
 
 const LoginForm = () => {
+    const { t } = useLanguage();
+
     const navigate =
         useNavigate();
 
@@ -249,13 +252,9 @@ const handleGoogleSuccess =
                                 WELCOME
                             </div>
 
-                            <h1>
-                                Chào mừng đến với FYCE
-                            </h1>
+                            <h1> {t("Chào mừng đến với FYCE")} </h1>
 
-                            <p>
-                                Hãy đăng nhập để có được trải nghiệm tốt nhất với FYCE. Nếu bạn chưa có tài khoản, hãy đăng ký ngay để bắt đầu.
-                            </p>
+                            <p> {t("Hãy đăng nhập để có được trải nghiệm tốt nhất với FYCE. Nếu bạn chưa có tài khoản, hãy đăng ký ngay để bắt đầu.")} </p>
 
                         </div>
 
@@ -265,15 +264,13 @@ const handleGoogleSuccess =
 
                         <div className="login-content">
 
-                            <h2>
-                                Đăng nhập
-                            </h2>
+                            <h2> {t("Đăng nhập")} </h2>
 
-                            {error && (
+                            {t(error && (
                                 <div className="login-error">
-                                    {error}
+                                    {t(error)}
                                 </div>
-                            )}
+                            ))}
 
                             <form
                                 onSubmit={
@@ -285,9 +282,7 @@ const handleGoogleSuccess =
 
                                     <label
                                         htmlFor="identifier"
-                                    >
-                                        Tên tài khoản hoặc Email
-                                    </label>
+                                    > {t("Tên tài khoản hoặc Email")} </label>
 
                                     <div className="input-box">
 
@@ -305,7 +300,7 @@ const handleGoogleSuccess =
                                             onChange={
                                                 handleChange
                                             }
-                                            placeholder="Nhập email hoặc tên tài khoản..."
+                                            placeholder={t("Nhập email hoặc tên tài khoản...")}
                                             autoComplete="username"
                                         />
 
@@ -317,9 +312,7 @@ const handleGoogleSuccess =
 
                                     <label
                                         htmlFor="password"
-                                    >
-                                        Mật khẩu
-                                    </label>
+                                    > {t("Mật khẩu")} </label>
 
                                     <div className="input-box">
 
@@ -341,7 +334,7 @@ const handleGoogleSuccess =
                                             onChange={
                                                 handleChange
                                             }
-                                            placeholder="Nhập mật khẩu..."
+                                            placeholder={t("Nhập mật khẩu...")}
                                             autoComplete="current-password"
                                         />
 
@@ -355,12 +348,12 @@ const handleGoogleSuccess =
                                                 )
                                             }
                                             aria-label={
-                                                showPassword
+                                                t(showPassword
                                                     ? "Ẩn mật khẩu"
-                                                    : "Hiện mật khẩu"
+                                                    : "Hiện mật khẩu")
                                             }
                                         >
-                                            {showPassword ? (
+                                            {t(showPassword ? (
                                                 <EyeOff
                                                     size={21}
                                                 />
@@ -368,7 +361,7 @@ const handleGoogleSuccess =
                                                 <Eye
                                                     size={21}
                                                 />
-                                            )}
+                                            ))}
                                         </button>
 
                                     </div>
@@ -390,9 +383,7 @@ const handleGoogleSuccess =
                                             }
                                         />
 
-                                        <span>
-                                            Ghi nhớ đăng nhập
-                                        </span>
+                                        <span> {t("Ghi nhớ đăng nhập")} </span>
 
                                     </label>
 
@@ -402,9 +393,7 @@ const handleGoogleSuccess =
                                     onClick={() =>
                                         navigate("/forgot-password")
                                     }
-                                    >
-                                    Quên mật khẩu?
-                                    </button>
+                                    > {t("Quên mật khẩu?")} </button>
 
                                 </div>
 
@@ -416,9 +405,9 @@ const handleGoogleSuccess =
                                         googleLoading
                                     }
                                 >
-                                    {loading
+                                    {t(loading
                                         ? "Đang đăng nhập..."
-                                        : "Đăng nhập"}
+                                        : "Đăng nhập")}
                                 </button>
 
                             </form>
@@ -427,9 +416,7 @@ const handleGoogleSuccess =
 
                                 <span />
 
-                                <p>
-                                    Hoặc tiếp tục với
-                                </p>
+                                <p> {t("Hoặc tiếp tục với")} </p>
 
                                 <span />
 
@@ -466,11 +453,11 @@ const handleGoogleSuccess =
                                         Google
                                     </span>
 
-                                    {googleLoading && (
+                                    {t(googleLoading && (
                                         <span className="google-loading">
                                             ...
                                         </span>
-                                    )}
+                                    ))}
 
                                 </div>
 
@@ -496,9 +483,7 @@ const handleGoogleSuccess =
 
                             <div className="register-prompt">
 
-                                <span>
-                                    Chưa có tài khoản?
-                                </span>
+                                <span> {t("Chưa có tài khoản?")} </span>
 
                                 <button
                                     type="button"
@@ -514,9 +499,7 @@ const handleGoogleSuccess =
                                             }
                                         )
                                     }
-                                >
-                                    Đăng ký ngay
-                                </button>
+                                > {t("Đăng ký ngay")} </button>
 
                             </div>
 

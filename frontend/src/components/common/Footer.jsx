@@ -1,8 +1,11 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import Logo from "./Logo";
 import "./Footer.css";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 import { SiZalo } from "react-icons/si";
 const Footer = () => {
+    const { t } = useLanguage();
+
   const currentYear = new Date().getFullYear();
 
   return (
@@ -13,13 +16,7 @@ const Footer = () => {
           <section className="site-footer-brand">
             <Logo variant="footer" />
 
-            <p className="site-footer-description">
-              Fantasy Youth Chamber Ensemble là
-              không gian kết nối những người trẻ
-              yêu âm nhạc, nơi niềm đam mê được
-              nuôi dưỡng và những giai điệu được
-              cất lên bằng tất cả nhiệt huyết.
-            </p>
+            <p className="site-footer-description"> {t("Fantasy Youth Chamber Ensemble là không gian kết nối những người trẻ yêu âm nhạc, nơi niềm đam mê được nuôi dưỡng và những giai điệu được cất lên bằng tất cả nhiệt huyết.")} </p>
 
             <div className="site-footer-socials">
   {/* Facebook */}
@@ -58,29 +55,21 @@ const Footer = () => {
           </section>
 
           <section className="site-footer-column">
-            <h3>Khám phá</h3>
+            <h3>{t("Khám phá")}</h3>
 
-            <a href="/#top">
-              Trang chủ
-            </a>
+            <a href="/#top"> {t("Trang chủ")} </a>
 
-            <a href="/#concerts">
-              Hòa nhạc & Sự kiện
-            </a>
+            <a href="/#concerts"> {t("Hòa nhạc & Sự kiện")} </a>
 
-            <a href="/#about">
-              Về chúng tôi
-            </a>
+            <a href="/#about"> {t("Về chúng tôi")} </a>
 
-            <a href="/#gallery">
-              Hoạt động & Hậu trường
-            </a>
+            <a href="/#gallery"> {t("Hoạt động & Hậu trường")} </a>
 
 
           </section>
 
           <section className="site-footer-column site-footer-contact">
-            <h3>Liên hệ</h3>
+            <h3>{t("Liên hệ")}</h3>
 
             <a href="mailto:fyce.official@gmail.com">
               <span className="footer-contact-icon">
@@ -105,19 +94,13 @@ const Footer = () => {
                 ●
               </span>
 
-              <span>
-                Đà Nẵng, Việt Nam
-              </span>
+              <span> {t("Đà Nẵng, Việt Nam")} </span>
             </div>
 
             <div className="site-footer-hours">
-              <strong>
-                Giờ hỗ trợ
-              </strong>
+              <strong> {t("Giờ hỗ trợ")} </strong>
 
-              <span>
-                Thứ Hai – Chúa Nhật
-              </span>
+              <span> {t("Thứ Hai – Chúa Nhật")} </span>
 
               <span>
                 08:30 – 22:00
@@ -134,19 +117,15 @@ const Footer = () => {
         <div className="site-footer-bottom-inner">
 
           <p>
-            © {currentYear} Fantasy Youth
+            © {t(currentYear)} Fantasy Youth
             Chamber Ensemble (FYCE).
             All rights reserved.
           </p>
 
           <div className="site-footer-legal">
-            <a href="/privacy">
-              Chính sách bảo mật
-            </a>
+            <a href="/privacy"> {t("Chính sách bảo mật")} </a>
 
-            <a href="/terms">
-              Điều khoản sử dụng
-            </a>
+            <a href="/terms"> {t("Điều khoản sử dụng")} </a>
           </div>
 
         </div>

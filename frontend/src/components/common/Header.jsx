@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import { mediaUrl } from "../../services/admin.service.js";
 import { useState } from "react";
 import {
@@ -19,6 +21,8 @@ import { useAuth } from "../../../context/AuthContext";
 import "./Header.css";
 
 const Header = () => {
+    const { t } = useLanguage();
+
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
 
@@ -83,27 +87,21 @@ const Header = () => {
               }`
             }
             onClick={closeMobileMenu}
-          >
-            Trang chủ
-          </NavLink>
+          > {t("Trang chủ")} </NavLink>
 
           <a
               href="/#concerts"
               className="site-navigation-link"
               onClick={closeMobileMenu}
-          >
-              Hòa nhạc & Sự kiện
-          </a>
+          > {t("Hòa nhạc & Sự kiện")} </a>
 
                   <a
             href="/#about"
             className="site-navigation-link"
             onClick={closeMobileMenu}
-        >
-            Về chúng tôi
-        </a>
+        > {t("Về chúng tôi")} </a>
 
-          {!user && !loading && (
+          {t(!user && !loading && (
             <div className="site-navigation-mobile-auth">
               <button
                 type="button"
@@ -112,9 +110,7 @@ const Header = () => {
                   closeMobileMenu();
                   navigate("/login");
                 }}
-              >
-                Đăng nhập
-              </button>
+              > {t("Đăng nhập")} </button>
 
               <button
                 type="button"
@@ -123,13 +119,11 @@ const Header = () => {
                   closeMobileMenu();
                   navigate("/register");
                 }}
-              >
-                Đăng ký
-              </button>
+              > {t("Đăng ký")} </button>
             </div>
-          )}
+          ))}
 
-          {user?.role === "admin" && (
+          {t(user?.role === "admin" && (
             <button
               type="button"
               className="site-navigation-mobile-admin"
@@ -139,34 +133,17 @@ const Header = () => {
               }}
             >
               <LayoutDashboard size={17} />
-              <span>Trang quản trị</span>
+              <span>{t("Trang quản trị")}</span>
             </button>
-          )}
+          ))}
 
         </nav>
 
         <div className="site-header-actions">
 
-          <div
-            className="site-language-switcher"
-            aria-label="Ngôn ngữ"
-          >
-            <button
-              type="button"
-              className="site-language-option active"
-            >
-              VN
-            </button>
+          <LanguageSwitcher />
 
-            <button
-              type="button"
-              className="site-language-option"
-            >
-              EN
-            </button>
-          </div>
-
-          {user?.role === "admin" && (
+          {t(user?.role === "admin" && (
             <button
               type="button"
               className="site-admin-button"
@@ -175,14 +152,14 @@ const Header = () => {
                 closeMobileMenu();
                 navigate("/admin");
               }}
-              aria-label="Về trang quản trị"
+              aria-label={t("Về trang quản trị")}
             >
               <LayoutDashboard size={16} />
-              <span>Quản trị</span>
+              <span>{t("Quản trị")}</span>
             </button>
-          )}
+          ))}
 
-          {loading ? <span role="status">Đang khôi phục phiên…</span> : !user ? (
+          {t(loading ? <span role="status">{t("Đang khôi phục phiên…")}</span> : !user ? (
             <div className="site-auth-actions">
               <button
                 type="button"
@@ -191,9 +168,7 @@ const Header = () => {
                   closeMobileMenu();
                   navigate("/login");
                 }}
-              >
-                Đăng nhập
-              </button>
+              > {t("Đăng nhập")} </button>
 
               <button
                 type="button"
@@ -202,9 +177,7 @@ const Header = () => {
                   closeMobileMenu();
                   navigate("/register");
                 }}
-              >
-                Đăng ký
-              </button>
+              > {t("Đăng ký")} </button>
             </div>
           ) : (
             <div className="site-account-wrapper">
@@ -220,32 +193,32 @@ const Header = () => {
                     (value) => !value
                   )
                 }
-                aria-label="Tài khoản"
+                aria-label={t("Tài khoản")}
                 aria-expanded={
                   accountMenuOpen
                 }
               >
                 <span className="site-account-avatar">
-                  {user.avatarUrl ? (
+                  {t(user.avatarUrl ? (
                     <img
                       src={mediaUrl(user.avatarUrl)}
                       alt={
-                        user.fullName ||
+                        t(user.fullName ||
                         user.username ||
-                        "Tài khoản"
+                        "Tài khoản")
                       }
                     />
                   ) : (
                     <span>
-                      {getUserInitial()}
+                      {t(getUserInitial())}
                     </span>
-                  )}
+                  ))}
                 </span>
 
                 <span className="site-account-name">
-                  {user.fullName ||
+                  {t(user.fullName ||
                     user.username ||
-                    "Tài khoản"}
+                    "Tài khoản")}
                 </span>
 
                 <ChevronDown
@@ -254,9 +227,9 @@ const Header = () => {
                 />
               </button>
 
-              {accountMenuOpen && (
+              {t(accountMenuOpen && (
                 <div className="site-account-dropdown">
-                  {user?.role === "admin" && (
+                  {t(user?.role === "admin" && (
                     <>
                       <button
                         type="button"
@@ -268,12 +241,12 @@ const Header = () => {
                         }}
                       >
                         <LayoutDashboard size={16} />
-                        <span>Trang quản trị</span>
+                        <span>{t("Trang quản trị")}</span>
                       </button>
 
                       <div className="site-account-divider" />
                     </>
-                  )}
+                  ))}
                   <button
                     type="button"
                     onClick={() => {
@@ -286,9 +259,7 @@ const Header = () => {
                     }}
                   >
                     <UserRound size={16} />
-                    <span>
-                      Hồ sơ của tôi
-                    </span>
+                    <span> {t("Hồ sơ của tôi")} </span>
                   </button>
 
                   <button
@@ -303,9 +274,7 @@ const Header = () => {
                     }}
                   >
                     <User size={16} />
-                    <span>
-                      Vé của tôi
-                    </span>
+                    <span> {t("Vé của tôi")} </span>
                   </button>
 
                   <div className="site-account-divider" />
@@ -316,14 +285,12 @@ const Header = () => {
                     onClick={handleLogout}
                   >
                     <LogOut size={16} />
-                    <span>
-                      Đăng xuất
-                    </span>
+                    <span> {t("Đăng xuất")} </span>
                   </button>
                 </div>
-              )}
+              ))}
             </div>
-          )}
+          ))}
 
           <button
             type="button"
@@ -334,17 +301,17 @@ const Header = () => {
               )
             }
             aria-label={
-              mobileMenuOpen
+              t(mobileMenuOpen
                 ? "Đóng menu"
-                : "Mở menu"
+                : "Mở menu")
             }
             aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? (
+            {t(mobileMenuOpen ? (
               <X size={22} />
             ) : (
               <Menu size={22} />
-            )}
+            ))}
           </button>
         </div>
       </div>

@@ -70,3 +70,6 @@ export const paymentSyncRateLimit = rateLimit({
     standardHeaders: "draft-8", legacyHeaders: false,
     message: { success: false, message: "Đang kiểm tra thanh toán. Vui lòng đợi một phút trước khi thử lại." }
 });
+
+// XLSX generation is bounded per authenticated administrator, separate from scanner traffic.
+export const adminExportRateLimit=rateLimit({windowMs:60000,limit:10,keyGenerator:req=>String(req.user.userId),standardHeaders:"draft-8",legacyHeaders:false,message:{success:false,message:"Xuất file quá nhiều lần. Vui lòng chờ một phút rồi thử lại."}});

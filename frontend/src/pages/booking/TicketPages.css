@@ -732,3 +732,7 @@
         text-align: left;
     }
 }
+
+.booking-group-pass{display:grid;grid-template-columns:240px minmax(0,1fr);gap:32px;align-items:center;padding:32px;margin-bottom:24px}.booking-group-pass svg{max-width:100%;height:auto}.booking-group-pass h2{margin:0 0 12px}.booking-group-pass p{line-height:1.65}.booking-group-pass small{color:#607b8a}@media(max-width:700px){.booking-group-pass{grid-template-columns:1fr;justify-items:center;padding:24px;gap:20px}.booking-group-pass>div{min-width:0;max-width:100%;overflow-wrap:anywhere}}
+
+.ticket-seat-details>summary{cursor:pointer;padding:16px 20px;background:#eef5f9;border:1px solid #d6e3ec;border-radius:12px;margin-bottom:18px;color:#244f6c;font-weight:650}.ticket-seat-details>summary:focus-visible{outline:2px solid #347da7;outline-offset:3px}

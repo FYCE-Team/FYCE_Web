@@ -1,3 +1,4 @@
+import { useLanguage } from "../i18n/useLanguage.js";
 import ContentImage from "../components/media/ContentImage.jsx";
 import {
     useEffect,
@@ -62,13 +63,13 @@ const getCountdown = (targetDate) => {
     };
 };
 
-const formatDate = (date) => {
+const formatDate = (date, locale = "vi-VN") => {
     if (!date) {
         return "";
     }
 
     return new Intl.DateTimeFormat(
-        "vi-VN",
+        locale,
         {
             day: "2-digit",
             month: "2-digit",
@@ -79,13 +80,13 @@ const formatDate = (date) => {
     );
 };
 
-const formatTime = (date) => {
+const formatTime = (date, locale = "vi-VN") => {
     if (!date) {
         return "";
     }
 
     return new Intl.DateTimeFormat(
-        "vi-VN",
+        locale,
         {
             hour: "2-digit",
             minute: "2-digit",
@@ -96,7 +97,7 @@ const formatTime = (date) => {
     );
 };
 
-const formatPrice = (price) => {
+const formatPrice = (price, locale = "vi-VN") => {
     if (
         price === undefined ||
         price === null ||
@@ -106,7 +107,7 @@ const formatPrice = (price) => {
     }
 
     return `${Number(price).toLocaleString(
-        "vi-VN"
+        locale
     )} VNĐ`;
 };
 
@@ -145,6 +146,8 @@ const getStartingPrice = (event) => {
 };
 
 const Home = () => {
+    const { t, locale } = useLanguage();
+
     const location = useLocation();
     const [
         homepage,
@@ -246,9 +249,7 @@ const Home = () => {
             <section className="home-state">
                 <div className="home-spinner" />
 
-                <p>
-                    Đang tải Homepage...
-                </p>
+                <p> {t("Đang tải Homepage...")} </p>
             </section>
         );
     }
@@ -256,12 +257,10 @@ const Home = () => {
     if (error) {
         return (
             <section className="home-state">
-                <h1>
-                    Không thể tải Homepage
-                </h1>
+                <h1> {t("Không thể tải Homepage")} </h1>
 
                 <p>
-                    {error}
+                    {t(error)}
                 </p>
             </section>
         );
@@ -316,31 +315,31 @@ const Home = () => {
 
                     <div className="home-hero-text">
 
-                        {hero?.eyebrow && (
+                        {t(hero?.eyebrow && (
                             <span className="home-eyebrow">
-                                {hero.eyebrow}
+                                {t(hero.eyebrow)}
                             </span>
-                        )}
+                        ))}
 
                         <h1>
-                            {hero?.title ||
-                                "Khúc Giao Hưởng Thanh Xuân"}
+                            {t(hero?.title ||
+                                "Khúc Giao Hưởng Thanh Xuân")}
                         </h1>
 
-                        {hero?.subtitle && (
+                        {t(hero?.subtitle && (
                             <h2>
-                                {hero.subtitle}
+                                {t(hero.subtitle)}
                             </h2>
-                        )}
+                        ))}
 
                         <p>
-                            {hero?.description ||
-                                "Nơi những người trẻ cùng hòa vào một nhịp thở âm nhạc, kết nối đam mê và tạo nên những khoảnh khắc đáng nhớ."}
+                            {t(hero?.description ||
+                                "Nơi những người trẻ cùng hòa vào một nhịp thở âm nhạc, kết nối đam mê và tạo nên những khoảnh khắc đáng nhớ.")}
                         </p>
 
                         <div className="home-hero-actions">
 
-                            {hero?.primaryButtonText && (
+                            {t(hero?.primaryButtonText && (
                                 <Link
                                     to={
                                         hero.primaryButtonLink ||
@@ -349,12 +348,12 @@ const Home = () => {
                                     className="home-primary-button"
                                 >
                                     {
-                                        hero.primaryButtonText
+                                        t(hero.primaryButtonText)
                                     }
                                 </Link>
-                            )}
+                            ))}
 
-                            {hero?.secondaryButtonText && (
+                            {t(hero?.secondaryButtonText && (
                                 <Link
                                     to={
                                         hero.secondaryButtonLink ||
@@ -363,146 +362,136 @@ const Home = () => {
                                     className="home-secondary-button"
                                 >
                                     {
-                                        hero.secondaryButtonText
+                                        t(hero.secondaryButtonText)
                                     }
                                 </Link>
-                            )}
+                            ))}
 
                         </div>
 
                     </div>
 
-                    {featuredEvent && (
+                    {t(featuredEvent && (
                         <div className="home-featured-event">
 
                             <div className="home-featured-poster">
 
-                                {featuredEvent.coverImage ? (
+                                {t(featuredEvent.coverImage ? (
                                     <ContentImage
                                         src={getMediaUrl(
                                             featuredEvent.coverImage
                                         )}
                                         alt={
-                                            featuredEvent.title ||
-                                            "Featured concert"
+                                            t(featuredEvent.title ||
+                                            "Featured concert")
                                         }
                                     />
                                 ) : (
                                     <div className="home-featured-poster-placeholder">
                                         FYCE
                                     </div>
-                                )}
+                                ))}
 
                             </div>
 
                             <div className="featured-event-top">
 
-                                <span className="home-featured-label">
-                                    Đêm diễn tiếp theo
-                                </span>
+                                <span className="home-featured-label"> {t("Đêm diễn tiếp theo")} </span>
 
                                 <span className="featured-event-badge">
-                                    {featuredEvent.startAt
+                                    {t(featuredEvent.startAt
                                         ? "Sắp diễn ra"
-                                        : "COMING SOON"}
+                                        : "COMING SOON")}
                                 </span>
 
                             </div>
 
                             <h3>
                                 {
-                                    featuredEvent.title
+                                    t(featuredEvent.title)
                                 }
                             </h3>
 
                             <p className="featured-event-meta">
 
-                                {featuredEvent.venue ||
-                                    "Địa điểm sẽ được cập nhật"}
+                                {t(featuredEvent.venue ||
+                                    "Địa điểm sẽ được cập nhật")}
 
-                                {featuredEvent.city
+                                {t(featuredEvent.city
                                     ? ` · ${featuredEvent.city}`
-                                    : ""}
+                                    : "")}
 
-                                {" · "}
+                                {t(" · ")}
 
-                                {featuredEvent.startAt
+                                {t(featuredEvent.startAt
                                     ? formatDate(
-                                          featuredEvent.startAt
+                                          featuredEvent.startAt, locale
                                       )
-                                    : "COMING SOON"}
+                                    : "COMING SOON")}
 
                             </p>
 
-                            {countdownTarget ? (
+                            {t(countdownTarget ? (
 
                                 <div className="featured-countdown">
 
                                     <div className="countdown-box">
 
                                         <strong>
-                                            {String(
+                                            {t(String(
                                                 countdown.days
                                             ).padStart(
                                                 2,
                                                 "0"
-                                            )}
+                                            ))}
                                         </strong>
 
-                                        <span>
-                                            Ngày
-                                        </span>
+                                        <span> {t("Ngày")} </span>
 
                                     </div>
 
                                     <div className="countdown-box">
 
                                         <strong>
-                                            {String(
+                                            {t(String(
                                                 countdown.hours
                                             ).padStart(
                                                 2,
                                                 "0"
-                                            )}
+                                            ))}
                                         </strong>
 
-                                        <span>
-                                            Giờ
-                                        </span>
+                                        <span> {t("Giờ")} </span>
 
                                     </div>
 
                                     <div className="countdown-box">
 
                                         <strong>
-                                            {String(
+                                            {t(String(
                                                 countdown.minutes
                                             ).padStart(
                                                 2,
                                                 "0"
-                                            )}
+                                            ))}
                                         </strong>
 
-                                        <span>
-                                            Phút
-                                        </span>
+                                        <span> {t("Phút")} </span>
 
                                     </div>
 
                                     <div className="countdown-box countdown-box-accent">
 
                                         <strong>
-                                            {String(
+                                            {t(String(
                                                 countdown.seconds
                                             ).padStart(
                                                 2,
                                                 "0"
-                                            )}
+                                            ))}
                                         </strong>
 
-                                        <span>
-                                            Giây
-                                        </span>
+                                        <span> {t("Giây")} </span>
 
                                     </div>
 
@@ -514,7 +503,7 @@ const Home = () => {
                                     COMING SOON
                                 </div>
 
-                            )}
+                            ))}
 
                             <Link
                                 to={
@@ -523,12 +512,10 @@ const Home = () => {
                                         : "/events"
                                 }
                                 className="home-featured-button"
-                            >
-                                Xem thông tin chương trình
-                            </Link>
+                            > {t("Xem thông tin chương trình")} </Link>
 
                         </div>
-                    )}
+                    ))}
 
                 </div>
 
@@ -545,28 +532,19 @@ const Home = () => {
 
                         <div>
 
-                            <span>
-                                Lịch Diễn Trong Năm
-                            </span>
+                            <span> {t("Lịch Diễn Trong Năm")} </span>
 
-                            <h2>
-                                Concert Sắp Diễn Ra
-                            </h2>
+                            <h2> {t("Concert Sắp Diễn Ra")} </h2>
 
                         </div>
 
-                        <p>
-                            Hãy chọn ngay vị trí đẹp nhất
-                            trong không gian để thưởng thức
-                            trọn vẹn chất lượng âm thanh
-                            của chương trình.
-                        </p>
+                        <p> {t("Hãy chọn ngay vị trí đẹp nhất trong không gian để thưởng thức trọn vẹn chất lượng âm thanh của chương trình.")} </p>
 
                     </div>
 
                     <div className="home-events-grid">
 
-                        {homepageEvents
+                        {t(homepageEvents
                             .slice(0, 3)
                             .map(
                                 (event) => {
@@ -592,14 +570,14 @@ const Home = () => {
 
                                                 <div className="home-event-image">
 
-                                                    {event.coverImage ? (
+                                                    {t(event.coverImage ? (
 
                                                         <ContentImage
                                                             src={getMediaUrl(
                                                                 event.coverImage
                                                             )}
                                                             alt={
-                                                                event.title
+                                                                t(event.title)
                                                             }
                                                         />
 
@@ -609,15 +587,15 @@ const Home = () => {
                                                             FYCE
                                                         </div>
 
-                                                    )}
+                                                    ))}
 
-                                                    {event.badge && (
+                                                    {t(event.badge && (
                                                         <span className="home-event-badge">
                                                             {
-                                                                event.badge
+                                                                t(event.badge)
                                                             }
                                                         </span>
-                                                    )}
+                                                    ))}
 
                                                 </div>
 
@@ -627,23 +605,23 @@ const Home = () => {
 
                                                 <div className="home-event-date">
 
-                                                    {event.startAt ? (
+                                                    {t(event.startAt ? (
 
                                                         <>
                                                             <span>
-                                                                {formatTime(
-                                                                    event.startAt
-                                                                )}
+                                                                {t(formatTime(
+                                                                    event.startAt, locale
+                                                                ))}
                                                             </span>
 
                                                             <span>
-                                                                {" · "}
+                                                                {t(" · ")}
                                                             </span>
 
                                                             <span>
-                                                                {formatDate(
-                                                                    event.startAt
-                                                                )}
+                                                                {t(formatDate(
+                                                                    event.startAt, locale
+                                                                ))}
                                                             </span>
                                                         </>
 
@@ -653,54 +631,53 @@ const Home = () => {
                                                             COMING SOON
                                                         </span>
 
-                                                    )}
+                                                    ))}
 
                                                 </div>
 
                                                 <h3>
                                                     {
-                                                        event.title
+                                                        t(event.title)
                                                     }
                                                 </h3>
 
                                                 <p>
                                                     {
-                                                        event.shortDescription ||
-                                                        "Thông tin chương trình sẽ được cập nhật."
+                                                        t(event.shortDescription ||
+                                                        "Thông tin chương trình sẽ được cập nhật.")
                                                     }
                                                 </p>
 
                                                 <div className="home-event-location">
 
-                                                    {event.venue && (
+                                                    {t(event.venue && (
                                                         <span>
                                                             {
-                                                                event.venue
+                                                                t(event.venue)
                                                             }
                                                         </span>
-                                                    )}
+                                                    ))}
 
-                                                    {event.city && (
+                                                    {t(event.city && (
                                                         <span>
-                                                            {event.venue
+                                                            {t(event.venue
                                                                 ? ", "
-                                                                : ""}
+                                                                : "")}
                                                             {
-                                                                event.city
+                                                                t(event.city)
                                                             }
                                                         </span>
-                                                    )}
+                                                    ))}
 
                                                 </div>
 
-                                                {event.conductor && (
-                                                    <div className="home-event-conductor">
-                                                        Nhạc trưởng:{" "}
+                                                {t(event.conductor && (
+                                                    <div className="home-event-conductor"> {t("Nhạc trưởng:")}{t(" ")}
                                                         {
-                                                            event.conductor
+                                                            t(event.conductor)
                                                         }
                                                     </div>
-                                                )}
+                                                ))}
 
                                             </div>
 
@@ -709,19 +686,19 @@ const Home = () => {
                                                 <div className="home-event-price">
 
                                                     <span>
-                                                        {price !==
+                                                        {t(price !==
                                                         null
                                                             ? "Giá vé từ"
-                                                            : "Thông tin vé"}
+                                                            : "Thông tin vé")}
                                                     </span>
 
                                                     <strong>
-                                                        {price !==
+                                                        {t(price !==
                                                         null
                                                             ? formatPrice(
-                                                                  price
+                                                                  price, locale
                                                               )
-                                                            : "COMING SOON"}
+                                                            : "COMING SOON")}
                                                     </strong>
 
                                                 </div>
@@ -729,31 +706,27 @@ const Home = () => {
                                                 <Link
                                                     to={`/events/${event.slug}`}
                                                     className="home-event-book-button"
-                                                >
-                                                    Xem chương trình
-                                                </Link>
+                                                > {t("Xem chương trình")} </Link>
 
                                             </div>
 
                                         </article>
                                     );
                                 }
-                            )}
+                            ))}
 
                     </div>
 
-                    {homepageEvents.length ===
+                    {t(homepageEvents.length ===
                         0 && (
-                        <div className="home-empty">
-                            Chưa có concert sắp diễn ra.
-                        </div>
-                    )}
+                        <div className="home-empty"> {t("Chưa có concert sắp diễn ra.")} </div>
+                    ))}
 
                 </div>
 
             </section>
 
-            {about && (
+            {t(about && (
                 <section
                     id="about"
                     className="home-about"
@@ -765,15 +738,15 @@ const Home = () => {
 
                             <div className="home-about-image">
 
-                                {about.image ? (
+                                {t(about.image ? (
 
                                     <ContentImage
                                         src={getMediaUrl(
                                             about.image
                                         )}
                                         alt={
-                                            about.imageAlt ||
-                                            about.title
+                                            t(about.imageAlt ||
+                                            about.title)
                                         }
                                     />
 
@@ -783,7 +756,7 @@ const Home = () => {
                                         FYCE
                                     </div>
 
-                                )}
+                                ))}
 
                             </div>
 
@@ -793,15 +766,9 @@ const Home = () => {
                                     ♪
                                 </div>
 
-                                <strong>
-                                    Di Sản Sống
-                                </strong>
+                                <strong> {t("Di Sản Sống")} </strong>
 
-                                <p>
-                                    Nuôi dưỡng và truyền
-                                    tải những giá trị âm
-                                    nhạc qua từng thế hệ.
-                                </p>
+                                <p> {t("Nuôi dưỡng và truyền tải những giá trị âm nhạc qua từng thế hệ.")} </p>
 
                             </div>
 
@@ -809,32 +776,32 @@ const Home = () => {
 
                         <div className="home-about-content">
 
-                            {about.eyebrow && (
+                            {t(about.eyebrow && (
                                 <span className="home-about-eyebrow">
-                                    {about.eyebrow}
+                                    {t(about.eyebrow)}
                                 </span>
-                            )}
+                            ))}
 
                             <h2>
-                                {about.title}
+                                {t(about.title)}
                             </h2>
 
-                            {about.subtitle && (
+                            {t(about.subtitle && (
                                 <h3>
-                                    {about.subtitle}
+                                    {t(about.subtitle)}
                                 </h3>
-                            )}
+                            ))}
 
                             <p className="home-about-description">
-                                {about.description}
+                                {t(about.description)}
                             </p>
 
-                            {about.features?.length >
+                            {t(about.features?.length >
                                 0 && (
 
                                 <div className="home-features">
 
-                                    {about.features
+                                    {t(about.features
                                         .slice(0, 3)
                                         .map(
                                             (
@@ -852,38 +819,38 @@ const Home = () => {
 
                                                     <div className="home-feature-icon">
 
-                                                        {index ===
+                                                        {t(index ===
                                                         0
                                                             ? "✧"
                                                             : index ===
                                                               1
                                                             ? "♪"
-                                                            : "◉"}
+                                                            : "◉")}
 
                                                     </div>
 
                                                     <h4>
                                                         {
-                                                            feature.title
+                                                            t(feature.title)
                                                         }
                                                     </h4>
 
                                                     <p>
                                                         {
-                                                            feature.description
+                                                            t(feature.description)
                                                         }
                                                     </p>
 
                                                 </div>
 
                                             )
-                                        )}
+                                        ))}
 
                                 </div>
 
-                            )}
+                            ))}
 
-                            {about.buttonText && (
+                            {t(about.buttonText && (
                                 <Link
                                     to={
                                         about.buttonLink ||
@@ -892,17 +859,17 @@ const Home = () => {
                                     className="home-primary-button home-about-button"
                                 >
                                     {
-                                        about.buttonText
+                                        t(about.buttonText)
                                     }
                                 </Link>
-                            )}
+                            ))}
 
                         </div>
 
                     </div>
 
                 </section>
-            )}
+            ))}
 
             <section className="home-gallery" id="gallery">
 
@@ -910,26 +877,17 @@ const Home = () => {
 
                     <div className="home-gallery-heading">
 
-                        <span>
-                            Khoảnh Khắc Thăng Hoa
-                        </span>
+                        <span> {t("Khoảnh Khắc Thăng Hoa")} </span>
 
-                        <h2>
-                            Hình Ảnh Hoạt Động & Hậu Trường
-                        </h2>
+                        <h2> {t("Hình Ảnh Hoạt Động & Hậu Trường")} </h2>
 
-                        <p>
-                            Từ những giờ phút miệt mài
-                            trong phòng tập đến sân khấu,
-                            mỗi khoảnh khắc đều là một phần
-                            câu chuyện của FYCE.
-                        </p>
+                        <p> {t("Từ những giờ phút miệt mài trong phòng tập đến sân khấu, mỗi khoảnh khắc đều là một phần câu chuyện của FYCE.")} </p>
 
                     </div>
 
                     <div className="home-gallery-grid">
 
-                        {gallery
+                        {t(gallery
                             .map(
                                 (
                                     item,
@@ -944,7 +902,7 @@ const Home = () => {
                                         }
                                     >
 
-                                        {item.image ? (
+                                        {t(item.image ? (
 
                                             <ContentImage
                                                 loading="lazy"
@@ -952,9 +910,9 @@ const Home = () => {
                                                     item.image
                                                 )}
                                                 alt={
-                                                    item.altText ||
+                                                    t(item.altText ||
                                                     item.title ||
-                                                    "FYCE Gallery"
+                                                    "FYCE Gallery")
                                                 }
                                             />
 
@@ -964,46 +922,44 @@ const Home = () => {
                                                 FYCE
                                             </div>
 
-                                        )}
+                                        ))}
 
-                                        {(item.title ||
+                                        {t((item.title ||
                                             item.caption) && (
 
                                             <figcaption>
 
-                                                {item.title && (
+                                                {t(item.title && (
                                                     <strong>
                                                         {
-                                                            item.title
+                                                            t(item.title)
                                                         }
                                                     </strong>
-                                                )}
+                                                ))}
 
-                                                {item.caption && (
+                                                {t(item.caption && (
                                                     <span>
                                                         {
-                                                            item.caption
+                                                            t(item.caption)
                                                         }
                                                     </span>
-                                                )}
+                                                ))}
 
                                             </figcaption>
 
-                                        )}
+                                        ))}
 
                                     </figure>
 
                                 )
-                            )}
+                            ))}
 
                     </div>
 
-                    {gallery.length ===
+                    {t(gallery.length ===
                         0 && (
-                        <div className="home-empty">
-                            Chưa có hình ảnh hoạt động.
-                        </div>
-                    )}
+                        <div className="home-empty"> {t("Chưa có hình ảnh hoạt động.")} </div>
+                    ))}
 
                 </div>
 

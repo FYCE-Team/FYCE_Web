@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import {
     useCallback,
     useEffect,
@@ -27,18 +28,18 @@ const getHoldStorageKey = (
 ) =>
     `${HOLD_STORAGE_PREFIX}${userId}:${eventId}`;
 
-const formatPrice = (value) =>
+const formatPrice = (value, locale = "vi-VN") =>
     `${new Intl.NumberFormat(
-        "vi-VN"
+        locale
     ).format(Number(value) || 0)}đ`;
 
-const formatDateTime = (date) => {
+const formatDateTime = (date, locale = "vi-VN") => {
     if (!date) {
         return "Đang cập nhật";
     }
 
     return new Intl.DateTimeFormat(
-        "vi-VN",
+        locale,
         {
             weekday: "long",
             day: "2-digit",
@@ -126,6 +127,8 @@ const validateCustomer = (customer) => {
 };
 
 const CheckoutPage = () => {
+    const { t, locale } = useLanguage();
+
     const params = useParams();
 
     /*
@@ -692,7 +695,7 @@ const CheckoutPage = () => {
                 const form = document.createElement("form");
                 form.method = "POST";
                 form.action = data.sepayCheckout.checkoutURL;
-                
+
                 Object.keys(data.sepayCheckout.formFields).forEach(key => {
                     const input = document.createElement("input");
                     input.type = "hidden";
@@ -700,7 +703,7 @@ const CheckoutPage = () => {
                     input.value = data.sepayCheckout.formFields[key];
                     form.appendChild(input);
                 });
-                
+
                 document.body.appendChild(form);
                 form.submit();
             } else if (data?.booking?.bookingCode) {
@@ -824,9 +827,7 @@ const CheckoutPage = () => {
         return (
             <section className="checkout-state">
                 <div className="checkout-spinner" />
-                <p>
-                    Đang xác thực phiên giữ ghế...
-                </p>
+                <p> {t("Đang xác thực phiên giữ ghế...")} </p>
             </section>
         );
     }
@@ -834,16 +835,12 @@ const CheckoutPage = () => {
     if (error && !checkout) {
         return (
             <section className="checkout-state">
-                <h1>
-                    Không thể mở checkout
-                </h1>
-                <p>{error}</p>
+                <h1> {t("Không thể mở checkout")} </h1>
+                <p>{t(error)}</p>
                 <Link
                     to="/"
                     className="checkout-back-link"
-                >
-                    ← Về trang chủ
-                </Link>
+                > {t("← Về trang chủ")} </Link>
             </section>
         );
     }
@@ -864,83 +861,70 @@ const CheckoutPage = () => {
                         <span>
                             CHECKOUT FYCE
                         </span>
-                        <h1>
-                            Xác nhận thông tin vé
-                        </h1>
+                        <h1> {t("Xác nhận thông tin vé")} </h1>
                         <p>
-                            {createdBookingCode
+                            {t(createdBookingCode
                                 ? "Đơn đã được tạo và đang chờ thanh toán."
-                                : "Ghế đang được giữ tạm thời. Đơn chỉ được tạo khi bạn bấm Thanh toán."}
+                                : "Ghế đang được giữ tạm thời. Đơn chỉ được tạo khi bạn bấm Thanh toán.")}
                         </p>
                     </div>
 
                     <div className="checkout-timer">
-                        <small>
-                            THỜI GIAN CÒN LẠI
-                        </small>
+                        <small> {t("THỜI GIAN CÒN LẠI")} </small>
                         <strong>
-                            {holdActive
+                            {t(holdActive
                                 ? formatCountdown(
                                       remainingSeconds
                                   )
-                                : "00:00"}
+                                : "00:00")}
                         </strong>
                     </div>
                 </header>
 
-                {error && (
+                {t(error && (
                     <div className="checkout-message checkout-message--error">
-                        {error}
+                        {t(error)}
                     </div>
-                )}
+                ))}
 
-                {expired && (
-                    <div className="checkout-message checkout-message--warning">
-                        Phiên giữ ghế đã hết hạn. Bạn cần chọn lại ghế.
-                    </div>
-                )}
+                {t(expired && (
+                    <div className="checkout-message checkout-message--warning"> {t("Phiên giữ ghế đã hết hạn. Bạn cần chọn lại ghế.")} </div>
+                ))}
 
                 <div className="checkout-grid">
                     <section className="checkout-card checkout-card--main">
                         <div className="checkout-event">
                             <div>
-                                <small>
-                                    SỰ KIỆN
-                                </small>
+                                <small> {t("SỰ KIỆN")} </small>
                                 <h2>
-                                    {checkout.eventSnapshot.title}
+                                    {t(checkout.eventSnapshot.title)}
                                 </h2>
                                 <p>
-                                    {formatDateTime(
-                                        checkout.eventSnapshot.startAt
-                                    )}
+                                    {t(formatDateTime(
+                                        checkout.eventSnapshot.startAt, locale
+                                    ))}
                                 </p>
                                 <p>
-                                    {checkout.eventSnapshot.venue}
-                                    {checkout.eventSnapshot.address
+                                    {t(checkout.eventSnapshot.venue)}
+                                    {t(checkout.eventSnapshot.address
                                         ? ` • ${checkout.eventSnapshot.address}`
-                                        : ""}
+                                        : "")}
                                 </p>
                             </div>
 
-                            <span className="checkout-code">
-                                Tạm giữ ghế
-                            </span>
+                            <span className="checkout-code"> {t("Tạm giữ ghế")} </span>
                         </div>
 
                         <div className="checkout-divider" />
 
                         <div className="checkout-section-title">
-                            <h3>
-                                Ghế đã chọn
-                            </h3>
+                            <h3> {t("Ghế đã chọn")} </h3>
                             <span>
-                                {groupedItems.length} vé
-                            </span>
+                                {t(groupedItems.length)} {t("vé")} </span>
                         </div>
 
                         <div className="checkout-ticket-list">
-                            {groupedItems.map(
+                            {t(groupedItems.map(
                                 (item) => (
                                     <article
                                         className="checkout-ticket-row"
@@ -949,34 +933,31 @@ const CheckoutPage = () => {
                                         )}
                                     >
                                         <div className="checkout-seat-badge">
-                                            {item.seatLabel}
+                                            {t(item.seatLabel)}
                                         </div>
 
                                         <div className="checkout-ticket-info">
                                             <strong>
-                                                {item.ticketCategoryName}
+                                                {t(item.ticketCategoryName)}
                                             </strong>
-                                            <span>
-                                                Hàng {item.row} • Ghế {item.number}
+                                            <span> {t("Hàng")} {t(item.row)} {t("• Ghế")} {t(item.number)}
                                             </span>
                                         </div>
 
                                         <strong className="checkout-ticket-price">
-                                            {formatPrice(
-                                                item.unitPrice
-                                            )}
+                                            {t(formatPrice(
+                                                item.unitPrice, locale
+                                            ))}
                                         </strong>
                                     </article>
                                 )
-                            )}
+                            ))}
                         </div>
                     </section>
 
                     <aside className="checkout-card checkout-card--summary">
                         <div className="checkout-section-title">
-                            <h3>
-                                Người đặt vé
-                            </h3>
+                            <h3> {t("Người đặt vé")} </h3>
                         </div>
 
                         <form
@@ -987,9 +968,7 @@ const CheckoutPage = () => {
                             noValidate
                         >
                             <label className="checkout-field">
-                                <span>
-                                    Họ và tên
-                                </span>
+                                <span> {t("Họ và tên")} </span>
                                 <input
                                     type="text"
                                     name="fullName"
@@ -1005,13 +984,13 @@ const CheckoutPage = () => {
                                         savingCustomer
                                     }
                                 />
-                                {customerErrors.fullName && (
+                                {t(customerErrors.fullName && (
                                     <small className="checkout-field-error">
                                         {
-                                            customerErrors.fullName
+                                            t(customerErrors.fullName)
                                         }
                                     </small>
-                                )}
+                                ))}
                             </label>
 
                             <label className="checkout-field">
@@ -1027,22 +1006,18 @@ const CheckoutPage = () => {
                                     className="checkout-input--readonly"
                                     autoComplete="email"
                                 />
-                                <small className="checkout-field-note">
-                                    Email gắn với tài khoản và không chỉnh tại checkout.
-                                </small>
-                                {customerErrors.email && (
+                                <small className="checkout-field-note"> {t("Email gắn với tài khoản và không chỉnh tại checkout.")} </small>
+                                {t(customerErrors.email && (
                                     <small className="checkout-field-error">
                                         {
-                                            customerErrors.email
+                                            t(customerErrors.email)
                                         }
                                     </small>
-                                )}
+                                ))}
                             </label>
 
                             <label className="checkout-field">
-                                <span>
-                                    Số điện thoại
-                                </span>
+                                <span> {t("Số điện thoại")} </span>
                                 <input
                                     type="tel"
                                     name="phone"
@@ -1059,43 +1034,39 @@ const CheckoutPage = () => {
                                         savingCustomer
                                     }
                                 />
-                                {customerErrors.phone && (
+                                {t(customerErrors.phone && (
                                     <small className="checkout-field-error">
                                         {
-                                            customerErrors.phone
+                                            t(customerErrors.phone)
                                         }
                                     </small>
-                                )}
+                                ))}
                             </label>
 
-                            {customerErrors.form && (
+                            {t(customerErrors.form && (
                                 <div className="checkout-profile-error">
                                     {
-                                        customerErrors.form
+                                        t(customerErrors.form)
                                     }
                                 </div>
-                            )}
+                            ))}
 
-                            {customerMessage && (
+                            {t(customerMessage && (
                                 <div className="checkout-profile-success">
-                                    {customerMessage}
+                                    {t(customerMessage)}
                                 </div>
-                            )}
+                            ))}
 
-                            {!customerReady &&
+                            {t(!customerReady &&
                                 !customerErrors.form && (
-                                <div className="checkout-profile-hint">
-                                    Hãy cập nhật họ tên và số điện thoại hợp lệ trước khi thanh toán.
-                                </div>
-                            )}
+                                <div className="checkout-profile-hint"> {t("Hãy cập nhật họ tên và số điện thoại hợp lệ trước khi thanh toán.")} </div>
+                            ))}
 
-                            {customerReady &&
+                            {t(customerReady &&
                                 customerDirty &&
                                 !customerErrors.form && (
-                                <div className="checkout-profile-hint">
-                                    Bạn đã thay đổi thông tin. Hãy lưu trước khi sang bước thanh toán.
-                                </div>
-                            )}
+                                <div className="checkout-profile-hint"> {t("Bạn đã thay đổi thông tin. Hãy lưu trước khi sang bước thanh toán.")} </div>
+                            ))}
 
                             <button
                                 type="submit"
@@ -1106,51 +1077,47 @@ const CheckoutPage = () => {
                                     !customerDirty
                                 }
                             >
-                                {savingCustomer
+                                {t(savingCustomer
                                     ? "Đang lưu..."
                                     : customerDirty
                                     ? "Lưu thông tin người đặt vé"
-                                    : "Thông tin đã được lưu"}
+                                    : "Thông tin đã được lưu")}
                             </button>
                         </form>
 
                         <div className="checkout-divider" />
 
                         <div className="checkout-total-row">
-                            <span>Tạm tính</span>
+                            <span>{t("Tạm tính")}</span>
                             <strong>
-                                {formatPrice(
-                                    checkout.subtotal
-                                )}
+                                {t(formatPrice(
+                                    checkout.subtotal, locale
+                                ))}
                             </strong>
                         </div>
 
                         <div className="checkout-total-row checkout-total-row--grand">
-                            <span>
-                                Tổng thanh toán
-                            </span>
+                            <span> {t("Tổng thanh toán")} </span>
                             <strong>
-                                {formatPrice(
-                                    checkout.totalAmount
-                                )}
+                                {t(formatPrice(
+                                    checkout.totalAmount, locale
+                                ))}
                             </strong>
                         </div>
 
-                        {createdBookingCode ? (
+                        {t(createdBookingCode ? (
                             <div className="checkout-payment-section">
-                                {paymentStatus === "paid" ? (
+                                {t(paymentStatus === "paid" ? (
                                     <div className="checkout-message checkout-message--success" style={{textAlign: "center", marginTop: 20}}>
-                                        <h3>Thanh toán thành công!</h3>
-                                        <p>Đang chuyển hướng đến vé của bạn...</p>
+                                        <h3>{t("Thanh toán thành công!")}</h3>
+                                        <p>{t("Đang chuyển hướng đến vé của bạn...")}</p>
                                     </div>
                                 ) : (
                                     <div className="checkout-message checkout-message--warning" style={{textAlign: "center", marginTop: 20}}>
-                                        <h3>Chưa thể mở cổng thanh toán</h3>
-                                        <p>
-                                            Đơn <strong>{createdBookingCode}</strong> đã được tạo, nhưng backend chưa trả về phiên SePay Checkout. Vui lòng kiểm tra cấu hình SePay trước khi thanh toán.
-                                        </p>
+                                        <h3>{t("Chưa thể mở cổng thanh toán")}</h3>
+                                        <p> {t("Đơn")} <strong>{t(createdBookingCode)}</strong> {t("đã được tạo, nhưng backend chưa trả về phiên SePay Checkout. Vui lòng kiểm tra cấu hình SePay trước khi thanh toán.")} </p>
                                     </div>
-                                )}
+                                ))}
                             </div>
                         ) : (
                             <button
@@ -1161,25 +1128,23 @@ const CheckoutPage = () => {
                                     !customerReady || customerDirty || bookingInProgress || !holdActive
                                 }
                                 title={
-                                    !customerReady
+                                    t(!customerReady
                                         ? "Vui lòng cập nhật đầy đủ thông tin người đặt vé"
                                         : customerDirty
                                         ? "Vui lòng lưu thông tin người đặt vé trước"
-                                        : "Tạo đơn và thanh toán"
+                                        : "Tạo đơn và thanh toán")
                                 }
                             >
-                                {bookingInProgress ? "Đang xử lý..." : "Thanh toán"}
+                                {t(bookingInProgress ? "Đang xử lý..." : "Thanh toán")}
                             </button>
-                        )}
+                        ))}
 
-                        {holdActive ? (
+                        {t(holdActive ? (
                             <>
                                 <Link
                                     className="checkout-cancel-button checkout-cancel-button--link"
                                     to={`/events/${checkout.eventSnapshot.slug}`}
-                                >
-                                    ← Quay lại thông tin sự kiện
-                                </Link>
+                                > {t("← Quay lại thông tin sự kiện")} </Link>
 
                                 <button
                                     type="button"
@@ -1191,21 +1156,19 @@ const CheckoutPage = () => {
                                         cancelling
                                     }
                                 >
-                                    {cancelling
+                                    {t(cancelling
                                         ? "Đang nhả ghế..."
                                         : createdBookingCode
                                         ? "Hủy đơn & chọn lại"
-                                        : "Hủy giữ ghế & chọn lại"}
+                                        : "Hủy giữ ghế & chọn lại")}
                                 </button>
                             </>
                         ) : (
                             <Link
                                 className="checkout-cancel-button checkout-cancel-button--link"
                                 to={`/events/${checkout.eventSnapshot.slug}/seats`}
-                            >
-                                Chọn lại ghế
-                            </Link>
-                        )}
+                            > {t("Chọn lại ghế")} </Link>
+                        ))}
                     </aside>
                 </div>
             </div>

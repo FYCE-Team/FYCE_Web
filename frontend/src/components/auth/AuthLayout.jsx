@@ -1,3 +1,4 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
 import AuthHeader from "./AuthHeader";
 import AuthFooter from "./AuthFooter";
 
@@ -5,6 +6,8 @@ const AuthLayout = ({
     children,
     className = ""
 }) => {
+    const { t } = useLanguage();
+
     return (
         <div
             className={`auth-layout ${className}`}
@@ -12,7 +15,7 @@ const AuthLayout = ({
             <AuthHeader />
 
             <main className="auth-content">
-                {children}
+                {t(children)}
             </main>
 
             <AuthFooter />
