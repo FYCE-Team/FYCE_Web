@@ -15,3 +15,15 @@ export function resolveVideoSource(value) {
   // Direct CDN media can be signed or extensionless; the browser checks the format.
   return { kind: "video", src: source };
 }
+// Public GridFS streams bypass the deployment proxy, which may cache a 206
+// fragment under the same key as the full video. Never rewrite external CDN URLs.
+export function routePublicVideo(source, publicOrigin, appOrigin) {
+  if (!publicOrigin || !source) return source;
+  try {
+    const target = new URL(source, appOrigin);
+    if (target.origin !== appOrigin || !/^\/api\/videos\/[a-f\d]{24}$/i.test(target.pathname)) return source;
+    const origin = new URL(publicOrigin);
+    if (origin.protocol !== "https:" || origin.username || origin.password) return source;
+    return `${origin.origin}${target.pathname}${target.search}${target.hash}`;
+  } catch { return source; }
+}

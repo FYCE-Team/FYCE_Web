@@ -1,6 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveVideoSource } from "../src/utils/videoSource.js";
+import { resolveVideoSource, routePublicVideo } from "../src/utils/videoSource.js";
+
+test("public video streams bypass deployment proxy without rewriting signed CDN, local or other-origin URLs", () => {
+  const app = "https://fyce-web.vercel.app", media = "https://fyce-web.onrender.com";
+  const path = "/api/videos/507f1f77bcf86cd799439011";
+  assert.equal(routePublicVideo(path, media, app), media + path);
+  assert.equal(routePublicVideo(app + path + "?v=2#t=3", media, app), media + path + "?v=2#t=3");
+  for (const src of ["https://cdn.example" + path + "?signature=abc", media + path, "/uploads/clip.mp4", "/api/videos/not-an-id", "blob:https://fyce-web.vercel.app/123"]) assert.equal(routePublicVideo(src, media, app), src);
+  assert.equal(routePublicVideo(path, "", "http://localhost:5180"), path);
+  assert.equal(routePublicVideo(path, "https://user:secret@cdn.example", app), path);
+  assert.equal(routePublicVideo(path, "http://cdn.example", app), path);
+});
 test("direct video accepts GridFS, full API URLs and signed extensionless CDN media", () => {
   for (const src of ["/api/videos/507f1f77bcf86cd799439011", "https://fyce.example/api/videos/507f1f77bcf86cd799439011", "https://cdn.example/stream?id=123&signature=abc", "https://cdn.example/clip.webm?token=abc#t=3"]) assert.deepEqual(resolveVideoSource(src), { kind: "video", src });
 });

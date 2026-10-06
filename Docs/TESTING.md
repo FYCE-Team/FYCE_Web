@@ -1,4 +1,6 @@
-07/10 — trailer/ảnh: frontend18/18, build đạt, lint0 lỗi/16 warning cũ. Chrome Day2 tự phát muted trong hero, readyState4; mobile390 reload cũng paused=false/time tăng sau bổ sung defaultMuted/canplay. Native dialog mở bằng click/Enter, đóng Escape/nút/bấm ngoài và phục hồi focus/overflow. Fixture GET-only API 3003/Vite5181: không trailer + có heroVideoUrl vẫn chỉ cover; trailer 404 về cover; 7 ảnh hoạt động đầy đủ, masonry 2 cột desktop/1 cột mobile390, không overflow. Home card mở ảnh giữ URL Home. Không ghi DB/provider thật.
+07/10 — trailer/ảnh: frontend19/19, build đạt, lint0 lỗi/16 warning cũ. Chrome Day2 tự phát muted trong hero, readyState4; mobile390 reload cũng paused=false/time tăng sau bổ sung defaultMuted/canplay. Native dialog mở bằng click/Enter, đóng Escape/nút/bấm ngoài và phục hồi focus/overflow. Fixture GET-only API 3003/Vite5181: không trailer + có heroVideoUrl vẫn chỉ cover; trailer 404 về cover; 7 ảnh hoạt động đầy đủ, masonry 2 cột desktop/1 cột mobile390, không overflow. Home card mở ảnh giữ URL Home. Không ghi DB/provider thật.
+
+Production QA5182: video trực tiếp Render paused=false/readyState4; test `routePublicVideo` giữ CDN signed/query/fragment, blob/local/other-origin, từ chối public origin HTTP/credential. Bản Vercel trước fix trả cached 206 chỉ2 byte cho Range0-; không lấy HEAD200 làm bằng chứng phát video thành công.
 
 # Kiểm thử và vận hành thử
 

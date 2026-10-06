@@ -1,6 +1,6 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { localizeContent } from "../../i18n/content.js";
-import { resolveVideoSource } from "../../utils/videoSource.js";
+import { resolveVideoSource, routePublicVideo } from "../../utils/videoSource.js";
 import ContentImage from "../../components/media/ContentImage.jsx";
 import { useImagePreview } from "../../components/media/ImagePreviewContext.js";
 import { useEffect, useMemo, useState } from "react";
@@ -8,7 +8,7 @@ import { Link, useParams } from "react-router-dom";
 import { getMediaUrl } from "../../utils/media.js";
 import "./EventDetail.css";
 
-import { API_BASE_URL } from "../../config/api.js";
+import { API_BASE_URL, PUBLIC_VIDEO_ORIGIN } from "../../config/api.js";
 
 const formatDate = (date, locale = "vi-VN") => {
     if (!date) return "";
@@ -179,7 +179,9 @@ const EventDetail = () => {
     const trailerSourceUrl = event?.trailerVideoUrl || null;
     const videoSource = failedVideo === trailerSourceUrl ? null : resolveVideoSource(trailerSourceUrl);
     const displayVideoUrl = videoSource?.kind === "youtube" ? videoSource.src : null;
-    const localVideoUrl = videoSource?.kind === "video" ? getMediaUrl(videoSource.src) : null;
+    const localVideoUrl = videoSource?.kind === "video"
+        ? routePublicVideo(getMediaUrl(videoSource.src), PUBLIC_VIDEO_ORIGIN, window.location.origin)
+        : null;
     const youtubeVideoId = videoSource?.id;
     const showCover = () => {
         if (!videoSource && event?.coverImage) openImage({ src: getMediaUrl(event.coverImage), alt: t(event.title) });

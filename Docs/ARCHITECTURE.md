@@ -1,5 +1,7 @@
 # Kiến trúc FYCEweb — bản ghi từ mã nguồn
 
+07/10 media deploy: `routePublicVideo` chỉ đổi URL GridFS video public cùng origin sang `PUBLIC_VIDEO_ORIGIN` (production mặc định Render, tùy chọn `VITE_PUBLIC_VIDEO_ORIGIN`). Điều này tránh Vercel rewrite cache nhầm response Range 206 thành video đầy đủ. URL CDN ngoài/signed/blob và local giữ nguyên. `API_BASE_URL` cho auth/payment vẫn `/api` first-party; không dùng origin video cho API nghiệp vụ.
+
 Cập nhật: 2026-09-30. Checkout ban đầu không có thư mục Docs, AGENTS.md hay tài liệu kiến trúc riêng; chỉ có README mặc định của Vite. Tài liệu này mô tả hệ thống thực tế, không giả định các quy tắc thiết kế chưa được cung cấp.
 
 ## Các lớp và thư mục

@@ -7,9 +7,10 @@
     "completed": [
       "Autoplay muted trailer in cover region; cover-only without trailer; native video error fallback",
       "Public image dialog with keyboard, blurred backdrop and focus/scroll restoration",
-      "Natural-height concert galleries displaying every image without fixed-frame blank space"
+      "Natural-height concert galleries displaying every image without fixed-frame blank space",
+      "Bypass Vercel cached partial video streams using public Render media origin; preserve first-party auth and signed external CDN URLs"
     ],
-    "qa": "Frontend18 tests; Chrome desktop Day2 autoplay/readyState4, Home card image click, keyboard/outside dismissal. GET-only QA fixture on3003 and Vite5181: no trailer ignores heroVideoUrl, trailer404 falls back, 7 activity images; mobile390 one column/no overflow. No backend, database or payment changes.",
+    "qa": "Frontend19/19, build index-C-rc14Wi.js, lint0 errors/16 old warnings. Chrome desktop/mobile390 autoplay muted/readyState4; image keyboard/outside dismissal and focus/overflow restoration. GET-only fixture7 photos/no trailer/native404 fallback. Production QA5182 video direct Render plays; Vercel proxy returned cached206 only2bytes for Range0-, now bypassed for same-origin public GridFS videos only. Auth/payment API unchanged.",
     "pending": [
       "Release verification",
       "Existing provider acceptance remains pending"
@@ -77,7 +78,7 @@
     },
     "backendSyntax": "passed (99 files)",
     "gitDiffCheck": "passed",
-    "frontendUnitPassed": 18
+    "frontendUnitPassed": 19
   },
   "blockedChecks": [
     "Render workspace login: authorized GitHub account leads to new-account form; correct existing account needed for deployment SHA/log",
