@@ -1,30 +1,60 @@
 {
   "updatedAt": "2026-10-07",
   "latestUpdate": {
-    "status": "smooth_scroll_background_video_code_verified",
-    "commit": "2c5e25b",
-    "deployment": "Pushed main; Vercel success. Production index-CmZdzCap.js matches verified local build; Day2 public source repaired and HEAD200.",
-    "completed": ["Removed hidden/staggered sections and full-page transforms", "Incremental DOM observation ignoring text/countdown updates", "One router background with whole/half/quarter/eighth/sixteenth notes and treble/bass clefs", "Foreground event video player and signed/absolute/extensionless video support", "Repaired Day2 trailer reference to byte-identical live shared video with CAS; no Atlas binary growth"],
-    "qa": "Frontend 18/18, production build, lint 0 errors/16 existing warnings; backend/dependencies unchanged. Chrome desktop public Home/EventDetail/Login: one background/19 symbols, no hidden sections; Day2 video readyState4/duration10s/controls and actual playback without error; repaired public source HEAD200. Mobile390: no overflow, video316px/readyState4/error null.",
-    "pending": ["Existing real provider acceptance remains pending; no FPS benchmark across all devices"]
+    "status": "hero_trailer_image_preview_verified_pending_release",
+    "commit": null,
+    "deployment": "Pending push and Vercel verification",
+    "completed": [
+      "Autoplay muted trailer in cover region; cover-only without trailer; native video error fallback",
+      "Public image dialog with keyboard, blurred backdrop and focus/scroll restoration",
+      "Natural-height concert galleries displaying every image without fixed-frame blank space"
+    ],
+    "qa": "Frontend18 tests; Chrome desktop Day2 autoplay/readyState4, Home card image click, keyboard/outside dismissal. GET-only QA fixture on3003 and Vite5181: no trailer ignores heroVideoUrl, trailer404 falls back, 7 activity images; mobile390 one column/no overflow. No backend, database or payment changes.",
+    "pending": [
+      "Release verification",
+      "Existing provider acceptance remains pending"
+    ]
   },
   "motionUpdate": {
     "status": "code_verified_pending_visual_and_provider_acceptance",
     "commit": "9301d31",
     "deployment": "Pushed main; Vercel success and production index-DtgTrNQk.js matches local. Render version probe timed out; backend rollout remains unverified.",
-    "completed": ["More animated notes/staves and public scroll reveal with reduced-motion", "Route-specific reload scroll restoration", "Optional English event editorial fields and public rendering", "Visible external background-video URL", "Small GridFS upload cap and partial upload abort"],
+    "completed": [
+      "More animated notes/staves and public scroll reveal with reduced-motion",
+      "Route-specific reload scroll restoration",
+      "Optional English event editorial fields and public rendering",
+      "Visible external background-video URL",
+      "Small GridFS upload cap and partial upload abort"
+    ],
     "qa": "73 backend integration tests, 15 frontend unit tests; production build; syntax 99 files; lint 0 errors/16 existing warnings; audits 0",
-    "pending": ["Chrome tool connection policy unavailable after retry: visual/reload browser QA not completed", "External media account/link and Atlas quota recovery require owner data/actions", "Production backend rollout and real providers still need verification"],
+    "pending": [
+      "Chrome tool connection policy unavailable after retry: visual/reload browser QA not completed",
+      "External media account/link and Atlas quota recovery require owner data/actions",
+      "Production backend rollout and real providers still need verification"
+    ],
     "mediaGuide": "Docs/MEDIA_STORAGE.md"
   },
   "previousUpdate": {
     "status": "pushed_frontend_deployed_backend_rollout_pending",
     "commit": "24d8e1b",
     "deployment": "Vercel success; production index-Xdbt9br_.js matches local. Both health endpoints 200. Initial post-push Render refresh still sends cookie deletion and lacks new code field: backend rollout not yet confirmed.",
-    "completed": ["Concert SVG/CSS animation with reduced motion", "Bundled Vietnamese-capable fonts", "English current homepage and optional editorial Hero/About translations", "Mobile outside-click and Escape dismissal", "Cookie refresh race and validated memory-token restoration on Back", "Dependency advisory patches"],
+    "completed": [
+      "Concert SVG/CSS animation with reduced motion",
+      "Bundled Vietnamese-capable fonts",
+      "English current homepage and optional editorial Hero/About translations",
+      "Mobile outside-click and Escape dismissal",
+      "Cookie refresh race and validated memory-token restoration on Back",
+      "Dependency advisory patches"
+    ],
     "qa": "Chrome isolated API 3002/Vite 5180/MongoDB 27028: 1440px and 390px; English homepage; paid fixture 274 seats retains session on Back and payment=error/cancel",
-    "pending": ["Friend browser/device unspecified; same Vercel URL confirmed", "Real SePay checkout, Google OAuth, SMTP inbox and physical camera acceptance"],
-    "evidence": ["/tmp/fyce-oct6-evidence/desktop-en.png", "/tmp/fyce-oct6-evidence/mobile-en.png"]
+    "pending": [
+      "Friend browser/device unspecified; same Vercel URL confirmed",
+      "Real SePay checkout, Google OAuth, SMTP inbox and physical camera acceptance"
+    ],
+    "evidence": [
+      "/tmp/fyce-oct6-evidence/desktop-en.png",
+      "/tmp/fyce-oct6-evidence/mobile-en.png"
+    ]
   },
   "scope": "FYCEweb repository only",
   "acceptance": {
@@ -120,6 +150,22 @@
       "XLSX zero-match filter: one header row only",
       "Day2 274 available seats share #7db7f5; no database changes",
       "Back retains admin session"
+    ]
+  },
+  "smoothMediaUpdate": {
+    "status": "smooth_scroll_background_video_code_verified",
+    "commit": "2c5e25b",
+    "deployment": "Pushed main; Vercel success. Production index-CmZdzCap.js matches verified local build; Day2 public source repaired and HEAD200.",
+    "completed": [
+      "Removed hidden/staggered sections and full-page transforms",
+      "Incremental DOM observation ignoring text/countdown updates",
+      "One router background with whole/half/quarter/eighth/sixteenth notes and treble/bass clefs",
+      "Foreground event video player and signed/absolute/extensionless video support",
+      "Repaired Day2 trailer reference to byte-identical live shared video with CAS; no Atlas binary growth"
+    ],
+    "qa": "Frontend 18/18, production build, lint 0 errors/16 existing warnings; backend/dependencies unchanged. Chrome desktop public Home/EventDetail/Login: one background/19 symbols, no hidden sections; Day2 video readyState4/duration10s/controls and actual playback without error; repaired public source HEAD200. Mobile390: no overflow, video316px/readyState4/error null.",
+    "pending": [
+      "Existing real provider acceptance remains pending; no FPS benchmark across all devices"
     ]
   }
 }

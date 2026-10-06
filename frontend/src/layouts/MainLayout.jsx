@@ -2,13 +2,14 @@ import {
     Outlet
 } from "react-router-dom";
 
+import ImagePreview from "../components/media/ImagePreview.jsx";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 import "./MainLayout.css";
 
 const MainLayout = () => {
     return (
-        <div className="main-layout">
+        <ImagePreview><div className="main-layout">
             <Header />
 
             <main className="main-layout-content">
@@ -16,7 +17,7 @@ const MainLayout = () => {
             </main>
 
             <Footer />
-        </div>
+        </div></ImagePreview>
     );
 };
 

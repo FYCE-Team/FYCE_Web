@@ -1,3 +1,15 @@
+## Trailer trong cover và xem ảnh — 07/10/2026
+
+**█████████░ 90% — tính năng media đạt QA; nghiệm thu provider trước đó còn mở.**
+
+- Chi tiết concert chỉ dùng `trailerVideoUrl` ở hero: MP4/CDN tự chạy muted/loop/playsInline; YouTube dùng embed autoplay/mute. Không có trailer hoặc native video lỗi thì hiện cover; không lấy `heroVideoUrl` thay trailer. Bỏ khung video riêng.
+- ImagePreview ở MainLayout public: ảnh trang chủ, chương trình, nghệ sĩ, hoạt động, avatar profile và sơ đồ khán phòng mở ảnh đầy đủ trong native dialog với backdrop mờ. Enter/Space, Escape/nút đóng/bấm ngoài, focus trap và trả focus/overflow; điều hướng đóng dialog. Không áp dụng admin, QR hoặc trailer. Bấm ảnh trong card mở ảnh; tiêu đề/CTA vẫn dẫn tới sự kiện.
+- Hai gallery concert đổi từ khung cố định/hàng cuộn ngang sang masonry hai cột theo tỷ lệ ảnh gốc; mobile nhỏ một cột. Giữ mọi ảnh và thứ tự metadata, không cắt ảnh chứa nội dung chương trình.
+- QA Chrome: Day2 video nằm trong hero, muted, paused=false, readyState4; ảnh lớn VI/EN mở/đóng bằng bàn phím và bấm ngoài, focus/overflow phục hồi; Home card ảnh không điều hướng. Fixture API chỉ GET ở 3003 + Vite 5181 xác minh không trailer dù có heroVideoUrl vẫn chỉ cover, native trailer 404 về cover, bảy ảnh hoạt động hiển thị đủ, desktop hai cột/mobile390 một cột không overflow. Không ghi DB thật/fixture, không chạm auth/thanh toán/backend.
+- Mobile390 sau reload: video muted/defaultMuted, paused=false, readyState4, time tăng; set muted attribute trước mount và thử play khi canplay để tránh lần tải sẵn nhưng không tự chạy. Frontend 18/18 tests, build đạt (`index-Bx_-bOnj.js`), lint 0 lỗi/16 warning cũ, diff check đạt. Screenshot tạm `/tmp/fyce-trailer-evidence/`. Commit/deploy ghi sau khi xác minh.
+
+---
+
 ## Sửa độ trễ cuộn, nền nhạc và video — 07/10/2026
 
 **█████████░ 90% — bản sửa code đạt; các cổng nghiệm thu provider còn giữ nguyên.**

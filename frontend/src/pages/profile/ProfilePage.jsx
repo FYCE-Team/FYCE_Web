@@ -1,4 +1,5 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
+import ContentImage from "../../components/media/ContentImage.jsx";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
@@ -49,7 +50,7 @@ export default function ProfilePage() {
         <span className="profile-eyebrow">{t("TÀI KHOẢN FYCE")}</span>
         <div className="profile-avatar">
           {t(avatar ? (
-            <img src={mediaUrl(avatar)} alt={t("Ảnh đại diện")} />
+            <ContentImage src={mediaUrl(avatar)} alt={t("Ảnh đại diện")} />
           ) : (
             <span>{t((user?.fullName || "F").slice(0, 1).toUpperCase())}</span>
           ))}

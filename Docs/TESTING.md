@@ -1,3 +1,5 @@
+07/10 — trailer/ảnh: frontend18/18, build đạt, lint0 lỗi/16 warning cũ. Chrome Day2 tự phát muted trong hero, readyState4; mobile390 reload cũng paused=false/time tăng sau bổ sung defaultMuted/canplay. Native dialog mở bằng click/Enter, đóng Escape/nút/bấm ngoài và phục hồi focus/overflow. Fixture GET-only API 3003/Vite5181: không trailer + có heroVideoUrl vẫn chỉ cover; trailer 404 về cover; 7 ảnh hoạt động đầy đủ, masonry 2 cột desktop/1 cột mobile390, không overflow. Home card mở ảnh giữ URL Home. Không ghi DB/provider thật.
+
 # Kiểm thử và vận hành thử
 
 07/10: frontend **18/18**, build đạt, lint 0 lỗi/16 warning hiện hữu. Thêm test phân loại URL video: absolute GridFS, signed/extensionless CDN, YouTube watch/shorts/nocookie/short links và từ chối protocol/credentials/control characters không hợp lệ. Backend không đổi, bộ 73 test trước vẫn là kết quả lịch sử, không chạy lại trong đợt chỉ sửa frontend. Kiểm tra public HEAD phát hiện Day2 404 và Day1 200; repair URL được ghi trong PROGRESS, không dùng production cho các test transaction.

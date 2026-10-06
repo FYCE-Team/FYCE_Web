@@ -1,3 +1,5 @@
+> Cập nhật UI 07/10: trailer sự kiện (`trailerVideoUrl`) phát tự động tắt tiếng trong vùng cover; không có trailer thì chỉ hiện cover, không dùng video nền thay thế. Native video lỗi cũng về cover. Không còn khung video riêng; các ghi nhận player bên dưới là lịch sử bản trước. URL YouTube/signed CDN vẫn được resolver hỗ trợ; không thêm binary vào Atlas.
+
 # Video và dung lượng Atlas
 
 07/10: chi tiết sự kiện có **khung video chương trình riêng** với Play/controls, không chỉ autoplay sau lớp phủ hero. Link GridFS absolute và media CDN không đuôi được nhận; định dạng/browser/link public vẫn cần hợp lệ. Day2 đã sửa sang video chung còn hoạt động sau đối chiếu backup và SHA-256 giống hoàn toàn; không upload thêm binary. File backup phục hồi tạm nằm `/tmp/FYCE-Day2-recovered.mp4`, không trong Git, không tự gửi ra dịch vụ thứ ba.

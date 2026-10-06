@@ -1,7 +1,8 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { localizeContent } from "../../i18n/content.js";
 import { resolveVideoSource } from "../../utils/videoSource.js";
-import EventVideo from "../../components/media/EventVideo.jsx";
+import ContentImage from "../../components/media/ContentImage.jsx";
+import { useImagePreview } from "../../components/media/ImagePreviewContext.js";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMediaUrl } from "../../utils/media.js";
@@ -48,12 +49,6 @@ const formatDuration = (minutes) => {
     return `${minutes} phút`;
 };
 
-const getYouTubeEmbedUrl = url => {
-    const source = resolveVideoSource(url);
-    return source?.kind === "youtube" ? source.src : null;
-};
-const isLocalVideo = url => resolveVideoSource(url)?.kind === "video";
-
 const getInitialTicketColor = (index) => {
     const colors = [
         "#f4b740",
@@ -66,6 +61,13 @@ const getInitialTicketColor = (index) => {
     return colors[index % colors.length];
 };
 
+const prepareMutedTrailer = video => {
+    if (video) {
+        video.defaultMuted = true;
+        video.muted = true;
+    }
+};
+
 const EventDetail = () => {
     const { t, locale, language } = useLanguage();
 
@@ -75,7 +77,8 @@ const EventDetail = () => {
     const event = useMemo(() => localizeContent(rawEvent, language), [rawEvent, language]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [isSeatingChartOpen, setIsSeatingChartOpen] = useState(false);
+    const openImage = useImagePreview();
+    const [failedVideo, setFailedVideo] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -135,38 +138,6 @@ const EventDetail = () => {
         };
     }, [slug]);
 
-    useEffect(() => {
-        if (!isSeatingChartOpen) {
-            return;
-        }
-
-        const handleKeyDown = (event) => {
-            if (event.key === "Escape") {
-                setIsSeatingChartOpen(false);
-            }
-        };
-
-        document.addEventListener(
-            "keydown",
-            handleKeyDown
-        );
-
-        const previousOverflow =
-            document.body.style.overflow;
-
-        document.body.style.overflow = "hidden";
-
-        return () => {
-            document.removeEventListener(
-                "keydown",
-                handleKeyDown
-            );
-
-            document.body.style.overflow =
-                previousOverflow;
-        };
-    }, [isSeatingChartOpen]);
-
     const activeTicketCategories = useMemo(() => {
         if (!event?.ticketCategories) {
             return [];
@@ -205,47 +176,14 @@ const EventDetail = () => {
         return Math.min(...prices);
     }, [activeTicketCategories]);
 
-    const trailerSourceUrl =
-        event?.trailerVideoUrl || null;
-
-    const heroSourceUrl =
-        event?.heroVideoUrl || null;
-
-    const displayVideoUrl =
-        getYouTubeEmbedUrl(heroSourceUrl);
-
-    const localVideoUrl =
-        isLocalVideo(heroSourceUrl)
-            ? getMediaUrl(heroSourceUrl)
-            : null;
-
-    const youtubeVideoId = useMemo(() => {
-        if (!displayVideoUrl) {
-            return null;
-        }
-
-        try {
-            const parsed =
-                new URL(displayVideoUrl);
-
-            if (
-                parsed.hostname.includes(
-                    "youtube.com"
-                ) &&
-                parsed.pathname.startsWith(
-                    "/embed/"
-                )
-            ) {
-                return parsed.pathname
-                    .replace("/embed/", "")
-                    .split("/")[0];
-            }
-        } catch {
-            return null;
-        }
-
-        return null;
-    }, [displayVideoUrl]);
+    const trailerSourceUrl = event?.trailerVideoUrl || null;
+    const videoSource = failedVideo === trailerSourceUrl ? null : resolveVideoSource(trailerSourceUrl);
+    const displayVideoUrl = videoSource?.kind === "youtube" ? videoSource.src : null;
+    const localVideoUrl = videoSource?.kind === "video" ? getMediaUrl(videoSource.src) : null;
+    const youtubeVideoId = videoSource?.id;
+    const showCover = () => {
+        if (!videoSource && event?.coverImage) openImage({ src: getMediaUrl(event.coverImage), alt: t(event.title) });
+    };
 
  const programParts = useMemo(() => {
     if (!Array.isArray(event?.programParts)) {
@@ -326,11 +264,15 @@ const backstageGallery = useMemo(() => {
     return (
         <div className="event-detail-page">
             <main>
-                <section className="event-detail-hero">
+                <section className="event-detail-hero" onClick={showCover}>
                     <div className="event-detail-hero-media">
                         {t(localVideoUrl ? (
                             <video
+                                key={localVideoUrl}
+                                ref={prepareMutedTrailer}
                                 className="event-detail-hero-video"
+                                onError={() => setFailedVideo(trailerSourceUrl)}
+                                onCanPlay={e => { e.currentTarget.play().catch(() => {}); }}
                                 src={localVideoUrl}
                                 poster={
                                     event.coverImage
@@ -372,6 +314,7 @@ const backstageGallery = useMemo(() => {
                         ))}
                     </div>
 
+                    {!videoSource && event.coverImage && <button type="button" className="event-detail-cover-preview" onClick={e => { e.stopPropagation(); showCover(); }}>{t("Xem ảnh bìa")}</button>}
                     <div className="event-detail-hero-overlay" />
                     <div className="event-detail-hero-gradient" />
 
@@ -451,7 +394,6 @@ const backstageGallery = useMemo(() => {
                     </div>
                 </section>
 
-                {(trailerSourceUrl || heroSourceUrl) && <EventVideo key={trailerSourceUrl || heroSourceUrl} value={trailerSourceUrl || heroSourceUrl} title={event.title} poster={event.coverImage} />}
 
                 <section className="event-detail-main-section">
                     <div className="event-detail-container event-detail-layout">
@@ -626,7 +568,8 @@ const backstageGallery = useMemo(() => {
                                                         index
                                                     }
                                                 >
-                                                    <img
+                                                    <ContentImage
+                                                        loading="lazy"
                                                         src={getMediaUrl(
                                                             image.image
                                                         )}
@@ -682,7 +625,8 @@ const backstageGallery = useMemo(() => {
                                                 >
                                                     <div className="artist-image-wrapper">
                                                         {t(artist.image ? (
-                                                            <img
+                                                            <ContentImage
+                                                                loading="lazy"
                                                                 src={getMediaUrl(
                                                                     artist.image
                                                                 )}
@@ -808,13 +752,7 @@ const backstageGallery = useMemo(() => {
             <p> {t("Những khoảnh khắc phía sau sân khấu và quá trình chuẩn bị cho đêm diễn.")} </p>
         </div>
 
-        <div
-            className={`event-detail-gallery-grid ${
-                backstageGallery.length >= 4
-                    ? "is-scrollable"
-                    : ""
-            }`}
-        >
+        <div className="event-detail-gallery-grid">
             {t(backstageGallery.map(
                 (image, index) => (
                     <figure
@@ -828,7 +766,8 @@ const backstageGallery = useMemo(() => {
                             `${image.sortOrder}-${index}`
                         }
                     >
-                        <img
+                        <ContentImage
+                            loading="lazy"
                             src={getMediaUrl(
                                 image.image
                             )}
@@ -1000,9 +939,7 @@ const backstageGallery = useMemo(() => {
                                                 type="button"
                                                 className="ticket-seating-zoom-button"
                                                 onClick={() =>
-                                                    setIsSeatingChartOpen(
-                                                        true
-                                                    )
+                                                    openImage({ src: getMediaUrl(event.seatingChartImage), alt: t("Sơ đồ khán phòng") })
                                                 }
                                                 aria-label={t("Phóng to sơ đồ khán phòng")}
                                             > {t("PHÓNG TO")} </button>
@@ -1012,9 +949,7 @@ const backstageGallery = useMemo(() => {
                                             type="button"
                                             className="ticket-seating-image ticket-seating-image-button"
                                             onClick={() =>
-                                                setIsSeatingChartOpen(
-                                                    true
-                                                )
+                                                openImage({ src: getMediaUrl(event.seatingChartImage), alt: t("Sơ đồ khán phòng") })
                                             }
                                             aria-label={t("Xem sơ đồ khán phòng")}
                                         >
@@ -1059,46 +994,7 @@ const backstageGallery = useMemo(() => {
                 </section>
             </main>
 
-            {t(isSeatingChartOpen &&
-                event.seatingChartImage && (
-                    <div
-                        className="seating-chart-modal"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label={t("Sơ đồ khán phòng phóng to")}
-                        onMouseDown={(e) => {
-                            if (
-                                e.target ===
-                                e.currentTarget
-                            ) {
-                                setIsSeatingChartOpen(
-                                    false
-                                );
-                            }
-                        }}
-                    >
-                        <div className="seating-chart-modal-content">
-                            <button
-                                type="button"
-                                className="seating-chart-modal-close"
-                                onClick={() =>
-                                    setIsSeatingChartOpen(
-                                        false
-                                    )
-                                }
-                                aria-label={t("Đóng sơ đồ khán phòng")}
-                            > × </button>
 
-                            <img
-                                src={getMediaUrl(
-                                    event.seatingChartImage
-                                )}
-                                alt={t("Sơ đồ khán phòng phóng to")}
-                                className="seating-chart-modal-image"
-                            />
-                        </div>
-                    </div>
-                ))}
         </div>
     );
 };

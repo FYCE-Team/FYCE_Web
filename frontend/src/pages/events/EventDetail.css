@@ -1029,9 +1029,6 @@
     overflow: hidden;
 }
 
-.event-detail-video-section { margin-top: 36px; margin-bottom: 36px; padding: 24px; background: #fff; border: 1px solid #dce7ef; border-radius: 20px; }
-.event-detail-video-section h2 { margin: 0 0 18px; font-family: var(--fyce-serif); color: var(--fyce-primary); }
-.event-detail-video-section video, .event-detail-video-section iframe { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 600px; border: 0; border-radius: 12px; background: #07111c; object-fit: contain; }
 
 .event-detail-hero-video,
 .event-detail-hero-image,
@@ -1522,6 +1519,8 @@
         height: 270px;
     }
 }
+
+
 
 
 /* =========================================================
@@ -2038,4 +2037,56 @@
     .event-detail-gallery-grid figure.gallery-large img {
         height: 270px;
     }
+}
+
+/* Natural-height masonry: show every image without empty fixed frames. */
+.event-detail-program-gallery,
+.event-detail-gallery-grid {
+    display: block;
+    columns: 2;
+    column-gap: 14px;
+    overflow: visible;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+}
+.event-detail-program-gallery:has(figure:only-child),
+.event-detail-gallery-grid:has(figure:only-child) { columns: 1; }
+.event-detail-program-gallery figure,
+.event-detail-gallery-grid figure,
+.event-detail-gallery-grid figure.gallery-large {
+    position: relative;
+    break-inside: avoid;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    margin: 0 0 14px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+.event-detail-program-gallery img,
+.event-detail-gallery-grid img,
+.event-detail-gallery-grid figure.gallery-large img {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    display: block;
+    object-fit: contain;
+}
+.event-detail-program-gallery figcaption,
+.event-detail-gallery-grid figcaption { margin: 0; pointer-events: none; }
+.event-detail-cover-preview {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 4;
+    padding: 10px 18px;
+    border: 1px solid #ffffff80;
+    border-radius: 24px;
+    background: #0b1e32b3;
+    color: #fff;
+    cursor: zoom-in;
+}
+@media (max-width: 480px) {
+    .event-detail-program-gallery,
+    .event-detail-gallery-grid { columns: 1; }
 }

@@ -1,5 +1,8 @@
 // Vietnamese source messages are stable keys. CMS/user content is not machine-translated.
 export default {
+  "Xem ảnh lớn": "View full image",
+  "Đóng ảnh": "Close image",
+  "Xem ảnh bìa": "View cover image",
   "Video chương trình": "Programme video",
   "Video chưa tải được. Link có thể đã hết hạn, không công khai hoặc định dạng chưa được trình duyệt hỗ trợ.": "The video could not load. Its link may have expired, be private, or use a format your browser does not support.",
   "Dàn nhạc giao hưởng trẻ Fantasy": "Fantasy Youth Symphony Orchestra",
