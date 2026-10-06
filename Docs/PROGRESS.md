@@ -2,6 +2,8 @@
 
 **█████████░ 90% — code và kiểm thử tự động đạt; nghiệm thu UI mới/dịch vụ thật còn mở.**
 
+Commit **`9301d31`** đã push main. Vercel success, bundle production `index-DtgTrNQk.js` khớp build local. Probe phiên bản Render bị timeout; chưa xác nhận backend cùng commit. Lint 0 lỗi/16 warning cũ, audit hai phía 0, backend syntax 99 tệp đạt. Đã dừng API/Vite/MongoDB QA của đợt này; không dừng server ứng dụng khác.
+
 - [x] Nền public thêm hai khuông nhạc, nhiều nốt chuyển động, nền trang ngoài hero; chuyển động lớn hơn và reveal sections/cards khi cuộn. Reduced-motion vẫn hiện nội dung; không áp dụng scroll reveal cho admin.
 - [x] Reload Home/event detail/auth/profile về đầu. Trang chọn ghế, checkout, chi tiết đơn, vé của tôi và admin khôi phục vị trí theo URL trong tab; Back và các link neo vẫn có chính sách riêng. Lưu tọa độ, không lưu token/dữ liệu ghế.
 - [x] Rà soát literal user: catalog đã phủ chuỗi giao diện. Thêm bản tiếng Anh biên tập cho tên/phụ đề/mô tả sự kiện/địa điểm, hiển thị ở Home/EventDetail/tiêu đề chọn ghế. Cần admin điền bản dịch nội dung tùy ý; không tự dịch tên tác phẩm/nghệ sĩ.

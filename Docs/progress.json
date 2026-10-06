@@ -2,7 +2,8 @@
   "updatedAt": "2026-10-06",
   "latestUpdate": {
     "status": "code_verified_pending_visual_and_provider_acceptance",
-    "commit": "See latest Git history: enhance concert motion, reload policy and media storage safeguards",
+    "commit": "9301d31",
+    "deployment": "Pushed main; Vercel success and production index-DtgTrNQk.js matches local. Render version probe timed out; backend rollout remains unverified.",
     "completed": ["More animated notes/staves and public scroll reveal with reduced-motion", "Route-specific reload scroll restoration", "Optional English event editorial fields and public rendering", "Visible external background-video URL", "Small GridFS upload cap and partial upload abort"],
     "qa": "73 backend integration tests, 15 frontend unit tests; production build; syntax 99 files; lint 0 errors/16 existing warnings; audits 0",
     "pending": ["Chrome tool connection policy unavailable after retry: visual/reload browser QA not completed", "External media account/link and Atlas quota recovery require owner data/actions", "Production backend rollout and real providers still need verification"],
