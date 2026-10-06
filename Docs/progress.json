@@ -1,19 +1,18 @@
 {
   "updatedAt": "2026-10-07",
   "latestUpdate": {
-    "status": "hero_trailer_image_preview_verified_pending_release",
-    "commit": null,
-    "deployment": "Pending push and Vercel verification",
+    "status": "hero_trailer_image_preview_released_verified",
+    "commit": "649bff8",
+    "deployment": "Pushed main; Vercel success, production index-C-rc14Wi.js matches local build. Chrome production desktop/mobile390 muted autoplay readyState4/time advances, direct Render video; image dialog opens/closes; no overflow.",
     "completed": [
       "Autoplay muted trailer in cover region; cover-only without trailer; native video error fallback",
       "Public image dialog with keyboard, blurred backdrop and focus/scroll restoration",
       "Natural-height concert galleries displaying every image without fixed-frame blank space",
       "Bypass Vercel cached partial video streams using public Render media origin; preserve first-party auth and signed external CDN URLs"
     ],
-    "qa": "Frontend19/19, build index-C-rc14Wi.js, lint0 errors/16 old warnings. Chrome desktop/mobile390 autoplay muted/readyState4; image keyboard/outside dismissal and focus/overflow restoration. GET-only fixture7 photos/no trailer/native404 fallback. Production QA5182 video direct Render plays; Vercel proxy returned cached206 only2bytes for Range0-, now bypassed for same-origin public GridFS videos only. Auth/payment API unchanged.",
+    "qa": "Frontend19/19, build index-C-rc14Wi.js, lint0 errors/16 old warnings. Chrome desktop/mobile390 autoplay muted/readyState4; image keyboard/outside dismissal and focus/overflow restoration. GET-only fixture7 photos/no trailer/native404 fallback. Production QA5182 video direct Render plays; Vercel proxy returned cached206 only2bytes for Range0-, now bypassed for same-origin public GridFS videos only. Auth/payment API unchanged. Production Vercel desktop/mobile390 verified. Render Range0-1 then0- returns correct2/848508bytes. Stopped only QA3003/5180/5181/5182, viewport reset.",
     "pending": [
-      "Release verification",
-      "Existing provider acceptance remains pending"
+      "Existing real provider acceptance remains pending"
     ]
   },
   "motionUpdate": {

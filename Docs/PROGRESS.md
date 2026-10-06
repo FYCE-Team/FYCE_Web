@@ -11,6 +11,8 @@
 
 ---
 
+Release code **`649bff8`** (sau `ecba0fd`) đã push main, GitHub Vercel status success; production bundle **`index-C-rc14Wi.js`** khớp build. Chrome trên Vercel: trailer Day2 trực tiếp Render, trong hero, muted/paused=false/readyState4/time tăng; không player riêng. Dialog ảnh chương trình mở được, Escape đóng. Mobile390 reload vẫn tự phát, gallery một cột, không tràn ngang. Render trả đúng Range0-1 (2 bytes), sau đó Range0- (848.508 bytes), không cache nhầm. Đã dừng QA API3003/Vite5180/5181/preview5182 và reset viewport; server khác giữ nguyên. Backend/DB/auth/payment không đổi trong đợt này.
+
 ## Sửa độ trễ cuộn, nền nhạc và video — 07/10/2026
 
 **█████████░ 90% — bản sửa code đạt; các cổng nghiệm thu provider còn giữ nguyên.**
