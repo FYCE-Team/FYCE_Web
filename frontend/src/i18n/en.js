@@ -1,5 +1,7 @@
 // Vietnamese source messages are stable keys. CMS/user content is not machine-translated.
 export default {
+  "Video chương trình": "Programme video",
+  "Video chưa tải được. Link có thể đã hết hạn, không công khai hoặc định dạng chưa được trình duyệt hỗ trợ.": "The video could not load. Its link may have expired, be private, or use a format your browser does not support.",
   "Dàn nhạc giao hưởng trẻ Fantasy": "Fantasy Youth Symphony Orchestra",
   "Chúng tôi là một nhóm nhạc thính phòng trẻ quy tụ những nghệ sĩ đầy nhiệt huyết thông qua những buổi biểu diễn ý nghĩa hướng đến giáo dục âm nhạc cho trẻ em.": "We are a young chamber ensemble bringing passionate musicians together through meaningful performances that support music education for children.",
   "Nhà Hát Truyền Thống Nghệ Thuật Đà Nẵng": "Da Nang Traditional Arts Theatre",

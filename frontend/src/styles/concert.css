@@ -1,48 +1,24 @@
-/* FYCE score-inspired motion. Essential content is always visible without JS. */
+/* One non-interactive decorative layer for every route, below page content. */
+#root { isolation: isolate; min-height: 100vh; }
+.concert-background { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 10% 70%, #e0eef8 0%, transparent 65%), radial-gradient(ellipse at 95% 10%, #fff1d940, transparent 55%); }
+.concert-background-staff { position: absolute; inset: 0; width: 100%; height: 100%; stroke: #4f7895; stroke-width: 1.2; opacity: .18; animation: concert-staff-drift 28s ease-in-out infinite alternate; }
+.concert-background-symbol { position: absolute; width: 46px; height: 78px; color: #315975; opacity: .36; animation: concert-symbol-drift 22s ease-in-out infinite alternate; }
+.concert-background-clef { width: 62px; height: 106px; opacity: .4; }
+@keyframes concert-symbol-drift { from { transform: translate3d(-12px, 14px, 0) rotate(-9deg); } to { transform: translate3d(20px, -25px, 0) rotate(9deg); } }
+@keyframes concert-staff-drift { from { transform: translate3d(-12px, 10px, 0); } to { transform: translate3d(12px, -10px, 0); } }
+/* Cards/forms stay solid; page whitespace exposes the music. */
+.main-layout, .admin-layout, .home-page, .event-detail-page, .seat-booking-page, .checkout-page, .ticket-page, .profile-page, .login-page, .register-page, .verify-page, .verify-success-page, .forgot-password-page, .reset-password-page, .verify-reset-otp-page { background: transparent; }
+.home-upcoming, .home-about, .home-gallery, .event-detail-main-section { background: transparent; }
+.home-hero-overlay { background: linear-gradient(100deg, rgba(238,248,251,.92), rgba(238,248,251,.82) 48%, rgba(222,237,245,.7)); }
 .home-hero { isolation: isolate; }
-.home-hero-overlay { background: linear-gradient(100deg, rgba(238,248,251,.98), rgba(238,248,251,.94) 48%, rgba(222,237,245,.7)); }
-.concert-atmosphere { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
-.home-hero-content { position: relative; z-index: 1; }
-.concert-score { position: absolute; width: 120%; height: 100%; left: -10%; bottom: -8%; opacity: .16; stroke: var(--fyce-primary); stroke-width: 1.4; animation: score-drift 16s ease-in-out infinite alternate; }
-.concert-note { fill: var(--fyce-gold); stroke: var(--fyce-gold); transform-box: fill-box; transform-origin: center; animation: note-breathe 6s ease-in-out infinite alternate; }
-.concert-note--two { animation-delay: -2s; }
-.concert-note--three { animation-delay: -4s; }
-.concert-light { position: absolute; width: 50%; height: 140%; top: -40%; border-radius: 50%; filter: blur(32px); opacity: .45; background: radial-gradient(ellipse, #fff7dc 0%, transparent 65%); transform-origin: top; animation: concert-light-sway 13s ease-in-out infinite alternate; }
-.concert-light--left { left: -20%; transform: rotate(-18deg); }
-.concert-light--right { right: -15%; animation-delay: -6s; background: radial-gradient(ellipse, #d0eafb 0%, transparent 65%); }
-.home-hero-text { animation: concert-enter .9s cubic-bezier(.2,.7,.2,1) both; }
-.home-featured-event { animation: concert-enter 1.1s .15s cubic-bezier(.2,.7,.2,1) both; }
-.home-event-card, .home-gallery-item { transition: transform .35s ease, box-shadow .35s ease; }
-.home-event-card:hover { transform: translateY(-5px); box-shadow: 0 18px 38px #174b6b14; }
-.home-gallery-item:hover { transform: translateY(-3px); }
-.site-header button, .home-page a { transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; }
-.site-navigation-open { animation: concert-enter .2s ease both; }
 .home-page h1, .home-page h2, .home-page h3 { text-wrap: balance; letter-spacing: -.025em; }
 .home-page p { line-height: 1.8; }
 .auth-brand-name, .auth-brand-symbol, .register-page h1, .register-page h2, .login-page h1, .login-page h2 { font-family: var(--fyce-serif); }
 .login-page { font-family: var(--fyce-sans); }
-@keyframes concert-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes score-drift { from { transform: translate3d(-3%, 22px, 0) rotate(-2deg); } to { transform: translate3d(3%, -24px, 0) rotate(2deg); } }
-@keyframes note-breathe { from { opacity: .3; transform: translateY(15px) rotate(-8deg); } to { opacity: 1; transform: translateY(-22px) rotate(8deg); } }
-@keyframes concert-light-sway { from { transform: rotate(-14deg); } to { transform: rotate(12deg); } }
-@media (max-width: 850px) { .home-hero-overlay { background: linear-gradient(145deg, rgba(238,248,251,.97), rgba(226,241,248,.93)); } .concert-light { filter: none; opacity: .2; } .concert-score { opacity: .1; } }
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  .concert-score, .concert-note, .concert-light, .home-hero-text, .home-featured-event, .site-navigation-open { animation: none; }
-  .home-event-card, .home-gallery-item, .site-header button, .home-page a { transition: none; }
-  .home-event-card:hover, .home-gallery-item:hover { transform: none; }
-}
-
-.main-layout { position: relative; isolation: isolate; }
-.concert-atmosphere--ambient { position: fixed; opacity: .55; z-index: -1; background: radial-gradient(ellipse at 12% 65%, #d9eaf280, transparent 55%), radial-gradient(ellipse at 90% 18%, #f6dfb340, transparent 45%); }
-.concert-atmosphere--ambient .concert-score { opacity: .24; }
-.home-hero .concert-score { opacity: .28; }
-.concert-reveal-pending { opacity: 0; transform: translateY(48px) scale(.98); }
-.concert-revealed { animation: concert-scroll-reveal .85s var(--reveal-delay, 0ms) cubic-bezier(.16,1,.3,1) both; }
-.main-layout-content { animation: concert-page-enter .65s cubic-bezier(.16,1,.3,1) both; }
-.main-layout-content > :not(.concert-atmosphere) { animation: concert-page-enter .7s cubic-bezier(.16,1,.3,1) both; }
-.login-card, .register-card, .verify-card, .verify-success-card, .forgot-password-page > *, .reset-password-page > *, .verify-reset-otp-page > * { animation: concert-page-enter .8s cubic-bezier(.16,1,.3,1) both; }
-@keyframes concert-scroll-reveal { from { opacity: 0; transform: translateY(48px) scale(.98); } to { opacity: 1; transform: none; } }
-@keyframes concert-page-enter { from { opacity: .4; transform: translateY(24px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .concert-reveal-pending { opacity: 1; transform: none; } .concert-revealed, .main-layout-content, .main-layout-content > * { animation: none; } }
-@media (prefers-reduced-motion: reduce) { .login-card, .register-card, .verify-card, .verify-success-card, .forgot-password-page > *, .reset-password-page > *, .verify-reset-otp-page > * { animation: none; } }
+.concert-revealed { animation: concert-card-enter .28s ease-out; }
+@keyframes concert-card-enter { from { transform: translateY(8px); } to { transform: none; } }
+.home-event-card, .home-gallery-item { transition: transform .18s ease, box-shadow .18s ease; }
+.home-event-card:hover, .home-gallery-item:hover { transform: translateY(-3px); }
+/* No opacity gates, section transforms, stagger, or animated blurred lights. */
+@media (max-width: 600px) { .concert-background-symbol { width: 32px; height: 55px; opacity: .3; } .concert-background-clef { width: 42px; height: 74px; } }
+@media (prefers-reduced-motion: reduce) { .concert-background-symbol, .concert-background-staff, .concert-revealed { animation: none; } .home-event-card, .home-gallery-item { transition: none; } .home-event-card:hover, .home-gallery-item:hover { transform: none; } }

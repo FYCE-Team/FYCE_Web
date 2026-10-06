@@ -1,5 +1,9 @@
 # Kiểm thử và vận hành thử
 
+07/10: frontend **18/18**, build đạt, lint 0 lỗi/16 warning hiện hữu. Thêm test phân loại URL video: absolute GridFS, signed/extensionless CDN, YouTube watch/shorts/nocookie/short links và từ chối protocol/credentials/control characters không hợp lệ. Backend không đổi, bộ 73 test trước vẫn là kết quả lịch sử, không chạy lại trong đợt chỉ sửa frontend. Kiểm tra public HEAD phát hiện Day2 404 và Day1 200; repair URL được ghi trong PROGRESS, không dùng production cho các test transaction.
+
+Chrome desktop: Home cuộn và EventDetail/Login có nền chung, không hidden section. Day2 player controls hiện, readyState 4, duration 10s, bấm Play paused=false/time tăng/error=null. API public xác nhận repaired source trả 200. Đây là kiểm tra video công khai, không đăng nhập/tạo đơn/chuyển tiền.
+
 Đợt chuyển động/cuộn/video 06/10: **73/73 backend, 15/15 frontend**. Test thật với MongoDB QA: video nguồn lỗi sau chunk 1MB, GridFS abort không để lại chunks/metadata; Event English public giữ nội dung VI và bỏ trường không được phép, giới hạn độ dài. Unit scroll policy kiểm tra reload trang đọc về đầu, trang thao tác giữ vị trí, Back/hash riêng. Build đạt. UI browser của bản mới chưa nghiệm thu vì kết nối công cụ Chrome bị lỗi policy sau retry; không thay kiểm thử UI bằng unit policy.
 
 Kết quả mới nhất **06/10/2026**: backend **71/71**, frontend **13/13**, build thành công, lint **0 errors / 16 warnings** hiện hữu; audit backend/frontend gồm dev dependencies đều **0**. Backend thêm kiểm thử bản tiếng Anh CMS/stale writes/validation và refresh thất bại không xóa cookie mới. Frontend thêm Unicode/casing/editorial fallback và token hết hạn/bị khóa/cookie 401/lỗi mạng khi phục hồi phiên.

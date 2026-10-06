@@ -1,6 +1,5 @@
 import { useLanguage } from "../i18n/useLanguage.js";
 import ContentImage from "../components/media/ContentImage.jsx";
-import ConcertAtmosphere from "../components/common/ConcertAtmosphere.jsx";
 import { localizeContent } from "../i18n/content.js";
 import {
     useEffect,
@@ -313,7 +312,6 @@ const Home = () => {
                 }}
             >
                 <div className="home-hero-overlay" />
-                <ConcertAtmosphere />
 
                 <div className="home-container home-hero-content">
 

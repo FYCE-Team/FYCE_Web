@@ -1029,6 +1029,10 @@
     overflow: hidden;
 }
 
+.event-detail-video-section { margin-top: 36px; margin-bottom: 36px; padding: 24px; background: #fff; border: 1px solid #dce7ef; border-radius: 20px; }
+.event-detail-video-section h2 { margin: 0 0 18px; font-family: var(--fyce-serif); color: var(--fyce-primary); }
+.event-detail-video-section video, .event-detail-video-section iframe { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: 600px; border: 0; border-radius: 12px; background: #07111c; object-fit: contain; }
+
 .event-detail-hero-video,
 .event-detail-hero-image,
 .event-detail-hero-iframe {

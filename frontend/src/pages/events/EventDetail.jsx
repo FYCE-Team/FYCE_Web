@@ -1,5 +1,7 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { localizeContent } from "../../i18n/content.js";
+import { resolveVideoSource } from "../../utils/videoSource.js";
+import EventVideo from "../../components/media/EventVideo.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMediaUrl } from "../../utils/media.js";
@@ -46,59 +48,11 @@ const formatDuration = (minutes) => {
     return `${minutes} phút`;
 };
 
-const getYouTubeEmbedUrl = (url) => {
-    if (!url) return null;
-
-    try {
-        const parsed = new URL(url);
-
-        if (parsed.hostname.includes("youtube.com")) {
-            const videoId = parsed.searchParams.get("v");
-
-            if (videoId) {
-                return `https://www.youtube.com/embed/${videoId}`;
-            }
-
-            if (parsed.pathname.startsWith("/embed/")) {
-                return url;
-            }
-        }
-
-        if (parsed.hostname === "youtu.be") {
-            const videoId = parsed.pathname.replace("/", "");
-
-            if (videoId) {
-                return `https://www.youtube.com/embed/${videoId}`;
-            }
-        }
-    } catch {
-        return null;
-    }
-
-    return null;
+const getYouTubeEmbedUrl = url => {
+    const source = resolveVideoSource(url);
+    return source?.kind === "youtube" ? source.src : null;
 };
-
-const isLocalVideo = (url) => {
-    if (!url) return false;
-
-    const value = String(url).trim();
-
-    /*
-     * GridFS video URL không còn extension:
-     * /api/videos/<ObjectId>
-     */
-    if (
-        /^\/api\/videos\/[a-f0-9]{24}(?:[?#].*)?$/i.test(
-            value
-        )
-    ) {
-        return true;
-    }
-
-    return /\.(mp4|webm|mov|mkv)(\?.*)?$/i.test(
-        value
-    );
-};
+const isLocalVideo = url => resolveVideoSource(url)?.kind === "video";
 
 const getInitialTicketColor = (index) => {
     const colors = [
@@ -257,22 +211,11 @@ const EventDetail = () => {
     const heroSourceUrl =
         event?.heroVideoUrl || null;
 
-    const trailerEmbedUrl =
-        getYouTubeEmbedUrl(
-            trailerSourceUrl
-        );
-
-    const heroEmbedUrl =
+    const displayVideoUrl =
         getYouTubeEmbedUrl(heroSourceUrl);
 
-    const displayVideoUrl =
-        trailerEmbedUrl ||
-        heroEmbedUrl;
-
     const localVideoUrl =
-        isLocalVideo(trailerSourceUrl)
-            ? getMediaUrl(trailerSourceUrl)
-            : isLocalVideo(heroSourceUrl)
+        isLocalVideo(heroSourceUrl)
             ? getMediaUrl(heroSourceUrl)
             : null;
 
@@ -400,7 +343,7 @@ const backstageGallery = useMemo(() => {
                                 muted
                                 loop
                                 playsInline
-                                preload="auto"
+                                preload="metadata"
                             />
                         ) : displayVideoUrl ? (
                             <iframe
@@ -507,6 +450,8 @@ const backstageGallery = useMemo(() => {
                         </div>
                     </div>
                 </section>
+
+                {(trailerSourceUrl || heroSourceUrl) && <EventVideo key={trailerSourceUrl || heroSourceUrl} value={trailerSourceUrl || heroSourceUrl} title={event.title} poster={event.coverImage} />}
 
                 <section className="event-detail-main-section">
                     <div className="event-detail-container event-detail-layout">

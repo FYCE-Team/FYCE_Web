@@ -1,5 +1,7 @@
 # Video và dung lượng Atlas
 
+07/10: chi tiết sự kiện có **khung video chương trình riêng** với Play/controls, không chỉ autoplay sau lớp phủ hero. Link GridFS absolute và media CDN không đuôi được nhận; định dạng/browser/link public vẫn cần hợp lệ. Day2 đã sửa sang video chung còn hoạt động sau đối chiếu backup và SHA-256 giống hoàn toàn; không upload thêm binary. File backup phục hồi tạm nằm `/tmp/FYCE-Day2-recovered.mp4`, không trong Git, không tự gửi ra dịch vụ thứ ba.
+
 Cập nhật 06/10/2026. Video hiện tại được stream vào GridFS bucket `videos`, metadata trong `videos.files`, binary trong `videos.chunks`; ảnh có bucket riêng. Nếu thấy `fs.chunks`/`file.chunks`, cần đối chiếu tên bucket của dữ liệu cũ, không mặc định đó là dữ liệu rác.
 
 GridFS chia file thành chunks để lưu, không tự làm nhỏ nội dung video. Thay kích thước chunk chỉ đổi số documents. Nguồn: [MongoDB GridFS](https://www.mongodb.com/docs/manual/core/gridfs/).

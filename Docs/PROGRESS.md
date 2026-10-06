@@ -1,4 +1,20 @@
-## Đợt bổ sung chuyển động/cuộn/video 06/10/2026 — đọc trước
+## Sửa độ trễ cuộn, nền nhạc và video — 07/10/2026
+
+**█████████░ 90% — bản sửa code đạt; các cổng nghiệm thu provider còn giữ nguyên.**
+
+- Bỏ opacity gate/transform cả section, stagger và animation cả page; card chỉ dịch 8px trong 280ms, không chờ hiện nội dung. MutationObserver bỏ qua cập nhật text/countdown, chỉ xét subtree mới và gom theo requestAnimationFrame; không đọc layout toàn trang mỗi tick.
+- Một nền chung ở cấp router, xuyên suốt public/auth/admin, dưới nội dung; nốt tròn/trắng/đen/móc đơn/móc kép và khóa sol/fa bằng SVG, khuông nhạc chuyển động nhẹ. Giữ nền card/form đặc để đọc rõ; pointer-events none, aria-hidden và reduced-motion.
+- EventVideo có khung phát riêng với controls/playsInline/preload metadata. Nhận GridFS tương đối/URL đầy đủ, CDN signed/không đuôi và YouTube watch/shorts/embed; không đoán video dựa vào extension. Video nền chỉ dùng heroVideoUrl; trailer phát chủ động trong khung riêng.
+- Production: Day1 MP4 HTTP 200, 848.508 bytes. Day2 trỏ file thiếu 404. Chỉ đọc đúng file Day2 trong backup và xác nhận binary giống hoàn toàn video Day1 còn phục vụ (SHA-256 `b814cbe8ded13728f58bf3a750c25e19900dc4a23ec93e85bdc00a6203f7bff9`). Sửa nguyên tử **chỉ trailerVideoUrl Day2** sang file chung `/api/videos/6ac526b03263d1b67ffb0cf2`, kiểm tra updatedAt trước khi ghi, tăng version. Không thêm/xóa binary Atlas, không sửa đơn/vé/ghế; URL cũ vẫn 404. Không dùng backup làm fixture hoặc commit binary.
+- Frontend 18/18 test, build đạt, lint 0 lỗi/16 warning cũ; không thay backend/dependency. UI và deployment cập nhật theo xác minh bên dưới.
+
+Chrome kết nối lại thành công sau retry: desktop cuộn Home không có hidden section; một background với 19 SVG ký hiệu trên Home/EventDetail/Login. Day2 foreground video readyState 4, duration 10s, controls bật; bấm Play chạy, error null. API public Day2 trả source mới, HEAD video 200. Không đo benchmark FPS trên tất cả thiết bị; kiểm tra code đã loại bỏ nguồn quét layout/độ trễ cũ. Evidence tạm: `/tmp/fyce-smooth-evidence/background-scroll.png`, `day2-video.png`.
+
+Mobile 390px: không tràn ngang, video 316px nằm trong khung, controls/readyState4/error null; không có hidden section. Viewport override đã trả về mặc định. Admin chỉ có nền trang trí, chưa đăng nhập admin thật để kiểm tra trực quan trong đợt này.
+
+---
+
+## Đợt bổ sung chuyển động/cuộn/video 06/10/2026 — lịch sử
 
 **█████████░ 90% — code và kiểm thử tự động đạt; nghiệm thu UI mới/dịch vụ thật còn mở.**
 

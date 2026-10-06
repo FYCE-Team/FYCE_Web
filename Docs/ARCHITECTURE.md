@@ -4,6 +4,8 @@ Cập nhật: 2026-09-30. Checkout ban đầu không có thư mục Docs, AGENTS
 
 ## Các lớp và thư mục
 
+Sửa 07/10: PublicMotion luôn render một ConcertAtmosphere ở router, bao gồm auth/admin; chỉ observer card/heading public. Không còn ẩn section trước khi cuộn. MutationObserver chỉ xử lý added Element, bỏ text, không scan toàn root/đọc bounding rect mỗi cập nhật. Nền SVG duy nhất fixed dưới content; các page/section wrapper trong suốt, card/form giữ nền đặc. EventVideo dùng `videoSource.js` phân loại nguồn, có foreground player để trailer không bị lớp phủ hero che. Không đổi hợp đồng API hoặc collection.
+
 Bổ sung đợt chuyển động/cuộn 06/10/2026: `PublicMotion` chỉ quan sát sections/cards public bằng IntersectionObserver, bỏ hiệu ứng khi reduced-motion; admin không nhận scroll reveal. `ScrollPosition` quản lý vị trí toàn ứng dụng, chỉ ghi tọa độ tối đa 50 URL vào sessionStorage (không chứa token). Reload trang đọc/auth/profile về đầu; trang chọn ghế/checkout/chi tiết đơn/my-tickets và admin giữ tọa độ theo URL; Back giữ vị trí và link hash mới giữ neo. Không khôi phục lựa chọn ghế từ tọa độ.
 
 Event có subdocument `english` giới hạn trường/độ dài, editor tùy chọn. Home/chi tiết sự kiện/tiêu đề trang chọn ghế đọc bản này; không viết lại snapshot Booking/Ticket. Chưa có bản dịch biên tập thì giữ nội dung gốc, không đoán bản dịch tác phẩm/nghệ sĩ. Video giữ API GridFS cũ nhưng giới hạn file nhỏ và abort khi lỗi; dùng URL media ngoài trong field hiện có để tránh ghi binary vào Atlas. Xem `MEDIA_STORAGE.md`.
