@@ -2,10 +2,11 @@
   "updatedAt": "2026-10-07",
   "latestUpdate": {
     "status": "smooth_scroll_background_video_code_verified",
-    "commit": "See latest Git history: fix scroll responsiveness, global musical background and event video",
+    "commit": "2c5e25b",
+    "deployment": "Pushed main; Vercel success. Production index-CmZdzCap.js matches verified local build; Day2 public source repaired and HEAD200.",
     "completed": ["Removed hidden/staggered sections and full-page transforms", "Incremental DOM observation ignoring text/countdown updates", "One router background with whole/half/quarter/eighth/sixteenth notes and treble/bass clefs", "Foreground event video player and signed/absolute/extensionless video support", "Repaired Day2 trailer reference to byte-identical live shared video with CAS; no Atlas binary growth"],
     "qa": "Frontend 18/18, production build, lint 0 errors/16 existing warnings; backend/dependencies unchanged. Chrome desktop public Home/EventDetail/Login: one background/19 symbols, no hidden sections; Day2 video readyState4/duration10s/controls and actual playback without error; repaired public source HEAD200. Mobile390: no overflow, video316px/readyState4/error null.",
-    "pending": ["Production release verification", "Existing real provider acceptance remains pending"]
+    "pending": ["Existing real provider acceptance remains pending; no FPS benchmark across all devices"]
   },
   "motionUpdate": {
     "status": "code_verified_pending_visual_and_provider_acceptance",

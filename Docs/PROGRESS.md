@@ -12,6 +12,8 @@ Chrome kết nối lại thành công sau retry: desktop cuộn Home không có 
 
 Mobile 390px: không tràn ngang, video 316px nằm trong khung, controls/readyState4/error null; không có hidden section. Viewport override đã trả về mặc định. Admin chỉ có nền trang trí, chưa đăng nhập admin thật để kiểm tra trực quan trong đợt này.
 
+Commit **`2c5e25b`** đã push `FYCE-Team/FYCE_Web/main`; Vercel success, production `index-CmZdzCap.js` khớp build. Đã dừng Vite QA 5180 của phiên; các server khác giữ nguyên.
+
 ---
 
 ## Đợt bổ sung chuyển động/cuộn/video 06/10/2026 — lịch sử
