@@ -22,8 +22,8 @@
 .auth-brand-name, .auth-brand-symbol, .register-page h1, .register-page h2, .login-page h1, .login-page h2 { font-family: var(--fyce-serif); }
 .login-page { font-family: var(--fyce-sans); }
 @keyframes concert-enter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes score-drift { from { transform: translate3d(-1%, 6px, 0); } to { transform: translate3d(1%, -8px, 0); } }
-@keyframes note-breathe { from { opacity: .35; transform: translateY(4px); } to { opacity: .95; transform: translateY(-5px); } }
+@keyframes score-drift { from { transform: translate3d(-3%, 22px, 0) rotate(-2deg); } to { transform: translate3d(3%, -24px, 0) rotate(2deg); } }
+@keyframes note-breathe { from { opacity: .3; transform: translateY(15px) rotate(-8deg); } to { opacity: 1; transform: translateY(-22px) rotate(8deg); } }
 @keyframes concert-light-sway { from { transform: rotate(-14deg); } to { transform: rotate(12deg); } }
 @media (max-width: 850px) { .home-hero-overlay { background: linear-gradient(145deg, rgba(238,248,251,.97), rgba(226,241,248,.93)); } .concert-light { filter: none; opacity: .2; } .concert-score { opacity: .1; } }
 @media (prefers-reduced-motion: reduce) {
@@ -32,3 +32,17 @@
   .home-event-card, .home-gallery-item, .site-header button, .home-page a { transition: none; }
   .home-event-card:hover, .home-gallery-item:hover { transform: none; }
 }
+
+.main-layout { position: relative; isolation: isolate; }
+.concert-atmosphere--ambient { position: fixed; opacity: .55; z-index: -1; background: radial-gradient(ellipse at 12% 65%, #d9eaf280, transparent 55%), radial-gradient(ellipse at 90% 18%, #f6dfb340, transparent 45%); }
+.concert-atmosphere--ambient .concert-score { opacity: .24; }
+.home-hero .concert-score { opacity: .28; }
+.concert-reveal-pending { opacity: 0; transform: translateY(48px) scale(.98); }
+.concert-revealed { animation: concert-scroll-reveal .85s var(--reveal-delay, 0ms) cubic-bezier(.16,1,.3,1) both; }
+.main-layout-content { animation: concert-page-enter .65s cubic-bezier(.16,1,.3,1) both; }
+.main-layout-content > :not(.concert-atmosphere) { animation: concert-page-enter .7s cubic-bezier(.16,1,.3,1) both; }
+.login-card, .register-card, .verify-card, .verify-success-card, .forgot-password-page > *, .reset-password-page > *, .verify-reset-otp-page > * { animation: concert-page-enter .8s cubic-bezier(.16,1,.3,1) both; }
+@keyframes concert-scroll-reveal { from { opacity: 0; transform: translateY(48px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes concert-page-enter { from { opacity: .4; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .concert-reveal-pending { opacity: 1; transform: none; } .concert-revealed, .main-layout-content, .main-layout-content > * { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .login-card, .register-card, .verify-card, .verify-success-card, .forgot-password-page > *, .reset-password-page > *, .verify-reset-otp-page > * { animation: none; } }

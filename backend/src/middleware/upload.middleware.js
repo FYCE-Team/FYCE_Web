@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 import crypto from "crypto";
 import multer from "multer";
+import { videoUploadMaxBytes } from "../config/videoUpload.js";
 
 /*
  * Video KHÔNG còn lưu lâu dài trong backend/uploads/videos.
@@ -92,13 +93,7 @@ export const uploadVideo =
         storage,
         fileFilter,
         limits: {
-            /*
-             * Giữ cùng giới hạn cũ: 5GB.
-             * Nhà cung cấp deploy có thể có giới hạn request thấp hơn.
-             */
-            fileSize:
-                5000 *
-                1024 *
-                1024
+            // GridFS is for small clips; use an external media URL for large video.
+            fileSize: videoUploadMaxBytes
         }
     });

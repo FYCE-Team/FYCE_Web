@@ -542,6 +542,8 @@ const mapEventToForm = (event) => {
             event?.title ||
             "",
 
+        english: event?.english || {},
+
         badge:
             event?.badge ||
             "",
@@ -960,6 +962,7 @@ const validateForm = (form) => {
 
 const buildPayload = (form) => {
     return {
+        english: form.english || {},
         title:
             form.title.trim(),
 
@@ -3544,6 +3547,14 @@ const handleUploadVideo = async (
                     </div>
                 </section>
 
+
+                <details className="admin-event-form-section">
+                    <summary>Bản tiếng Anh của sự kiện</summary>
+                    <p>Bản dịch hiển thị khi user chọn EN. Để trống giữ nội dung gốc; tên tác phẩm/nghệ sĩ không tự dịch.</p>
+                    <div className="admin-event-form-grid">
+                    {[["title", "Tên concert", 200], ["subtitle", "Phụ đề", 300], ["shortDescription", "Mô tả ngắn", 500], ["description", "Mô tả chi tiết", 10000], ["venueDescription", "Giới thiệu địa điểm", 3000]].map(([key, label, max]) => <label className="admin-event-field admin-event-field-full" key={key}><span>{label} · English</span><textarea rows={key === "description" ? 5 : 2} maxLength={max} value={form.english?.[key] || ""} onChange={event => updateForm("english", { ...form.english, [key]: event.target.value })} /></label>)}
+                    </div>
+                </details>
 
                 {/* ==================================================
                     02 MEDIA

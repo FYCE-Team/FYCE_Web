@@ -1,4 +1,5 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
+import { localizeContent } from "../../i18n/content.js";
 import {
     useCallback,
     useEffect,
@@ -338,7 +339,7 @@ const requestAuthenticatedGet = async (
 };
 
 const EventSeatBookingPage = () => {
-    const { t, locale } = useLanguage();
+    const { t, locale, language } = useLanguage();
 
     const { slug } = useParams();
     const navigate = useNavigate();
@@ -1338,7 +1339,7 @@ const [
                         </div>
 
                         <h1>
-                            {t(event.title)}
+                            {localizeContent(event, language).title}
                         </h1>
 
                         {t(event.subtitle && (

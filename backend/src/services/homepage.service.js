@@ -16,7 +16,7 @@ const getHomepageHero = async () => {
       createdAt: -1
     })
     .populate(
-      { path: "featuredEvent", match: { deletedAt: null }, select: "title slug badge shortDescription description subtitle coverImage heroVideoUrl trailerVideoUrl startAt endAt venue address city totalTickets ticketCategories status isFeatured allowBooking" }
+      { path: "featuredEvent", match: { deletedAt: null }, select: "english title slug badge shortDescription description subtitle coverImage heroVideoUrl trailerVideoUrl startAt endAt venue address city totalTickets ticketCategories status isFeatured allowBooking" }
     )
     .lean();
 };
@@ -54,7 +54,7 @@ const getHomepageUpcomingEvents = async () => {
     })
     .limit(upcomingLimit)
     .select(
-      "title slug badge shortDescription coverImage startAt endAt venue address city ticketCategories totalTickets status isFeatured allowBooking"
+      "english title slug badge shortDescription coverImage startAt endAt venue address city ticketCategories totalTickets status isFeatured allowBooking"
     )
     .lean();
 };

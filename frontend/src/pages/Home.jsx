@@ -8,7 +8,7 @@ import {
 } from "react";
 
 import {
-    Link, useLocation
+    Link, useLocation, useNavigationType
 } from "react-router-dom";
 
 import {
@@ -149,6 +149,7 @@ const getStartingPrice = (event) => {
 
 const Home = () => {
     const { t, locale, language } = useLanguage();
+    const navigationType = useNavigationType();
 
     const location = useLocation();
     const [
@@ -203,15 +204,13 @@ const Home = () => {
     }, []);
 
     useEffect(() => {
-        if (!location.hash || !homepage) return;
+        if (!location.hash || !homepage || (navigationType === "POP" && performance.getEntriesByType("navigation")[0]?.type === "reload")) return;
         const target = document.getElementById(location.hash.slice(1));
         target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, [homepage, location.hash]);
+    }, [homepage, location.hash, navigationType]);
 
     const featuredEvent =
-        homepage?.hero?.featuredEvent ||
-        homepage?.featuredEvent ||
-        null;
+        localizeContent(homepage?.hero?.featuredEvent || homepage?.featuredEvent || null, language);
 
     const countdownTarget =
         featuredEvent?.startAt ||
@@ -282,7 +281,7 @@ const Home = () => {
     const about = localizeContent(rawAbout, language);
 
     const homepageEvents = [
-        ...upcomingEvents
+        ...upcomingEvents.map(event => localizeContent(event, language))
     ];
 
     if (

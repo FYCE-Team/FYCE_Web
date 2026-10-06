@@ -113,14 +113,15 @@ export const uploadVideoFileStream = ({
 
             let settled = false;
 
-            const fail = (error) => {
+            const fail = async (error) => {
                 if (settled) {
                     return;
                 }
 
                 settled = true;
                 source.destroy();
-                uploadStream.destroy();
+                // GridFS abort deletes partial chunks; destroy alone can leave orphans.
+                try { await uploadStream.abort(); } catch (cleanupError) { console.warn("Video upload cleanup failed:", cleanupError.message); }
                 reject(error);
             };
 

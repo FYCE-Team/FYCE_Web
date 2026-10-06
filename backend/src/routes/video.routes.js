@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import { videoUploadMaxMB } from "../config/videoUpload.js";
 
 import {
     streamVideoFile,
@@ -57,7 +58,7 @@ router.post(
                             .json({
                                 success: false,
                                 message:
-                                    "Video vượt quá dung lượng cho phép. Tối đa 5GB."
+                                    `Video vượt quá dung lượng cho phép (${videoUploadMaxMB}MB). Hãy nén video hoặc dùng link video từ dịch vụ lưu media.`
                             });
                     }
 

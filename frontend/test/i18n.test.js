@@ -78,4 +78,8 @@ test("English covers edited homepage text, casing and decomposed Vietnamese acce
   assert.equal(result.features[0].title, "Bringing people together");
   assert.equal(localizeContent(record, "vi"), record);
   assert.equal(record.features[0].description, "Nội dung mới");
+  const event = { title: "Totoro", description: "Mô tả", shortDescription: "Giới thiệu", english: { description: "Concert story", shortDescription: "An orchestral evening" } };
+  assert.equal(localizeContent(event, "en").description, "Concert story");
+  assert.equal(localizeContent(event, "en").shortDescription, "An orchestral evening");
+  assert.equal(localizeContent(event, "vi"), event);
 });

@@ -799,6 +799,7 @@ const validateEventTimes = ({
 };
 
 const buildEventPayload = ({
+  english,
   title,
   slug,
   badge,
@@ -929,6 +930,7 @@ const buildEventPayload = ({
   );
 
   return {
+    ...(english !== undefined ? { english } : {}),
     title:
       title?.trim(),
 
@@ -1049,6 +1051,7 @@ const buildEventPayload = ({
 
 export const createEvent =
   async ({
+    english,
     title,
     badge,
     shortDescription,
@@ -1203,6 +1206,7 @@ export const createEvent =
 
     const eventPayload =
       buildEventPayload({
+        english,
         title,
         slug:
           generatedSlug,
@@ -1266,6 +1270,7 @@ export const updateEvent =
   async (
     eventId,
     {
+      english,
       title,
       badge,
       shortDescription,
@@ -1406,6 +1411,7 @@ export const updateEvent =
       event.shortDescription =
         shortDescription.trim();
     }
+    if (english !== undefined) event.english = english;
 
     if (
       description !==

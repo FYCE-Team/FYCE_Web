@@ -23,6 +23,30 @@ import { loginWithGoogle } from "../src/services/auth.service.js";
 import { listOptions } from "../src/services/admin.service.js";
 import { safeContentUrl } from "../src/services/adminContent.service.js";
 let server, base, admin, user, adminToken, userToken, booking, ticket;
+test("event editorial English survives public reads with bounded strict fields", async () => {
+  const { default: Event } = await import("../src/models/Event.js");
+  const event = await Event.create({ title: "Concert tiếng Việt", slug: "english-qa", venue: "QA", allowBooking: false, status: "published", createdBy: admin._id, english: { title: "QA Concert", shortDescription: "A concert evening", description: "An English concert story", secret: "drop" } });
+  const result = await request("/events/english-qa", { token: null });
+  assert.equal(result.status, 200);
+  assert.equal(result.data.event.english.title, "QA Concert");
+  assert.equal(result.data.event.title, "Concert tiếng Việt");
+  assert.equal(result.data.event.english.secret, undefined);
+  event.english.shortDescription = "x".repeat(501);
+  await assert.rejects(event.validate(), /shortDescription/);
+});
+test("failed video source aborts GridFS upload and leaves no orphan chunks", async () => {
+  const fs = (await import("node:fs")).default;
+  const { Readable } = await import("node:stream");
+  const { uploadVideoFileStream } = await import("../src/services/video.service.js");
+  const original = fs.createReadStream;
+  const db = mongoose.connection.db;
+  const beforeChunks = await db.collection("videos.chunks").countDocuments();
+  fs.createReadStream = () => Readable.from((async function* () { yield Buffer.alloc(1024 * 1024); await new Promise(resolve => setTimeout(resolve, 40)); throw new Error("QA_SOURCE_FAILURE"); })());
+  try { await assert.rejects(uploadVideoFileStream({ filePath: "/tmp/fyce-qa-simulated-source", originalName: "failed-video-qa.mp4", mimeType: "video/mp4" }), /QA_SOURCE_FAILURE/); }
+  finally { fs.createReadStream = original; }
+  assert.equal(await db.collection("videos.chunks").countDocuments(), beforeChunks);
+  assert.equal(await db.collection("videos.files").countDocuments({ filename: "failed-video-qa.mp4" }), 0);
+});
 const oid = () => new mongoose.Types.ObjectId();
 const request = async (
   path,

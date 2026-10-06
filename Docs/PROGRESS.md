@@ -1,4 +1,20 @@
-## Đợt cập nhật 06/10/2026 — đọc mục này trước
+## Đợt bổ sung chuyển động/cuộn/video 06/10/2026 — đọc trước
+
+**█████████░ 90% — code và kiểm thử tự động đạt; nghiệm thu UI mới/dịch vụ thật còn mở.**
+
+- [x] Nền public thêm hai khuông nhạc, nhiều nốt chuyển động, nền trang ngoài hero; chuyển động lớn hơn và reveal sections/cards khi cuộn. Reduced-motion vẫn hiện nội dung; không áp dụng scroll reveal cho admin.
+- [x] Reload Home/event detail/auth/profile về đầu. Trang chọn ghế, checkout, chi tiết đơn, vé của tôi và admin khôi phục vị trí theo URL trong tab; Back và các link neo vẫn có chính sách riêng. Lưu tọa độ, không lưu token/dữ liệu ghế.
+- [x] Rà soát literal user: catalog đã phủ chuỗi giao diện. Thêm bản tiếng Anh biên tập cho tên/phụ đề/mô tả sự kiện/địa điểm, hiển thị ở Home/EventDetail/tiêu đề chọn ghế. Cần admin điền bản dịch nội dung tùy ý; không tự dịch tên tác phẩm/nghệ sĩ.
+- [x] Ô URL video nền luôn hiện, hướng dẫn dùng link media ngoài. GridFS mặc định 25MB (backend env 1–100MB), bỏ mức 5GB. Upload lỗi abort để xóa chunks dang dở; không tự xóa dữ liệu Atlas.
+- [x] 73/73 backend và 15/15 frontend, build đạt. Hai test backend mới kiểm tra English public/validation và lỗi upload sau một chunk không để lại orphan.
+- [ ] Công cụ Chrome báo lỗi kết nối policy sau thử lại, chưa nghiệm thu trực quan/reload thật của UI mới trong đợt này. Không dùng kết quả UI đợt trước để đánh dấu đạt bản mới.
+- [ ] Cần tài khoản/link media ngoài hoặc dung lượng Atlas đủ để ghi metadata; xem `MEDIA_STORAGE.md`. Chưa đo/xóa GridFS production, chưa nghiệm thu upload thật khi quota đầy.
+
+Phạm vi là mã nguồn/dependencies/luồng FYCE, không sửa toàn bộ hệ điều hành. Không gọi giao dịch/email thật. Commit và deploy xem Git history/provider; còn phải kiểm tra backend đúng commit trên Render.
+
+---
+
+## Đợt cập nhật 06/10/2026 — lịch sử
 
 **█████████░ 90% — code và QA hoàn tất; nghiệm thu thiết bị/dịch vụ thật còn mở.** Phạm vi rà soát là repository FYCEweb, không phải sửa toàn bộ hệ điều hành. Commit của đợt này xem Git history; trạng thái phát hành ghi trong `progress.json`.
 

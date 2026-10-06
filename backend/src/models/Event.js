@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { eventTranslation } from "./eventTranslation.js";
 
 /*
  * ============================================================
@@ -320,6 +321,7 @@ const galleryItemSchema = new mongoose.Schema(
 
 const eventSchema = new mongoose.Schema(
   {
+    english: { type: eventTranslation, default: undefined },
     /*
      * --------------------------------------------------------
      * BASIC INFORMATION

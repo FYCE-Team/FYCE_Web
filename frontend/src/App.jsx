@@ -23,6 +23,8 @@ import VerifyResetOtp from "./pages/auth/VerifyResetOtp.jsx";
 import ResetPassword from "./pages/auth/ResetPassword.jsx";
 
 import MainLayout from "./layouts/MainLayout.jsx";
+import ScrollPosition from "./components/common/ScrollPosition.jsx";
+import PublicMotion from "./components/common/PublicMotion.jsx";
 import AdminLayout from "./layouts/AdminLayout.jsx";
 
 import AdminRoute from "./components/auth/AdminRoute.jsx";
@@ -60,6 +62,8 @@ function App() {
             <AuthProvider>
                 <BrowserRouter>
                     <LanguageProvider>
+                    <ScrollPosition />
+                    <PublicMotion />
                     <Suspense fallback={<LoadingPage />}>
                     <Routes>
 

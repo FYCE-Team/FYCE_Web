@@ -1,34 +1,16 @@
 import {
-    useEffect
-} from "react";
-
-import {
-    Outlet,
-    useLocation
+    Outlet
 } from "react-router-dom";
 
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 import "./MainLayout.css";
-
-const ScrollToTop = () => {
-    const { pathname } = useLocation();
-
-    useEffect(() => {
-        window.scrollTo({
-            top: 0,
-            left: 0,
-            behavior: "instant"
-        });
-    }, [pathname]);
-
-    return null;
-};
+import ConcertAtmosphere from "../components/common/ConcertAtmosphere.jsx";
 
 const MainLayout = () => {
     return (
         <div className="main-layout">
-            <ScrollToTop />
+            <ConcertAtmosphere ambient />
 
             <Header />
 

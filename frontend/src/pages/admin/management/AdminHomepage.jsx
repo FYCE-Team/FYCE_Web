@@ -251,7 +251,7 @@ export default function AdminHomepage() {
                       />
                     ) : (
                       <input
-                        hidden={!advanced && ["image", "backgroundImage", "backgroundVideoUrl"].includes(key)}
+                        hidden={!advanced && ["image", "backgroundImage"].includes(key)}
                         id={`content-${key}`}
                         required={
                           (key === "title" && kind !== "gallery") ||
@@ -262,6 +262,7 @@ export default function AdminHomepage() {
                         onChange={(e) => change(key, e.target.value)}
                       />
                     )}{" "}
+                    {key === "backgroundVideoUrl" && <small>Link trực tiếp MP4/WebM từ dịch vụ lưu media (ví dụ Cloudinary/CDN); chỉ lưu link trong Atlas. Không dùng link trang xem YouTube. Upload file bên dưới chỉ phù hợp clip nhỏ đã nén, mặc định tối đa 25MB; nền nên ngắn 15–30 giây, không âm thanh.</small>}
                     {[
                       "image",
                       "backgroundImage",

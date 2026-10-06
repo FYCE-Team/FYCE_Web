@@ -1,4 +1,5 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
+import { localizeContent } from "../../i18n/content.js";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMediaUrl } from "../../utils/media.js";
@@ -112,11 +113,12 @@ const getInitialTicketColor = (index) => {
 };
 
 const EventDetail = () => {
-    const { t, locale } = useLanguage();
+    const { t, locale, language } = useLanguage();
 
     const { slug } = useParams();
 
-    const [event, setEvent] = useState(null);
+    const [rawEvent, setEvent] = useState(null);
+    const event = useMemo(() => localizeContent(rawEvent, language), [rawEvent, language]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [isSeatingChartOpen, setIsSeatingChartOpen] = useState(false);
