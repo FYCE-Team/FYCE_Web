@@ -1,4 +1,20 @@
-## Đợt cập nhật 02/10/2026 — đọc mục này trước
+## Đợt cập nhật 06/10/2026 — đọc mục này trước
+
+**█████████░ 90% — code và QA hoàn tất; nghiệm thu thiết bị/dịch vụ thật còn mở.** Phạm vi rà soát là repository FYCEweb, không phải sửa toàn bộ hệ điều hành. Commit của đợt này xem Git history; trạng thái phát hành ghi trong `progress.json`.
+
+- [x] Hiệu ứng khuông nhạc/nốt nhạc/ánh đèn concert bằng SVG/CSS; có chế độ giảm chuyển động. Font Manrope và Playfair Display hỗ trợ tiếng Việt, đóng gói cùng website, không tải Google Fonts bên ngoài.
+- [x] Bổ sung tiếng Anh cho nội dung trang chủ hiện tại, thông báo user và tên địa điểm; chuẩn hóa Unicode/khoảng trắng khi dịch. Hero/About có bản tiếng Anh tùy chọn trong CMS, không sửa dữ liệu gốc hoặc dịch tên người dùng. Nội dung biên tập mới chưa có bản dịch vẫn giữ nguyên; admin luôn tiếng Việt.
+- [x] Menu mobile đóng khi bấm ngoài menu/nút mở, hoặc Escape; menu tài khoản cũng đóng khi bấm ngoài.
+- [x] Refresh 401 không xóa cookie của lần đăng nhập mới hơn. Back từ trang ngoài giữ token trong bộ nhớ nếu `/auth/me` xác nhận còn hợp lệ; không lưu token vào localStorage, không kéo dài hạn hoặc bỏ qua tài khoản bị khóa. Phản hồi cũ không ghi đè phiên mới.
+- [x] Backend 71/71, frontend 13/13; build đạt; lint 0 lỗi/16 cảnh báo hiện hữu; audit hai package gồm dev dependencies: 0 lỗ hổng. Vá source-map-js/proxy-addr; thay nodemon bằng Node watch để loại bỏ dependency có advisory.
+- [x] Chrome QA dùng API/MongoDB riêng: VI/EN, desktop 1440px/mobile 390px, Escape/bấm ngoài menu; đơn paid giả 274 ghế giữ phiên khi rời trang và Back, kể cả payment=cancel/error. Homepage dùng bản đọc công khai, không phục hồi dữ liệu khách hàng thật.
+- [ ] Người dùng đã xác nhận bạn dùng cùng URL Vercel; chưa có trình duyệt/thiết bị để tái hiện đúng trường hợp đó. Chưa nghiệm thu checkout SePay mới, Google OAuth thật, inbox email và camera vật lý trong đợt này.
+
+Không thay trạng thái đơn thật, không chuyển tiền, không gửi email thật để thử. Các transaction thanh toán/vé/ghế/check-in giữ nguyên. QA không chứng minh mọi trình duyệt đều không mất phiên; tiếp tục kiểm tra thiết bị thực tế khi có thông tin.
+
+---
+
+## Đợt cập nhật 02/10/2026 — lịch sử
 
 **█████████░ 90% — chức năng và kiểm thử QA hoàn tất; nghiệm thu dịch vụ thật còn mở.** Phạm vi là repository FYCEweb, không phải toàn bộ hệ điều hành. Commit chức năng **`f0e0104`** đã push `FYCE-Team/FYCE_Web/main`. Vercel báo success và domain chính có bundle `index-DHXL29tf.js` khớp build local. Render và Vercel proxy health đều 200; export XLSX qua production trả file hợp lệ (bộ lọc rỗng, chỉ header). Chưa xác minh SHA/log trong Render Dashboard: user đã cho phép Authorize nhưng GitHub đó dẫn tới tạo account mới; chờ đăng nhập workspace đúng.
 

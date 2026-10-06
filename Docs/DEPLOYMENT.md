@@ -10,6 +10,8 @@ Kiểm tra `https://fyce-web.vercel.app/api/health` phải trả JSON, không ph
 
 ## Render
 
+Bổ sung 06/10/2026: deploy frontend và backend cùng commit để áp dụng đầy đủ sửa race refresh-cookie. Không xoay khóa JWT/QR trong bản sửa này. Font được đóng gói cùng frontend, không cần CSP cho Google Fonts. Development dùng `node --watch` thay nodemon (Node 20.13+); production vẫn `npm start` như trước. Sau deploy kiểm tra refresh không cookie trả 401 JSON và không có `Set-Cookie` xóa; đăng nhập trên origin Vercel rồi nghiệm thu Back/Forward trên trình duyệt bị lỗi. Không dùng query payment=success làm bằng chứng đã thanh toán.
+
 Root Directory `backend`, build `npm ci`, start `npm start`. Node hỗ trợ fetch/AbortSignal.timeout; MongoDB Atlas/replica set và quyền tạo index/collection cần có. Không dùng MongoDB standalone cho thanh toán/hoàn vé transaction.
 
 Biến môi trường cần đối chiếu trong dashboard (giữ nguyên khóa đang dùng, không tùy tiện xoay khóa):

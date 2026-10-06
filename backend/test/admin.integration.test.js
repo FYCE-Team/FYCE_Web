@@ -781,6 +781,34 @@ test("production login sets first-party secure cookie and refresh works after pa
   } finally { if (previous === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = previous; }
 });
 
+test("CMS English translations round-trip with version checks and do not change Vietnamese content", async () => {
+  const created = await request("/admin/content/about", { method: "POST", body: { title: "Giới thiệu", description: "Nội dung gốc", english: { title: "About FYCE", description: "The ensemble's story" }, features: [{ title: "Âm nhạc", description: "Tiếng Việt", english: { title: "Music", description: "English" } }], isActive: false } });
+  assert.equal(created.status, 200);
+  assert.equal(created.data.english.title, "About FYCE");
+  assert.equal(created.data.description, "Nội dung gốc");
+  assert.equal(created.data.features[0].english.description, "English");
+  const edited = await request(`/admin/content/about/${created.data._id}`, { method: "PUT", body: { updatedAt: created.data.updatedAt, english: { title: "Our story" } } });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.data.title, "Giới thiệu");
+  assert.equal(edited.data.english.title, "Our story");
+  assert.equal((await request(`/admin/content/about/${created.data._id}`, { method: "PUT", body: { updatedAt: created.data.updatedAt, english: { title: "stale" } } })).status, 409);
+  assert.equal((await request("/admin/content/about", { method: "POST", body: { title: "invalid", description: "invalid", english: [] } })).status, 400);
+  assert.equal((await request("/admin/content/about", { method: "POST", body: { title: "long", description: "long", english: { description: "x".repeat(1501) } } })).status, 400);
+});
+
+test("failed refresh never expires a cookie created by a concurrent login", async () => {
+  const login = await fetch(`${base}/auth/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: "createduser", password: "Strong-test-1234" }) });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get("set-cookie").split(";")[0];
+  for (const badCookie of [undefined, "refreshToken=invalid-old-cookie"]) {
+    const failed = await fetch(`${base}/auth/refresh`, { method: "POST", headers: badCookie ? { Cookie: badCookie } : {} });
+    assert.equal(failed.status, 401);
+    assert.equal(failed.headers.get("set-cookie"), null);
+    assert.match((await failed.json()).code, /^REFRESH_TOKEN_/);
+  }
+  assert.equal((await fetch(`${base}/auth/refresh`, { method: "POST", headers: { Cookie: cookie } })).status, 200);
+});
+
 test("return URLs stay on approved frontend origin and cannot be redirected to an attacker", () => {
   const oldClient = process.env.CLIENT_URL, oldMode = process.env.NODE_ENV;
   process.env.CLIENT_URL = "https://fyce-web.vercel.app"; process.env.NODE_ENV = "development";

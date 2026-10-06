@@ -632,12 +632,11 @@ export const refresh = async (
             error.message ===
             "REFRESH_TOKEN_MISSING"
         ) {
-            clearRefreshTokenCookie(
-                res
-            );
-
+            // A delayed failed refresh must not erase a newer login cookie.
+            // Invalid sessions are rejected server-side; logout clears cookies explicitly.
             return res.status(401).json({
                 success: false,
+                code: error.message,
                 message:
                     "Không tìm thấy refresh token"
             });
@@ -647,12 +646,9 @@ export const refresh = async (
             error.message ===
             "REFRESH_TOKEN_INVALID"
         ) {
-            clearRefreshTokenCookie(
-                res
-            );
-
             return res.status(401).json({
                 success: false,
+                code: error.message,
                 message:
                     "Refresh token không hợp lệ"
             });
@@ -662,12 +658,9 @@ export const refresh = async (
             error.message ===
             "REFRESH_TOKEN_EXPIRED"
         ) {
-            clearRefreshTokenCookie(
-                res
-            );
-
             return res.status(401).json({
                 success: false,
+                code: error.message,
                 message:
                     "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
             });
@@ -677,12 +670,9 @@ export const refresh = async (
             error.message ===
             "USER_NOT_FOUND"
         ) {
-            clearRefreshTokenCookie(
-                res
-            );
-
             return res.status(401).json({
                 success: false,
+                code: error.message,
                 message:
                     "Tài khoản không tồn tại"
             });
@@ -692,12 +682,9 @@ export const refresh = async (
             error.message ===
             "ACCOUNT_NOT_ACTIVE"
         ) {
-            clearRefreshTokenCookie(
-                res
-            );
-
             return res.status(403).json({
                 success: false,
+                code: error.message,
                 message:
                     "Tài khoản chưa được kích hoạt"
             });

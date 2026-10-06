@@ -172,6 +172,7 @@ const performRefresh = async () => {
         `${API_URL}/auth/refresh`,
         {
             method: "POST",
+            cache: "no-store",
             credentials: "include"
         }
     );
@@ -180,7 +181,7 @@ const performRefresh = async () => {
         await response.json();
 
     if (!response.ok) {
-        throw Object.assign(new Error(result.message || "Không thể làm mới phiên đăng nhập"), { status: response.status });
+        throw Object.assign(new Error(result.message || "Không thể làm mới phiên đăng nhập"), { status: response.status, code: result.code });
     }
 
     return result;
@@ -350,4 +351,15 @@ let refreshInFlight = null;
 export const refresh = () => {
     if (!refreshInFlight) refreshInFlight = performRefresh().finally(() => { refreshInFlight = null; });
     return refreshInFlight;
+};
+
+export const readProfile = async accessToken => {
+    const response = await fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        credentials: "include",
+        cache: "no-store"
+    });
+    const result = await response.json();
+    if (!response.ok) throw Object.assign(new Error(result.message || "Không thể xác thực phiên đăng nhập"), { status: response.status });
+    return result;
 };

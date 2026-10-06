@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
+import { contentTranslation } from "./contentTranslation.js";
 
 const featureSchema = new mongoose.Schema(
   {
+    english: { type: contentTranslation, default: undefined },
     title: {
       type: String,
       required: true,
@@ -35,6 +37,7 @@ const featureSchema = new mongoose.Schema(
 
 const aboutSectionSchema = new mongoose.Schema(
   {
+    english: { type: contentTranslation, default: undefined },
     eyebrow: {
       type: String,
       trim: true,

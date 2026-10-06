@@ -1,7 +1,7 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import { mediaUrl } from "../../services/admin.service.js";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Menu,
   X,
@@ -30,6 +30,28 @@ const Header = () => {
     useState(false);
 
   const navigate = useNavigate();
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    if (!mobileMenuOpen && !accountMenuOpen) return;
+    const dismiss = event => {
+      const header = headerRef.current;
+      if (!header?.querySelector(".site-navigation")?.contains(event.target) && !header?.querySelector(".site-mobile-menu-button")?.contains(event.target)) setMobileMenuOpen(false);
+      if (!header?.querySelector(".site-account-wrapper")?.contains(event.target)) setAccountMenuOpen(false);
+    };
+    const escape = event => {
+      if (event.key === "Escape") {
+        setMobileMenuOpen(false);
+        setAccountMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [mobileMenuOpen, accountMenuOpen]);
 
   const {
     user,
@@ -65,7 +87,7 @@ const Header = () => {
   };
 
   return (
-    <header className="site-header">
+    <header className="site-header" ref={headerRef}>
       <div className="site-header-inner">
 
         <Logo />
@@ -77,6 +99,7 @@ const Header = () => {
               : ""
           }`}
           aria-label="Main navigation"
+          id="site-navigation"
         >
           <NavLink
             to="/"
@@ -306,6 +329,7 @@ const Header = () => {
                 : "Mở menu")
             }
             aria-expanded={mobileMenuOpen}
+            aria-controls="site-navigation"
           >
             {t(mobileMenuOpen ? (
               <X size={22} />

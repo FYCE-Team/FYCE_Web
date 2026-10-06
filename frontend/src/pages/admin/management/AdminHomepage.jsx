@@ -292,6 +292,18 @@ export default function AdminHomepage() {
                     )}
                   </div>
                 ))}
+                <details className="am-field" style={{ gridColumn: "1 / -1" }}>
+                  <summary>Bản tiếng Anh cho nội dung hiển thị</summary>
+                  <p>Điền bản dịch cho nội dung tùy chỉnh. Để trống dùng bản dịch có sẵn hoặc nội dung gốc; tên riêng được giữ nguyên.</p>
+                  {fields[kind].filter(([key]) => ["eyebrow", "title", "subtitle", "description", "primaryButtonText", "secondaryButtonText", "buttonText", "imageAlt"].includes(key)).map(([key, label, max]) => <label key={key} style={{ display: "block", marginTop: 12 }}>
+                    {label} · English
+                    <textarea rows={key === "description" ? 4 : 1} maxLength={max} value={editor.english?.[key] || ""} onChange={event => change("english", { ...editor.english, [key]: event.target.value })} />
+                  </label>)}
+                  {kind === "about" && (editor.features || []).map((feature, index) => <div key={feature._id || index}>
+                    <p>Điểm nổi bật {index + 1} · English</p>
+                    {["title", "description"].map(key => <label key={key}>{key === "title" ? "Tiêu đề" : "Mô tả"}<input maxLength={key === "title" ? 150 : 500} value={feature.english?.[key] || ""} onChange={event => change("features", editor.features.map((item, i) => i === index ? { ...item, english: { ...item.english, [key]: event.target.value } } : item))} /></label>)}
+                  </div>)}
+                </details>
                 {advanced && <label>
                   Thứ tự hiển thị
                   <input

@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
+import { contentTranslation } from "./contentTranslation.js";
 
 const heroSectionSchema = new mongoose.Schema(
   {
+    english: { type: contentTranslation, default: undefined },
     eyebrow: {
       type: String,
       trim: true,

@@ -4,7 +4,7 @@
   "description": "Backend for Concert Ticket System",
   "type": "module",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "migrate:images-gridfs": "node src/scripts/migrateImagesToGridFS.js",
     "migrate:images-gridfs:dry-run": "node src/scripts/migrateImagesToGridFS.js --dry-run",
@@ -29,9 +29,6 @@
     "qrcode": "^1.5.4",
     "sepay-pg-node": "^1.0.0",
     "zod": "^4.5.4"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
   },
   "overrides": {
     "exceljs": {

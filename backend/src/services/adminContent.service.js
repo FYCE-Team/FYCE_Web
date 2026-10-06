@@ -8,12 +8,12 @@ const types = {
   hero: {
     Model: Hero,
     fields:
-      "eyebrow title subtitle description primaryButtonText primaryButtonLink secondaryButtonText secondaryButtonLink backgroundImage backgroundVideoUrl overlayOpacity featuredEvent isActive sortOrder",
+      "eyebrow title subtitle description primaryButtonText primaryButtonLink secondaryButtonText secondaryButtonLink backgroundImage backgroundVideoUrl overlayOpacity featuredEvent isActive sortOrder english",
   },
   about: {
     Model: About,
     fields:
-      "eyebrow title subtitle description image imageAlt features buttonText buttonLink isActive sortOrder",
+      "eyebrow title subtitle description image imageAlt features buttonText buttonLink isActive sortOrder english",
   },
   gallery: {
     Model: Gallery,
@@ -51,6 +51,7 @@ export const contentSave = async (kind, id, body, actor) => {
   const payload = {};
   for (const key of fields.split(" "))
     if (body[key] !== undefined) payload[key] = body[key];
+  if (payload.english !== undefined && (!payload.english || typeof payload.english !== "object" || Array.isArray(payload.english))) fail(400, "Bản dịch tiếng Anh không hợp lệ.");
   for (const key of [
     "image",
     "backgroundImage",

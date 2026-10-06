@@ -4,6 +4,12 @@ Cập nhật: 2026-09-30. Checkout ban đầu không có thư mục Docs, AGENTS
 
 ## Các lớp và thư mục
 
+Cập nhật bổ sung 06/10/2026: `i18n/content.js` đọc bản `english` tùy chọn của Hero/About/features, sau đó fallback catalog. Subdocument `contentTranslation.js` giới hạn độ dài, không đổi collection hoặc yêu cầu migration. CMS vẫn kiểm tra `updatedAt` trước khi lưu. Không tự dịch/ghi lại nội dung tùy ý trong DB.
+
+Auth: cookie HttpOnly và access token trong bộ nhớ giữ nguyên. Refresh từ chối phiên thiếu/hết hạn/sai nhưng không gửi cookie xóa trên phản hồi lỗi (tránh xóa cookie mới bởi request cũ). Logout/đổi mật khẩu vẫn thu hồi và xóa như trước. `sessionRestore.js` chỉ thử `/auth/me` với token đang có khi refresh 401; backend xác minh hạn token và trạng thái user. AuthContext bảo vệ kết quả cũ bằng generation và token reference.
+
+Thiết kế: font có sẵn trong bundle từ Fontsource; `concert.css` và SVG trang chủ chỉ tạo hiệu ứng trang trí, hỗ trợ `prefers-reduced-motion`, không can thiệp nghiệp vụ thanh toán.
+
 | Thành phần                               | Vai trò và nguyên tắc                                                                                                    |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `frontend/src/App.jsx`                   | React Router: public, auth, protected, admin. Trang admin tải bằng `lazy` và `Suspense`.                                 |

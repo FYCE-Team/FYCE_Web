@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { translate } from "../src/i18n/translate.js";
 import english from "../src/i18n/en.js";
+import { localizeContent } from "../src/i18n/content.js";
 test("translations cover user journeys and keep admin Vietnamese", () => {
   assert.equal(translate("Trang chủ", "en"), "Home");
   assert.equal(translate("Mật khẩu", "vi"), "Mật khẩu");
@@ -64,4 +65,17 @@ test("admin routes never inherit user English preference", () => {
   assert.equal(resolveLanguage("/profile", "en"), "en");
   assert.equal(resolveLanguage("/login", "vi"), "vi");
   assert.equal(normalizeLanguage("fr"), "vi");
+});
+
+test("English covers edited homepage text, casing and decomposed Vietnamese accents", () => {
+  assert.equal(translate("Về FYCE", "en"), "ABOUT FYCE");
+  assert.equal(translate("Đam mê âm nhạc".normalize("NFD"), "en"), "A passion for music");
+  const record = { title: "FYCE", subtitle: "Nơi tuổi trẻ hòa cùng âm nhạc", english: { title: "An Evening with FYCE" }, features: [{ title: "Kết nối cộng đồng", description: "Nội dung mới", english: { description: "A new story" } }] };
+  const result = localizeContent(record, "en");
+  assert.equal(result.title, "An Evening with FYCE");
+  assert.equal(result.subtitle, "Where youth and music come together");
+  assert.equal(result.features[0].description, "A new story");
+  assert.equal(result.features[0].title, "Bringing people together");
+  assert.equal(localizeContent(record, "vi"), record);
+  assert.equal(record.features[0].description, "Nội dung mới");
 });

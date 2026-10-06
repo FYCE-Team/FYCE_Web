@@ -12,8 +12,10 @@ import {
     loginWithGoogle as googleLoginRequest,
     refresh as refreshRequest,
     logout as logoutRequest,
-    updateProfile as updateProfileRequest
+    updateProfile as updateProfileRequest,
+    readProfile
 } from "../src/services/auth.service.js";
+import { restoreSession } from "../src/services/sessionRestore.js";
 
 const AuthContext = createContext(null);
 
@@ -37,22 +39,28 @@ export const AuthProvider = ({
 
     const [sessionError, setSessionError] = useState("");
     const authGeneration = useRef(0);
+    const tokenRef = useRef(null);
+    const userRef = useRef(null);
 
     const refreshSession =
         useCallback(async () => {
             const generation = authGeneration.current;
+            const tokenAtStart = tokenRef.current;
             try {
                 const result =
-                    await refreshRequest();
+                    await restoreSession({ refresh: refreshRequest, readProfile, accessToken: tokenAtStart });
 
                 const token =
-                    result.data.accessToken;
+                    result.accessToken;
 
                 const currentUser =
-                    result.data.user;
+                    result.user;
 
                 if (generation !== authGeneration.current) return null;
+                if (tokenRef.current && tokenAtStart !== tokenRef.current) return { accessToken: tokenRef.current, user: userRef.current };
                 setSessionError("");
+                tokenRef.current = token;
+                userRef.current = currentUser;
                 setAccessToken(token);
                 setUser(currentUser);
 
@@ -62,7 +70,10 @@ export const AuthProvider = ({
                 };
             } catch (error) {
                 if (generation !== authGeneration.current) return null;
+                if (tokenRef.current && tokenAtStart !== tokenRef.current) return { accessToken: tokenRef.current, user: userRef.current };
                 if ([401, 403].includes(error.status)) {
+                    tokenRef.current = null;
+                    userRef.current = null;
                     setAccessToken(null); setUser(null); setSessionError("");
                 } else {
                     setSessionError("Chưa kết nối được máy chủ để khôi phục phiên. Vui lòng thử lại.");
@@ -84,7 +95,7 @@ export const AuthProvider = ({
     useEffect(() => {
         const restore = event => {
             if (!event.persisted) return;
-            setLoading(true);
+            if (!tokenRef.current) setLoading(true);
             void refreshSession().finally(() => setLoading(false));
         };
         window.addEventListener("pageshow", restore);
@@ -113,6 +124,8 @@ export const AuthProvider = ({
                 result.data.user;
 
             setAccessToken(token);
+            tokenRef.current = token;
+            userRef.current = currentUser;
             setUser(currentUser);
 
             return result;
@@ -137,6 +150,8 @@ export const AuthProvider = ({
                     result.data.user;
 
                 setAccessToken(token);
+                tokenRef.current = token;
+                userRef.current = currentUser;
                 setUser(currentUser);
 
                 return result;
@@ -226,6 +241,7 @@ export const AuthProvider = ({
                     );
                 }
 
+                userRef.current = currentUser;
                 setUser(currentUser);
 
                 return result;
@@ -244,6 +260,8 @@ export const AuthProvider = ({
                 await logoutRequest();
             } finally {
                 setAccessToken(null);
+                tokenRef.current = null;
+                userRef.current = null;
                 setUser(null);
             }
         },

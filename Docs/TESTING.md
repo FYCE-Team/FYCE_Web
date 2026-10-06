@@ -1,5 +1,9 @@
 # Kiểm thử và vận hành thử
 
+Kết quả mới nhất **06/10/2026**: backend **71/71**, frontend **13/13**, build thành công, lint **0 errors / 16 warnings** hiện hữu; audit backend/frontend gồm dev dependencies đều **0**. Backend thêm kiểm thử bản tiếng Anh CMS/stale writes/validation và refresh thất bại không xóa cookie mới. Frontend thêm Unicode/casing/editorial fallback và token hết hạn/bị khóa/cookie 401/lỗi mạng khi phục hồi phiên.
+
+Chrome QA 1440px/390px: font hỗ trợ tiếng Việt, homepage EN, menu đóng khi bấm ngoài/Escape; đơn paid giả 274 ghế giữ phiên khi rời trang rồi Back, reload payment=error/cancel. API QA 3002, Vite 5180 và MongoDB 27028 biệt lập; dữ liệu homepage đọc công khai chỉ dùng cho bố cục, không nhập DB production. Chưa xác minh giao dịch/Google/email/camera thật hoặc thiết bị bạn của người dùng. Chạy thêm `npm test --prefix frontend` trong quy trình bên dưới.
+
 Ngày chạy: 2026-09-30. Kiểm thử dùng MongoDB replica set riêng cổng 27028, database `fyce_admin_test`, dữ liệu giả; không đọc `.env` và không phục hồi dump `fyce_backup`.
 
 ## Lệnh tái hiện

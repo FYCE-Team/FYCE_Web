@@ -1,5 +1,13 @@
 {
-  "updatedAt": "2026-10-02",
+  "updatedAt": "2026-10-06",
+  "latestUpdate": {
+    "status": "qa_passed_release_status_in_git_and_provider",
+    "commit": "See latest Git history: improve concert presentation, English content and session restoration",
+    "completed": ["Concert SVG/CSS animation with reduced motion", "Bundled Vietnamese-capable fonts", "English current homepage and optional editorial Hero/About translations", "Mobile outside-click and Escape dismissal", "Cookie refresh race and validated memory-token restoration on Back", "Dependency advisory patches"],
+    "qa": "Chrome isolated API 3002/Vite 5180/MongoDB 27028: 1440px and 390px; English homepage; paid fixture 274 seats retains session on Back and payment=error/cancel",
+    "pending": ["Friend browser/device unspecified; same Vercel URL confirmed", "Real SePay checkout, Google OAuth, SMTP inbox and physical camera acceptance"],
+    "evidence": ["/tmp/fyce-oct6-evidence/desktop-en.png", "/tmp/fyce-oct6-evidence/mobile-en.png"]
+  },
   "scope": "FYCEweb repository only",
   "acceptance": {
     "completed": 9,
@@ -9,8 +17,8 @@
   "status": "released_frontend_and_backend_feature_verified_pending_provider_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 69,
-    "integrationPassed": 69,
+    "integrationWritten": 71,
+    "integrationPassed": 71,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,
@@ -19,9 +27,9 @@
       "frontend": 0,
       "includesDevDependencies": true
     },
-    "backendSyntax": "passed (96 files)",
+    "backendSyntax": "passed (97 files)",
     "gitDiffCheck": "passed",
-    "frontendUnitPassed": 8
+    "frontendUnitPassed": 13
   },
   "blockedChecks": [
     "Render workspace login: authorized GitHub account leads to new-account form; correct existing account needed for deployment SHA/log",

@@ -1,5 +1,7 @@
 import { useLanguage } from "../i18n/useLanguage.js";
 import ContentImage from "../components/media/ContentImage.jsx";
+import ConcertAtmosphere from "../components/common/ConcertAtmosphere.jsx";
+import { localizeContent } from "../i18n/content.js";
 import {
     useEffect,
     useState
@@ -146,7 +148,7 @@ const getStartingPrice = (event) => {
 };
 
 const Home = () => {
-    const { t, locale } = useLanguage();
+    const { t, locale, language } = useLanguage();
 
     const location = useLocation();
     const [
@@ -271,11 +273,13 @@ const Home = () => {
     }
 
     const {
-        hero,
+        hero: rawHero,
         upcomingEvents = [],
-        about,
+        about: rawAbout,
         gallery = []
     } = homepage;
+    const hero = localizeContent(rawHero, language);
+    const about = localizeContent(rawAbout, language);
 
     const homepageEvents = [
         ...upcomingEvents
@@ -310,6 +314,7 @@ const Home = () => {
                 }}
             >
                 <div className="home-hero-overlay" />
+                <ConcertAtmosphere />
 
                 <div className="home-container home-hero-content">
 
@@ -417,9 +422,7 @@ const Home = () => {
                                 {t(featuredEvent.venue ||
                                     "Địa điểm sẽ được cập nhật")}
 
-                                {t(featuredEvent.city
-                                    ? ` · ${featuredEvent.city}`
-                                    : "")}
+                                {featuredEvent.city ? ` · ${t(featuredEvent.city)}` : ""}
 
                                 {t(" · ")}
 

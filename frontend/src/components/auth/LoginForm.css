@@ -39,7 +39,7 @@
     align-items: center;
     justify-content: center;
     color: #2e70b8;
-    font-family: Georgia, serif;
+    font-family: var(--fyce-serif);
     font-size: 21px;
     font-style: italic;
 }
@@ -47,7 +47,7 @@
 .brand-name {
     margin-left: 9px;
     color: #1763a9;
-    font-family: Georgia, serif;
+    font-family: var(--fyce-serif);
     font-size: 30px;
     font-weight: 700;
 }
@@ -180,7 +180,7 @@
 .visual-content h1 {
     margin: 24px 0 22px;
     color: #11263a;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--fyce-serif);
     font-size: clamp(38px, 3.25vw, 48px);
     line-height: 1.2;
     letter-spacing: -0.02em;
@@ -209,7 +209,7 @@
 .login-content h2 {
     margin: 0 0 28px;
     color: #10253a;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--fyce-serif);
     font-size: 30px;
     line-height: 1.2;
 }
@@ -424,7 +424,7 @@
 
 .footer-name {
     color: #1763a9;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--fyce-serif);
     font-size: 22px;
     font-weight: 700;
     line-height: 1.4;

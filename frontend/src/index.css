@@ -1,7 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap");
-
 :root {
-    font-family: "DM Sans", sans-serif;
+    font-family: var(--fyce-sans);
     color: #102c45;
     background: #f5f8fd;
     font-synthesis: none;
@@ -63,7 +61,7 @@ button {
 }
 
 .brand-logo {
-    font-family: "Playfair Display", serif;
+    font-family: "Playfair Display Variable", serif;
     font-size: 26px;
     font-weight: 700;
     color: #08689f;
@@ -133,7 +131,7 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: "Playfair Display", serif;
+    font-family: "Playfair Display Variable", serif;
     font-size: 21px;
     font-style: italic;
     color: #1776b4;
@@ -192,7 +190,7 @@ button {
 
 .register-card-header h1 {
     margin: 0;
-    font-family: "Playfair Display", serif;
+    font-family: "Playfair Display Variable", serif;
     font-size: 39px;
     font-weight: 600;
     color: #102a43;
@@ -514,7 +512,7 @@ button {
 }
 
 .footer-brand {
-    font-family: "Playfair Display", serif;
+    font-family: "Playfair Display Variable", serif;
     color: #0a69a3;
     font-weight: 600;
     font-size: 20px;
@@ -730,7 +728,7 @@ button {
     align-items: center;
     justify-content: center;
     font-family:
-        "Playfair Display",
+        "Playfair Display Variable",
         Georgia,
         serif;
     font-size: 21px;
@@ -740,7 +738,7 @@ button {
 
 .auth-brand-name {
     font-family:
-        "Playfair Display",
+        "Playfair Display Variable",
         Georgia,
         serif;
     font-size: 26px;
@@ -813,7 +811,7 @@ button {
 
 .auth-footer-brand {
     font-family:
-        "Playfair Display",
+        "Playfair Display Variable",
         Georgia,
         serif;
     color: #0a69a3;

@@ -112,7 +112,7 @@
 .verify-intro h1 {
     margin: 0 0 10px;
     font-family:
-        "Playfair Display",
+        "Playfair Display Variable",
         Georgia,
         serif;
     font-size: 42px;
@@ -187,7 +187,7 @@
     outline: none;
     text-align: center;
     font-family:
-        "Playfair Display",
+        "Playfair Display Variable",
         Georgia,
         serif;
     font-size: 36px;
@@ -614,7 +614,7 @@
 .verify-success-card h1 {
     margin: 0;
     font-family:
-        "Playfair Display",
+        "Playfair Display Variable",
         Georgia,
         serif;
     color: #102c45;

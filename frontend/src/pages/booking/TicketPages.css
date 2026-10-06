@@ -35,7 +35,7 @@
 .ticket-page-header h1 {
     margin: 0;
     color: #1262a2;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--fyce-serif);
     font-size: clamp(34px, 5vw, 52px);
     font-weight: 500;
     letter-spacing: -0.035em;
@@ -144,7 +144,7 @@
 .ticket-hero-title h2 {
     margin: 0;
     color: #173b56;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--fyce-serif);
     font-size: clamp(26px, 4vw, 38px);
     font-weight: 500;
     line-height: 1.18;
@@ -483,7 +483,7 @@
 .ticket-list-title-row h2 {
     margin: 0;
     color: #294a61;
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: var(--fyce-serif);
     font-size: 22px;
     font-weight: 500;
 }
