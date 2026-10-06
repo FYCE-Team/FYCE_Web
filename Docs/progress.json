@@ -1,8 +1,9 @@
 {
   "updatedAt": "2026-10-06",
   "latestUpdate": {
-    "status": "qa_passed_release_status_in_git_and_provider",
-    "commit": "See latest Git history: improve concert presentation, English content and session restoration",
+    "status": "pushed_frontend_deployed_backend_rollout_pending",
+    "commit": "24d8e1b",
+    "deployment": "Vercel success; production index-Xdbt9br_.js matches local. Both health endpoints 200. Initial post-push Render refresh still sends cookie deletion and lacks new code field: backend rollout not yet confirmed.",
     "completed": ["Concert SVG/CSS animation with reduced motion", "Bundled Vietnamese-capable fonts", "English current homepage and optional editorial Hero/About translations", "Mobile outside-click and Escape dismissal", "Cookie refresh race and validated memory-token restoration on Back", "Dependency advisory patches"],
     "qa": "Chrome isolated API 3002/Vite 5180/MongoDB 27028: 1440px and 390px; English homepage; paid fixture 274 seats retains session on Back and payment=error/cancel",
     "pending": ["Friend browser/device unspecified; same Vercel URL confirmed", "Real SePay checkout, Google OAuth, SMTP inbox and physical camera acceptance"],

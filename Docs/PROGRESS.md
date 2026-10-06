@@ -2,6 +2,8 @@
 
 **█████████░ 90% — code và QA hoàn tất; nghiệm thu thiết bị/dịch vụ thật còn mở.** Phạm vi rà soát là repository FYCEweb, không phải sửa toàn bộ hệ điều hành. Commit của đợt này xem Git history; trạng thái phát hành ghi trong `progress.json`.
 
+Commit chức năng **`24d8e1b`** đã push main. Vercel success, bundle production `index-Xdbt9br_.js` khớp local; health Vercel/Render 200. Lần kiểm tra ngay sau push, Render vẫn trả refresh 401 kèm cookie xóa và chưa có `code` mới: **backend rollout chưa được xác nhận**, cần deploy cùng commit rồi nghiệm thu phiên thật. Health 200 không chứng minh đã chạy code mới.
+
 - [x] Hiệu ứng khuông nhạc/nốt nhạc/ánh đèn concert bằng SVG/CSS; có chế độ giảm chuyển động. Font Manrope và Playfair Display hỗ trợ tiếng Việt, đóng gói cùng website, không tải Google Fonts bên ngoài.
 - [x] Bổ sung tiếng Anh cho nội dung trang chủ hiện tại, thông báo user và tên địa điểm; chuẩn hóa Unicode/khoảng trắng khi dịch. Hero/About có bản tiếng Anh tùy chọn trong CMS, không sửa dữ liệu gốc hoặc dịch tên người dùng. Nội dung biên tập mới chưa có bản dịch vẫn giữ nguyên; admin luôn tiếng Việt.
 - [x] Menu mobile đóng khi bấm ngoài menu/nút mở, hoặc Escape; menu tài khoản cũng đóng khi bấm ngoài.
