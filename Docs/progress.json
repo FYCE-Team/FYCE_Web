@@ -198,6 +198,6 @@
       "Reduced-motion support; invalid dates avoid NaN",
       "Approved ticket support phone and English labels"
     ],
-    "qa": "Build passed, frontend19/19, lint0 errors/16 existing warnings, diff check passed; no backend/data changes."
+    "qa": "Code daca65d pushed; Vercel success. Chrome production desktop countdown-tick and changing seconds, VI/EN labels; mobile390 scrollWidth390, four75.25x72 boxes. Build passed, frontend19/19, lint0 errors/16 existing warnings, diff check passed; no backend/data changes."
   }
 }
