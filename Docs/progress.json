@@ -187,7 +187,7 @@
     "updatedAt": "2026-10-07",
     "status": "build_verified",
     "title": "Fantasy Youth Chamber Ensemble",
-    "favicon": "/fyce-icon.svg",
+    "favicon": "/fyce-icon.svg?v=2",
     "qa": "Production build passed; generated HTML title/favicon and SVG XML validated; backend/data unchanged."
   }
 }

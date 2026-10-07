@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="330 330 860 860">
   <title>FYCE</title>
-  <rect x="1" y="1" width="62" height="62" rx="13" fill="#ffffff" stroke="#dbe8ef" stroke-width="2"/>
-  <path d="M44 13C37 8 30 14 28 24L23 45C21 54 16 57 11 52M18 29H40" stroke="#1f75a8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="330" y="330" width="860" height="860" fill="#ffffff"/>
+  <path fill="#2c5596" d="M751 625C790 506 849 397 932 385C997 375 1054 385 1061 438C1067 478 1049 507 1016 508C981 509 961 489 961 461C961 442 971 426 987 419C967 402 944 410 923 431C890 466 866 541 844 625H954L947 659H834C807 760 784 859 748 956C711 1059 635 1138 548 1138C488 1138 450 1110 452 1066C454 1038 473 1016 502 1014C532 1011 554 1032 554 1062C554 1082 545 1097 528 1106C549 1118 575 1107 597 1082C637 1036 662 946 688 845L737 659H645L654 625Z"/>
 </svg>

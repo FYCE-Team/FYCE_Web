@@ -1,7 +1,7 @@
 ## Tên tab và favicon FYCE — 07/10/2026
 
 - Tên tab thống nhất `Fantasy Youth Chamber Ensemble` cho toàn bộ frontend.
-- Thay favicon Vite bằng biểu tượng ƒ FYCE dạng SVG, màu xanh và khung bo góc theo logo header; URL mới `/fyce-icon.svg` tránh giữ icon Vite cũ trong cache. Không thay hostname `localhost` của môi trường phát triển.
+- Favicon SVG được vẽ theo mẫu ƒ xanh đặc trên nền trắng người dùng gửi, thay bản nét viền trước đó; thu gọn khoảng trắng để rõ trên tab. URL `/fyce-icon.svg?v=2` giúp làm mới cache. Đây là bản vector theo mẫu, không phải tệp ảnh gốc. Không thay hostname `localhost` của môi trường phát triển.
 - Kiểm tra HTML/SVG và production build; không đổi backend hoặc dữ liệu nghiệp vụ.
 
 ## Nhạc cụ nền, chuyển động và logo — 07/10/2026
