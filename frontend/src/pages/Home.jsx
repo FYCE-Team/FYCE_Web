@@ -404,7 +404,7 @@ const Home = () => {
 
                             <div className="featured-event-top">
 
-                                <span className="home-featured-label"> {t("Đêm diễn tiếp theo")} </span>
+                                <span className="home-featured-label"> {t("Đêm diễn tiếp theo:")} </span>
 
                                 <span className="featured-event-badge">
                                     {t(featuredEvent.startAt
@@ -439,7 +439,7 @@ const Home = () => {
 
                             {countdownTarget ? (
                                 <div className="featured-countdown-section">
-                                    <p className="featured-countdown-heading">{t("Đếm ngược đến đêm diễn")}</p>
+                                    <p className="featured-countdown-heading">{t("Đếm ngược đến đêm diễn:")}</p>
                                     <div className="featured-countdown" role="timer" aria-live="off" aria-label={t("Đếm ngược đến đêm diễn")}>
                                         {[
                                             ["days", "Ngày"],

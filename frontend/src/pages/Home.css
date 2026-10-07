@@ -293,7 +293,7 @@
 
 .home-featured-event {
     width: 100%;
-
+    text-align: center;
     padding: 21px;
 
     border:
@@ -372,7 +372,7 @@
 
 .featured-event-meta {
     margin: 0;
-
+    text-align: center;
     color: var(--fyce-text-muted);
 
     font-size: 8px;
@@ -385,11 +385,12 @@
 
 .featured-countdown-heading {
     margin: 0 0 7px;
-    color: var(--fyce-text-muted);
+    color: rgb(12, 77, 174);
     font-size: 8px;
-    font-weight: 500;
+    font-weight: 1000;
     letter-spacing: .06em;
     text-transform: uppercase;
+    text-align: center;
 }
 
 .featured-countdown {
