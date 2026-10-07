@@ -205,7 +205,11 @@ const Home = () => {
     useEffect(() => {
         if (!location.hash || !homepage || (navigationType === "POP" && performance.getEntriesByType("navigation")[0]?.type === "reload")) return;
         const target = document.getElementById(location.hash.slice(1));
-        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (location.hash === "#top") {
+            window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        } else {
+            target?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
     }, [homepage, location.hash, navigationType]);
 
     const featuredEvent =

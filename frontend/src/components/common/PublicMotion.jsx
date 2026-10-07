@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import ConcertAtmosphere from "./ConcertAtmosphere.jsx";
-const selector = ".home-event-card, .home-gallery-item, .profile-summary, .event-detail-section-heading";
+const selector = ".home-event-card, .home-gallery-item, .profile-summary, .event-detail-section-heading, .event-detail-program-gallery figure, .event-detail-gallery-grid figure, .login-card, .register-layout";
 export default function PublicMotion() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -11,7 +11,7 @@ export default function PublicMotion() {
     const seen = new WeakSet();
     const observer = new IntersectionObserver(entries => entries.forEach(entry => {
       if (entry.isIntersecting) { entry.target.classList.add("concert-revealed"); observer.unobserve(entry.target); }
-    }), { rootMargin: "100px", threshold: 0 });
+    }), { rootMargin: "0px", threshold: .12 });
     const scan = root => {
       if (reduced.matches || !root.isConnected) return;
       const elements = [...(root.matches?.(selector) ? [root] : []), ...root.querySelectorAll(selector)];
@@ -30,5 +30,5 @@ export default function PublicMotion() {
     reduced.addEventListener("change", clear);
     return () => { clear(); mutations.disconnect(); cancelAnimationFrame(frame); added.clear(); reduced.removeEventListener("change", clear); };
   }, [pathname]);
-  return <ConcertAtmosphere />;
+  return <ConcertAtmosphere auth={/^\/(login|register|verify-otp|forgot-password|reset-password|verify-reset-otp)\/?$/.test(pathname)} />;
 }

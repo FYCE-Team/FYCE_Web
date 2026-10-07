@@ -1,11 +1,19 @@
 /* One non-interactive decorative layer for every route, below page content. */
 #root { isolation: isolate; min-height: 100vh; }
 .concert-background { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 10% 70%, #e0eef8 0%, transparent 65%), radial-gradient(ellipse at 95% 10%, #fff1d940, transparent 55%); }
-.concert-background-staff { position: absolute; inset: 0; width: 100%; height: 100%; stroke: #4f7895; stroke-width: 1.2; opacity: .18; animation: concert-staff-drift 28s ease-in-out infinite alternate; }
-.concert-background-symbol { position: absolute; width: 46px; height: 78px; color: #315975; opacity: .36; animation: concert-symbol-drift 22s ease-in-out infinite alternate; }
+.concert-background-staff { position: absolute; inset: 0; width: 100%; height: 100%; stroke: #4f7895; stroke-width: 1.2; opacity: .25; animation: concert-staff-drift 20s ease-in-out infinite alternate; }
+.concert-background-symbol { position: absolute; width: 46px; height: 78px; color: #315975; opacity: .42; animation: concert-symbol-drift 18s ease-in-out infinite alternate; }
 .concert-background-clef { width: 62px; height: 106px; opacity: .4; }
-@keyframes concert-symbol-drift { from { transform: translate3d(-12px, 14px, 0) rotate(-9deg); } to { transform: translate3d(20px, -25px, 0) rotate(9deg); } }
-@keyframes concert-staff-drift { from { transform: translate3d(-12px, 10px, 0); } to { transform: translate3d(12px, -10px, 0); } }
+@keyframes concert-symbol-drift { from { transform: translate3d(-28px, 32px, 0) rotate(-17deg); } to { transform: translate3d(38px, -48px, 0) rotate(17deg); } }
+@keyframes concert-staff-drift { from { transform: translate3d(-30px, 18px, 0); } to { transform: translate3d(30px, -20px, 0); } }
+.concert-background-instrument { position: absolute; width: clamp(150px, 18vw, 270px); height: auto; color: var(--fyce-primary); opacity: .22; animation: concert-instrument-drift 18s ease-in-out infinite alternate; }
+.concert-background-auth .concert-background-instrument { width: clamp(100px, 8vw, 150px); opacity: .48; }
+.concert-background-auth .concert-instrument-violin { left: auto !important; right: 12px; }
+.concert-background-auth .concert-instrument-flute { left: auto !important; right: 12px; }
+.concert-background-auth .concert-instrument-flute:last-child { left: 0 !important; right: auto; }
+.concert-background-auth .concert-instrument-violin { color: #b78031; }
+.concert-background-auth .concert-background-symbol { opacity: .48; }
+@keyframes concert-instrument-drift { from { transform: translate3d(-20px, 25px, 0) rotate(-8deg); } to { transform: translate3d(28px, -35px, 0) rotate(10deg); } }
 /* Cards/forms stay solid; page whitespace exposes the music. */
 .main-layout, .admin-layout, .home-page, .event-detail-page, .seat-booking-page, .checkout-page, .ticket-page, .profile-page, .login-page, .register-page, .verify-page, .verify-success-page, .forgot-password-page, .reset-password-page, .verify-reset-otp-page { background: transparent; }
 .home-upcoming, .home-about, .home-gallery, .event-detail-main-section { background: transparent; }
@@ -15,10 +23,26 @@
 .home-page p { line-height: 1.8; }
 .auth-brand-name, .auth-brand-symbol, .register-page h1, .register-page h2, .login-page h1, .login-page h2 { font-family: var(--fyce-serif); }
 .login-page { font-family: var(--fyce-sans); }
-.concert-revealed { animation: concert-card-enter .28s ease-out; }
-@keyframes concert-card-enter { from { transform: translateY(8px); } to { transform: none; } }
-.home-event-card, .home-gallery-item { transition: transform .18s ease, box-shadow .18s ease; }
-.home-event-card:hover, .home-gallery-item:hover { transform: translateY(-3px); }
-/* No opacity gates, section transforms, stagger, or animated blurred lights. */
-@media (max-width: 600px) { .concert-background-symbol { width: 32px; height: 55px; opacity: .3; } .concert-background-clef { width: 42px; height: 74px; } }
-@media (prefers-reduced-motion: reduce) { .concert-background-symbol, .concert-background-staff, .concert-revealed { animation: none; } .home-event-card, .home-gallery-item { transition: none; } .home-event-card:hover, .home-gallery-item:hover { transform: none; } }
+.auth-layout { background: transparent; }
+.auth-brand, .auth-home-link { color: inherit; text-decoration: none; }
+.concert-revealed { animation: concert-card-enter .62s cubic-bezier(.16, 1, .3, 1); }
+@keyframes concert-card-enter { from { transform: translate3d(0, 28px, 0) scale(.975); } to { transform: none; } }
+.home-hero-text, .event-detail-hero-text { animation: concert-hero-enter .8s cubic-bezier(.16, 1, .3, 1); }
+@keyframes concert-hero-enter { from { transform: translate3d(-26px, 18px, 0); } to { transform: none; } }
+.home-event-card, .home-gallery-item { transition: transform .24s ease, box-shadow .24s ease; }
+.home-event-card:hover, .home-gallery-item:hover { transform: translateY(-6px) scale(1.01); }
+/* Animate decorative vectors and individual cards, never hide/delay full sections. */
+@media (max-width: 600px) {
+  .concert-background-symbol { width: 32px; height: 55px; opacity: .34; }
+  .concert-background-clef { width: 42px; height: 74px; }
+  .concert-background-instrument { width: 140px; opacity: .22; }
+  .concert-background-auth .concert-background-instrument { opacity: .36; }
+  .concert-background-auth .concert-instrument-piano { left: -8% !important; top: 7% !important; }
+  .concert-background-auth .concert-instrument-violin { left: 69% !important; top: 74% !important; }
+  .concert-background-auth .concert-instrument-flute { left: 66% !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .concert-background-symbol, .concert-background-staff, .concert-background-instrument, .concert-revealed, .home-hero-text, .event-detail-hero-text { animation: none; }
+  .home-event-card, .home-gallery-item { transition: none; }
+  .home-event-card:hover, .home-gallery-item:hover { transform: none; }
+}

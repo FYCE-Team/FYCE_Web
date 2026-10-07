@@ -1,3 +1,18 @@
+## Nhạc cụ nền, chuyển động và logo — 07/10/2026
+
+**█████████░ 90% — thay đổi giao diện đạt QA; nghiệm thu provider cũ còn mở.**
+
+- Sửa lớp `auth-layout` che nền; login/register dùng nền trong suốt, form/card giữ nền đặc. Một nền chung có 19 nốt/khóa nhạc + 4 minh họa SVG piano/violin/flute, nổi rõ hơn ở auth và chuyển động bằng transform. Không tải thêm ảnh/font hoặc binary Atlas.
+- Vẽ lại khóa sol bằng nét liền, giữ toàn bộ stroke trong viewBox; nối vòng/đuôi và đầu nốt, không phụ thuộc font ký hiệu nhạc.
+- Tăng độ dịch nền, chuyển động khuông nhạc và card 28px/scale.975 trong620ms; hero chỉ chuyển động text. Reveal gallery/heading/auth-card bằng IntersectionObserver, không opacity gate hoặc transform toàn section/page; không scroll listener đọc layout. Reduced-motion tắt animation/hover; admin không nhận reveal.
+- Logo chung và logo auth là React Router Link `/#top`. Logo ở Home cuộn tức thì; scrollPolicy xử lý `#top` là tọa độ0, Home không dùng scrollIntoView cho top vì sẽ lệch72px bởi header. Anchor về About/concerts và chính sách giữ vị trí trang thao tác giữ nguyên.
+- Chrome desktop: nền login hiển thị nhạc cụ, một background; register/mobile390 không overflow và nền wrapper trong suốt. Logo từ auth về Home sau dữ liệu tải scrollY0; ở Home cuộn2608 rồi bấm logo cũng scrollY0. Nội dung luôn hiện, card reveal chạy. Evidence tạm `/tmp/fyce-instrument-evidence/`.
+- Frontend19/19, build/lint/diff check kiểm tra trước release; audit frontend/backend0, backend syntax99/99. Backend integration73 là kết quả lịch sử, không chạy lại vì không đổi backend. Không đăng nhập/tạo tài khoản/giao dịch thật, không sửa DB hoặc hệ điều hành ngoài dự án.
+
+Commit/deploy sẽ được ghi khi xác minh. Các giới hạn kiểm thử provider/FPS nhiều thiết bị trước đó giữ nguyên.
+
+---
+
 ## Trailer trong cover và xem ảnh — 07/10/2026
 
 **█████████░ 90% — tính năng media đạt QA; nghiệm thu provider trước đó còn mở.**

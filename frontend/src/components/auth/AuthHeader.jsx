@@ -3,32 +3,29 @@ import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import {
     ArrowLeft
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const AuthHeader = () => {
     const { t } = useLanguage();
 
-    const navigate = useNavigate();
-
     return (
         <header className="auth-header">
             <div className="auth-header-left">
-                <div className="auth-brand">
+                <Link to="/#top" className="auth-brand" aria-label="FYCE - Fantasy Youth Chamber Ensemble">
                     <div className="auth-brand-symbol"> ƒ </div>
 
                     <div className="auth-brand-name">
                         FYCE
                     </div>
-                </div>
+                </Link>
 
                 <div className="auth-header-divider" />
 
-                <button
-                    type="button"
+                <Link
+                    to="/#top"
                     className="auth-home-link"
-                    onClick={() => navigate("/")}
                 >
-                    <ArrowLeft size={19} /> {t("Về trang chủ")} </button>
+                    <ArrowLeft size={19} /> {t("Về trang chủ")} </Link>
             </div>
 
             <div className="auth-header-right">
