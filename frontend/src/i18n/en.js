@@ -441,6 +441,8 @@ export default {
   "Thời gian": "Time",
   "Địa điểm": "Venue",
   "Duy nhất": "Exclusive",
+  "Đếm ngược đến đêm diễn": "Countdown to the concert",
+  "Hỗ trợ đặt vé:": "Ticket booking support:",
   "Hỗ trợ đặt vé / cơ quan:": "Booking / group support:",
   "Vé của FYCE.": "FYCE tickets.",
   hoặc: "or",

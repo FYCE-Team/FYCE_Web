@@ -975,8 +975,8 @@ const backstageGallery = useMemo(() => {
                                 ))}
 
                                 <div className="ticket-support">
-                                    <span>♧</span> {t("Hỗ trợ đặt vé / cơ quan:")} <strong>
-                                        1900 8888 68
+                                    <span>♧</span> {t("Hỗ trợ đặt vé:")} <strong>
+                                        0325 289 840
                                     </strong>
                                 </div>
 

@@ -33,6 +33,8 @@ const getCountdown = (targetDate) => {
     const target =
         new Date(targetDate).getTime();
 
+    if (!Number.isFinite(target)) return getCountdown(null);
+
     const now =
         new Date().getTime();
 
@@ -435,79 +437,28 @@ const Home = () => {
 
                             </p>
 
-                            {t(countdownTarget ? (
-
-                                <div className="featured-countdown">
-
-                                    <div className="countdown-box">
-
-                                        <strong>
-                                            {t(String(
-                                                countdown.days
-                                            ).padStart(
-                                                2,
-                                                "0"
-                                            ))}
-                                        </strong>
-
-                                        <span> {t("Ngày")} </span>
-
+                            {countdownTarget ? (
+                                <div className="featured-countdown-section">
+                                    <p className="featured-countdown-heading">{t("Đếm ngược đến đêm diễn")}</p>
+                                    <div className="featured-countdown" role="timer" aria-live="off" aria-label={t("Đếm ngược đến đêm diễn")}>
+                                        {[
+                                            ["days", "Ngày"],
+                                            ["hours", "Giờ"],
+                                            ["minutes", "Phút"],
+                                            ["seconds", "Giây"]
+                                        ].map(([unit, label]) => (
+                                            <div key={unit} className={`countdown-box${unit === "seconds" ? " countdown-box-accent" : ""}`}>
+                                                <strong key={`${unit}-${countdown[unit]}`} className="countdown-digit">
+                                                    {String(countdown[unit]).padStart(2, "0")}
+                                                </strong>
+                                                <span>{t(label)}</span>
+                                            </div>
+                                        ))}
                                     </div>
-
-                                    <div className="countdown-box">
-
-                                        <strong>
-                                            {t(String(
-                                                countdown.hours
-                                            ).padStart(
-                                                2,
-                                                "0"
-                                            ))}
-                                        </strong>
-
-                                        <span> {t("Giờ")} </span>
-
-                                    </div>
-
-                                    <div className="countdown-box">
-
-                                        <strong>
-                                            {t(String(
-                                                countdown.minutes
-                                            ).padStart(
-                                                2,
-                                                "0"
-                                            ))}
-                                        </strong>
-
-                                        <span> {t("Phút")} </span>
-
-                                    </div>
-
-                                    <div className="countdown-box countdown-box-accent">
-
-                                        <strong>
-                                            {t(String(
-                                                countdown.seconds
-                                            ).padStart(
-                                                2,
-                                                "0"
-                                            ))}
-                                        </strong>
-
-                                        <span> {t("Giây")} </span>
-
-                                    </div>
-
                                 </div>
-
                             ) : (
-
-                                <div className="featured-coming-soon">
-                                    COMING SOON
-                                </div>
-
-                            ))}
+                                <div className="featured-coming-soon">COMING SOON</div>
+                            )}
 
                             <Link
                                 to={

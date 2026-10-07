@@ -1,3 +1,11 @@
+## Bộ đếm ngược concert và liên hệ hỗ trợ — 07/10/2026
+
+- Bộ đếm Home dùng ô xanh đậm/vàng, số tabular, hiệu ứng lật/nảy khi giá trị từng đơn vị thay đổi và ánh sáng lướt bằng transform. Không ẩn nội dung, không thay timer/thời gian sự kiện; reduced-motion tắt animation. Ngày không hợp lệ về 0 thay vì NaN.
+- Bổ sung nhãn bộ đếm và hỗ trợ đặt vé tiếng Anh. Số hỗ trợ chi tiết sự kiện đổi thành `0325 289 840`, được người dùng xác nhận trước commit.
+- Build, 19/19 frontend tests, lint và diff check đạt (16 warning cũ). Không đổi backend, auth, thanh toán hoặc DB. Commit/push và kiểm tra Vercel thực hiện sau xác minh build.
+
+---
+
 ## Tên tab và favicon FYCE — 07/10/2026
 
 - Tên tab thống nhất `Fantasy Youth Chamber Ensemble` cho toàn bộ frontend.
