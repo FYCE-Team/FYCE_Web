@@ -188,6 +188,6 @@
     "status": "build_verified",
     "title": "Fantasy Youth Chamber Ensemble",
     "favicon": "/fyce-icon.svg?v=2",
-    "qa": "Production build passed; generated HTML title/favicon and SVG XML validated; backend/data unchanged."
+    "qa": "Shared blue SVG logo used in public/admin header, footer and auth header; home-top link preserved. Production build passed, lint 0 errors/16 existing warnings, diff check passed; backend/data unchanged."
   }
 }

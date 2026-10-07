@@ -722,6 +722,8 @@ button {
 .auth-brand-symbol {
     width: 37px;
     height: 37px;
+    object-fit: contain;
+    flex-shrink: 0;
     border: 2px solid #d3e7fd;
     border-radius: 50%;
     display: flex;

@@ -1,6 +1,7 @@
 ## Tên tab và favicon FYCE — 07/10/2026
 
 - Tên tab thống nhất `Fantasy Youth Chamber Ensemble` cho toàn bộ frontend.
+- Header/footer dùng chung ảnh SVG ƒ xanh với favicon thay ký tự font ƒ; header đăng nhập/đăng ký cũng đồng bộ. Giữ kích thước logo, tên thương hiệu và liên kết về đầu trang chủ; không đổi API/dữ liệu.
 - Favicon SVG được vẽ theo mẫu ƒ xanh đặc trên nền trắng người dùng gửi, thay bản nét viền trước đó; thu gọn khoảng trắng để rõ trên tab. URL `/fyce-icon.svg?v=2` giúp làm mới cache. Đây là bản vector theo mẫu, không phải tệp ảnh gốc. Không thay hostname `localhost` của môi trường phát triển.
 - Kiểm tra HTML/SVG và production build; không đổi backend hoặc dữ liệu nghiệp vụ.
 

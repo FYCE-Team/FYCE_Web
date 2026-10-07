@@ -12,7 +12,7 @@ const AuthHeader = () => {
         <header className="auth-header">
             <div className="auth-header-left">
                 <Link to="/#top" className="auth-brand" aria-label="FYCE - Fantasy Youth Chamber Ensemble">
-                    <div className="auth-brand-symbol"> ƒ </div>
+                    <img className="auth-brand-symbol" src="/fyce-icon.svg?v=2" alt="" width="37" height="37" aria-hidden="true" />
 
                     <div className="auth-brand-name">
                         FYCE

@@ -11,13 +11,14 @@
   width: 33px;
   height: 33px;
 
-  display: grid;
-  place-items: center;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
 
   border: 1px solid var(--fyce-border);
   border-radius: 6px;
 
-  background: var(--fyce-surface);
+  background: #ffffff;
   color: var(--fyce-primary);
 
   font-family: var(--fyce-serif);
