@@ -1,18 +1,17 @@
 {
   "updatedAt": "2026-10-07",
   "latestUpdate": {
-    "status": "instruments_motion_logo_verified_pending_release",
-    "commit": null,
-    "deployment": "Pending push/deployment verification",
+    "status": "instruments_motion_logo_released_verified",
+    "commit": "fc2c829",
+    "deployment": "Pushed main, Vercel success, production index-BXJViotw.js matches verified build; Chrome production login instruments/transparent wrapper, logo auth and Home scroll1786 ->0, register390 no overflow.",
     "completed": [
       "Reveal auth music background previously hidden by opaque auth-layout",
       "Animated piano/violin/flute SVG and continuous unclipped treble clef",
       "Stronger transform-only notes/staves/card/text motion with reduced-motion",
       "SPA logo links to home top; exact scrollY0 instead of header-offset scrollIntoView"
     ],
-    "qa": "Chrome desktop login background visible; register390 transparent/no overflow; auth logo and Home after scroll2608 return0; no hidden sections. Frontend19, audits0 frontend/backend, backend syntax99; backend integration73 remains historical. No provider submissions, database changes or system modifications.",
+    "qa": "Chrome desktop login background visible; register390 transparent/no overflow; auth logo and Home after scroll2608 return0; no hidden sections. Frontend19, audits0 frontend/backend, backend syntax99; backend integration73 remains historical. No provider submissions, database changes or system modifications. Build passed, lint0 errors/16 existing warnings, git diff check passed. Production UI verified; viewport reset and only QA5180 stopped.",
     "pending": [
-      "Release verification",
       "Existing provider acceptance and multi-device FPS benchmarking"
     ]
   },

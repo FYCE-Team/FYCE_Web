@@ -9,7 +9,7 @@
 - Chrome desktop: nền login hiển thị nhạc cụ, một background; register/mobile390 không overflow và nền wrapper trong suốt. Logo từ auth về Home sau dữ liệu tải scrollY0; ở Home cuộn2608 rồi bấm logo cũng scrollY0. Nội dung luôn hiện, card reveal chạy. Evidence tạm `/tmp/fyce-instrument-evidence/`.
 - Frontend19/19, build/lint/diff check kiểm tra trước release; audit frontend/backend0, backend syntax99/99. Backend integration73 là kết quả lịch sử, không chạy lại vì không đổi backend. Không đăng nhập/tạo tài khoản/giao dịch thật, không sửa DB hoặc hệ điều hành ngoài dự án.
 
-Commit/deploy sẽ được ghi khi xác minh. Các giới hạn kiểm thử provider/FPS nhiều thiết bị trước đó giữ nguyên.
+Commit code **`fc2c829`** đã push main; GitHub Vercel success, production bundle **`index-BXJViotw.js`** khớp build. Chrome production: login wrapper transparent và đủ4 nhạc cụ; logo từ auth về0, Home sau cuộn1786 rồi bấm logo cũng về0. Register mobile390 không overflow. Frontend19/19, lint0 lỗi/16 warning cũ, build/diff đạt, audits0 hai phía, syntax99backendđạt. Các giới hạn kiểm thử provider/FPS nhiều thiết bị trước đó giữ nguyên. Viewport đã reset; QA5180 được dừng sau nghiệm thu, server khác giữ nguyên.
 
 ---
 
