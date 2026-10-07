@@ -194,7 +194,7 @@
     "updatedAt": "2026-10-07",
     "status": "build_verified",
     "completed": [
-      "Concert countdown styling with per-unit tick and transform sheen",
+      "Compact concert countdown: 56px cards, 22px numerals, light blue/ivory palette; subtle per-unit tick without sheen or bounce",
       "Reduced-motion support; invalid dates avoid NaN",
       "Approved ticket support phone and English labels"
     ],

@@ -1,5 +1,6 @@
 ## Bộ đếm ngược concert và liên hệ hỗ trợ — 07/10/2026
 
+- Điều chỉnh theo phản hồi: ô cao tối thiểu56px, chữ số22px; nền trắng/xanh rất nhạt, ô giây màu kem/vàng nhẹ, viền mảnh và bóng nhẹ. Bỏ ánh sáng lướt và nảy/scale, giữ chuyển số4px/18deg trong380ms cùng reduced-motion. Chỉ CSS, không đổi thời gian sự kiện hoặc API. Build/diff check đạt.
 - Bộ đếm Home dùng ô xanh đậm/vàng, số tabular, hiệu ứng lật/nảy khi giá trị từng đơn vị thay đổi và ánh sáng lướt bằng transform. Không ẩn nội dung, không thay timer/thời gian sự kiện; reduced-motion tắt animation. Ngày không hợp lệ về 0 thay vì NaN.
 - Bổ sung nhãn bộ đếm và hỗ trợ đặt vé tiếng Anh. Số hỗ trợ chi tiết sự kiện đổi thành `0325 289 840`, được người dùng xác nhận trước commit.
 - Build, 19/19 frontend tests, lint và diff check đạt (16 warning cũ). Không đổi backend, auth, thanh toán hoặc DB. Commit `daca65d` đã push main, Vercel success. Chrome production: đủ 4 ô, animation countdown-tick; giây cập nhật, nhãn VI/EN đúng; mobile390 scrollWidth390, ô75.25×72px. Viewport và ngôn ngữ đã trả về mặc định/VI. Evidence tạm `/tmp/fyce-countdown-desktop.png`.
