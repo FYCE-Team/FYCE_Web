@@ -126,8 +126,9 @@ button {
 .header-symbol {
     width: 37px;
     height: 37px;
-    border: 2px solid #d3e7fd;
-    border-radius: 50%;
+    border: 0;
+    border-radius: 18%;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -724,8 +725,9 @@ button {
     height: 37px;
     object-fit: contain;
     flex-shrink: 0;
-    border: 2px solid #d3e7fd;
-    border-radius: 50%;
+    border: 0;
+    border-radius: 18%;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;

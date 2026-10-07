@@ -33,17 +33,6 @@
 }
 
 .site-footer-brand
-.fyce-logo-mark {
-  border-color:
-    rgba(255, 255, 255, 0.15);
-
-  background:
-    rgba(255, 255, 255, 0.06);
-
-  color: #ffffff;
-}
-
-.site-footer-brand
 .fyce-logo-text strong {
   color: #ffffff;
 }

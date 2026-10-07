@@ -15,10 +15,10 @@
   flex-shrink: 0;
   object-fit: contain;
 
-  border: 1px solid var(--fyce-border);
-  border-radius: 6px;
+  border: 0;
+  border-radius: 18%;
 
-  background: #ffffff;
+  background: transparent;
   color: var(--fyce-primary);
 
   font-family: var(--fyce-serif);
@@ -59,17 +59,6 @@
 }
 
 .fyce-logo-footer
-.fyce-logo-mark {
-  border-color:
-    rgba(255, 255, 255, 0.15);
-
-  background:
-    rgba(255, 255, 255, 0.06);
-
-  color: #ffffff;
-}
-
-.fyce-logo-footer
 .fyce-logo-text strong {
   color: #ffffff;
 }
@@ -77,12 +66,6 @@
 .fyce-logo-footer
 .fyce-logo-text span {
   color: #85a39a;
-}
-
-.fyce-logo-footer .fyce-logo-mark {
-  border-color: rgba(143, 201, 234, 0.25);
-  background: rgba(255, 255, 255, 0.06);
-  color: #8fc9ea;
 }
 
 .fyce-logo-footer .fyce-logo-text strong {

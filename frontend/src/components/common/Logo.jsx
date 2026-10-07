@@ -14,7 +14,7 @@ const Logo = ({
         window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       }}
     >
-      <img className="fyce-logo-mark" src="/fyce-icon.svg?v=2" alt="" width="33" height="33" aria-hidden="true" />
+      <img className="fyce-logo-mark" src="/fyce-icon.svg?v=3" alt="" width="33" height="33" aria-hidden="true" />
 
       <span className="fyce-logo-text">
         <strong>FYCE</strong>
