@@ -2,7 +2,7 @@
 
 - Quan sát Safari production: nút tài khoản lệch lên so với nav/language/admin. Account wrapper đổi từ normal inline flow sang flex center; nút account dùng flex, chữ/avatar/SVG có display và line-height rõ ràng, ảnh avatar block để bỏ khoảng baseline.
 - Chuẩn hóa native appearance/margin/font/line-height các nút chỉ trong site-header; login/register dùng flex center. Giữ dropdown, breakpoints mobile, dấu focus và toàn bộ hành vi auth/API.
-- Production build/diff check đạt; kiểm tra Safari/Chrome sau release, không ghi tài khoản/DB hoặc thay cấu hình Safari.
+- Production build/diff check đạt; commit `9eca0fb` đã push main, Vercel success. Safari production có phiên sẵn: tài khoản/avatar/chevron cùng hàng với nav/admin/language; dropdown mở/đóng được. Chrome desktop: tâm nav/language/admin/account đều y35px; mobile390 account/menu tâm y32px, scrollWidth390. Viewport reset; chỉ mở/đóng menu, không ghi tài khoản/DB hoặc thay cấu hình Safari. Evidence tạm `/tmp/fyce-header-safari.png`. Không nghiệm thu mọi phiên bản trình duyệt/thiết bị.
 
 ---
 

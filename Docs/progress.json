@@ -208,6 +208,6 @@
       "Scoped control appearance/font/line-height and flex-centered login/register",
       "Block avatar image/chevron and explicit name line-height"
     ],
-    "qa": "Production Safari offset observed before change; build/diff passed. Browser verification after release pending. No auth/API/database changes."
+    "qa": "9eca0fb pushed, Vercel success; production Safari signed-in account aligned and dropdown opens/closes. Chrome desktop nav/language/admin/account centers y35; mobile390 account/menu centers y32, scrollWidth390. Viewport reset; build/diff passed. No auth/API/database changes. Not all browser versions/devices tested."
   }
 }
