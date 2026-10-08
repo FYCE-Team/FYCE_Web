@@ -1,3 +1,11 @@
+## Căn hàng header trên Safari — 08/10/2026
+
+- Quan sát Safari production: nút tài khoản lệch lên so với nav/language/admin. Account wrapper đổi từ normal inline flow sang flex center; nút account dùng flex, chữ/avatar/SVG có display và line-height rõ ràng, ảnh avatar block để bỏ khoảng baseline.
+- Chuẩn hóa native appearance/margin/font/line-height các nút chỉ trong site-header; login/register dùng flex center. Giữ dropdown, breakpoints mobile, dấu focus và toàn bộ hành vi auth/API.
+- Production build/diff check đạt; kiểm tra Safari/Chrome sau release, không ghi tài khoản/DB hoặc thay cấu hình Safari.
+
+---
+
 ## Bộ đếm ngược concert và liên hệ hỗ trợ — 07/10/2026
 
 - Điều chỉnh theo phản hồi: ô cao tối thiểu56px, chữ số22px; nền trắng/xanh rất nhạt, ô giây màu kem/vàng nhẹ, viền mảnh và bóng nhẹ. Bỏ ánh sáng lướt và nảy/scale, giữ chuyển số4px/18deg trong380ms cùng reduced-motion. Chỉ CSS, không đổi thời gian sự kiện hoặc API. Build/diff check đạt.

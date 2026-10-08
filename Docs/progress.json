@@ -199,5 +199,15 @@
       "Approved ticket support phone and English labels"
     ],
     "qa": "Code daca65d pushed; Vercel success. Chrome production desktop countdown-tick and changing seconds, VI/EN labels; mobile390 scrollWidth390, four75.25x72 boxes. Build passed, frontend19/19, lint0 errors/16 existing warnings, diff check passed; no backend/data changes."
+  },
+  "headerAlignmentUpdate": {
+    "updatedAt": "2026-10-08",
+    "status": "build_verified",
+    "completed": [
+      "Flex-centered account wrapper removes native inline-button baseline offset",
+      "Scoped control appearance/font/line-height and flex-centered login/register",
+      "Block avatar image/chevron and explicit name line-height"
+    ],
+    "qa": "Production Safari offset observed before change; build/diff passed. Browser verification after release pending. No auth/API/database changes."
   }
 }
