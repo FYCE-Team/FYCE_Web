@@ -1,8 +1,8 @@
 {
   "updatedAt": "2026-10-08",
   "latestUpdate": {
-    "status": "security_regression_passed_load_capacity_not_certified",
-    "deployment": "Changes verified locally; push/deployment recorded in Git history. Render production capacity not certified.",
+    "status": "security_regression_released_capacity_not_certified",
+    "deployment": "Pushed FYCE-Team/FYCE_Web main; GitHub Vercel success, production index-DzvmXCU-.js matches local build. Vercel/Render health JSON200. Render foreign-Origin refresh without cookie returns new403 message and no Set-Cookie. Exact Render dashboard SHA not inspected; production capacity not certified.",
     "completed": [
       "Atomic OTP attempts and one-time verification",
       "Cookie Origin allowlist and HS256 verification",
@@ -18,7 +18,9 @@
       "Production 1000/10000 concurrency acceptance requires Render plan/staging configuration; local cold burst did not pass",
       "Existing real Google/SePay/email/camera acceptance remains pending"
     ],
-    "report": "Docs/SECURITY_LOAD_TEST.md"
+    "report": "Docs/SECURITY_LOAD_TEST.md",
+    "commit": "deada0e",
+    "cleanup": "Only own MongoDB QA /tmp/fyce-security-qa-db:27028 stopped; load API child exited and fixture DB cleared. User application servers untouched."
   },
   "motionUpdate": {
     "status": "code_verified_pending_visual_and_provider_acceptance",

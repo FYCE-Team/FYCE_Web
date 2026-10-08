@@ -7,6 +7,7 @@
 - Local tải:1.000 reload/25 concurrent đều200;10.000 request burst/1.000 outstanding có2685 HTTP200,7025 HTTP503 bảo vệ và290 ETIMEDOUT. API không crash và mọi phase phục hồi homepage200. 1.000 worker có nhịp nghỉ:3000/3000 HTTP200, **tối đa8 outstanding**, không chứng nhận1.000 request đồng thời.500 abort chủ động không làm mất khả năng phục vụ.
 - Cold burst chưa đạt, harness exit1 và giữ JSON; kernel backlog local128 chỉ được đọc, không chỉnh OS. Gói Render/staging chưa có, không stress production và không hứa10.000 user. Report/điều kiện nghiệm thu: [SECURITY_LOAD_TEST.md](SECURITY_LOAD_TEST.md), [số đo JSON](security-load-results.json).
 - Thanh tiến độ giữ90%; các cổng Google/SePay/email/camera trước đây và capacity production còn mở. Commit/push xem Git history; không coi push là bằng chứng Render đã chạy đúng backend.
+- Release **deada0e** đã push FYCE-Team/FYCE_Web main; GitHub Vercel success, production bundleindex-DzvmXCU-.js khớp local. Health Vercel/Render JSON200; Render refresh không cookie với Origin lạ trả403 đúng thông báo mới, không Set-Cookie. Chưa xem SHA dashboard Render/benchmark production. Đã dừng đúng Mongo QA /tmp/fyce-security-qa-db:27028; load child/fixture dọn xong, giữ server ứng dụng của người dùng.
 
 ---
 
