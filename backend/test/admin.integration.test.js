@@ -6,6 +6,11 @@ import { deliverNextTicketEmail, buildTicketEmail } from "../src/services/ticket
 import { retrieveSePayOrderByInvoice } from "../src/services/payment.service.js";
 import { paymentReturnOrigin } from "../src/controllers/booking.controller.js";
 import test, { before, after } from "node:test";
+import { verifyRegistrationOtp } from "../src/services/auth.service.js";
+import { verifyPasswordResetOtp } from "../src/services/passwordReset.service.js";
+import EmailVerification from "../src/models/EmailVerification.js";
+import PasswordReset from "../src/models/PasswordReset.js";
+import jwt from "jsonwebtoken";
 import assert from "node:assert/strict";
 import mongoose from "mongoose";
 import app from "../src/app.js";
@@ -1375,4 +1380,88 @@ test("CSV/XLSX exports enforce admin scope, filters, safe cells and no ticket se
   const wb=new ExcelJS.Workbook();await wb.xlsx.load(Buffer.from(await xlsx.arrayBuffer()));const sheet=wb.worksheets[0];assert.equal(sheet.rowCount,2);assert.equal(sheet.getCell("C2").type,ExcelJS.ValueType.String);assert.equal(sheet.getCell("C2").value,'=HYPERLINK("bad")');assert.equal(sheet.getCell("E2").value,"0123456789");assert.equal(sheet.getCell("H2").value,200000);
   const payment=await fetch(`${base}/admin/export/payments?format=csv&eventId=${paid.eventId}&paymentStatus=unpaid`,{headers:{Authorization:`Bearer ${adminToken}`}});assert.equal((await payment.text()).split("\r\n").length,1);
   assert.equal((await request('/admin/export/bookings?format=bad')).status,400);
+});
+
+test("registration OTP attempts and consumption remain atomic under parallel guesses", async () => {
+  const member = await User.create({ username: "otp-race-register", fullName: "QA", email: "otp-race-register@example.test", password: "qa-not-used", isActive: false });
+  const future = new Date(Date.now() + 300000);
+  const record = await EmailVerification.create({ userId: member._id, otpHash: hashToken("123456"), expiresAt: future });
+  const guesses = await Promise.allSettled(Array.from({ length: 24 }, () => verifyRegistrationOtp({ userId: member.id, otp: "654321" })));
+  assert.equal(guesses.filter(r => r.status === "fulfilled").length, 0);
+  assert.equal((await EmailVerification.findById(record._id)).attempts, 5);
+  await assert.rejects(verifyRegistrationOtp({ userId: member.id, otp: "123456" }), /OTP_TOO_MANY_ATTEMPTS/);
+  await EmailVerification.deleteOne({ _id: record._id });
+  await EmailVerification.create({ userId: member._id, otpHash: hashToken("123456"), expiresAt: future });
+  const accepted = await Promise.allSettled(Array.from({ length: 8 }, () => verifyRegistrationOtp({ userId: member.id, otp: "123456" })));
+  assert.equal(accepted.filter(r => r.status === "fulfilled").length, 1);
+  assert.equal((await User.findById(member._id)).isActive, true);
+  assert.equal(await EmailVerification.countDocuments({ userId: member._id }), 0);
+});
+
+test("reset OTP enforces five guesses and issues exactly one token under concurrency", async () => {
+  const future = new Date(Date.now() + 300000);
+  const email = "otp-race-reset@example.test";
+  const record = await PasswordReset.create({ userId: user._id, email, otpHash: hashToken("123456"), otpExpiresAt: future, expiresAt: future });
+  await Promise.allSettled(Array.from({ length: 24 }, () => verifyPasswordResetOtp({ email, otp: "654321" })));
+  assert.equal((await PasswordReset.findById(record._id)).attempts, 5);
+  await assert.rejects(verifyPasswordResetOtp({ email, otp: "123456" }), /RESET_OTP_MAX_ATTEMPTS/);
+  await PasswordReset.deleteOne({ _id: record._id });
+  const fresh = await PasswordReset.create({ userId: user._id, email, otpHash: hashToken("123456"), otpExpiresAt: future, expiresAt: future });
+  const results = await Promise.allSettled(Array.from({ length: 8 }, () => verifyPasswordResetOtp({ email, otp: "123456" })));
+  const successes = results.filter(r => r.status === "fulfilled");
+  assert.equal(successes.length, 1);
+  assert.equal((await PasswordReset.findById(fresh._id)).resetTokenHash, hashToken(successes[0].value.resetToken));
+});
+
+test("HTTP rejects malicious bodies, foreign cookie origins and non-HS256 tokens without leaking payloads", async () => {
+  const foreign = await fetch(`${base}/auth/refresh`, { method: "POST", headers: { Origin: "https://attacker.example" } });
+  assert.equal(foreign.status, 403); assert.equal(foreign.headers.get("set-cookie"), null);
+  assert.equal((await fetch(`${base}/auth/logout`, { method: "POST", headers: { Origin: "null" } })).status, 403);
+  const previous = process.env.CLIENT_URL;
+  process.env.CLIENT_URL = "https://fyce-qa.example";
+  try {
+    assert.equal((await fetch(`${base}/auth/refresh`, { method: "POST", headers: { Origin: process.env.CLIENT_URL } })).status, 401);
+  } finally { if (previous === undefined) delete process.env.CLIENT_URL; else process.env.CLIENT_URL = previous; }
+  const invalid = await fetch(`${base}/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, body: '{"private_input":secret-not-for-response}' });
+  assert.equal(invalid.status, 400); assert.ok(!(await invalid.text()).includes("secret-not-for-response"));
+  const large = await fetch(`${base}/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: "x".repeat(2 * 1024 * 1024) }) });
+  assert.equal(large.status, 413);
+  const wrongAlgorithm = jwt.sign({ sub: user.id }, process.env.JWT_ACCESS_SECRET, { algorithm: "HS512" });
+  assert.equal((await request("/auth/me", { token: wrongAlgorithm })).status, 401);
+  assert.equal((await request("/auth/login", { token: null, method: "POST", body: { email: { $ne: null }, password: { $ne: null } } })).status, 400);
+  const health = await fetch(`${base}/health`);
+  assert.equal(health.status, 200);
+  assert.equal(health.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(health.headers.get("x-powered-by"), null);
+});
+
+test("admin image upload rejects disguised SVG before storing GridFS data", async () => {
+  const before = await mongoose.connection.db.collection("images.files").countDocuments();
+  const body = new FormData(); body.append("image", new Blob(['<svg onload="alert(1)"></svg>'], { type: "image/png" }), "fake-admin.png");
+  const response = await fetch(`${base}/images/upload`, { method: "POST", headers: { Authorization: `Bearer ${adminToken}` }, body });
+  assert.equal(response.status, 400);
+  assert.equal(await mongoose.connection.db.collection("images.files").countDocuments(), before);
+});
+
+test("aborted image and video responses destroy their GridFS reader", async () => {
+  const { Readable } = await import("node:stream");
+  const prototype = mongoose.mongo.GridFSBucket.prototype;
+  const original = prototype.openDownloadStream;
+  try {
+    for (const bucket of ["images", "videos"]) {
+      const id = oid();
+      await mongoose.connection.db.collection(`${bucket}.files`).insertOne({ _id: id, filename: "abort-qa", length: 1024 * 1024, chunkSize: 255 * 1024, uploadDate: new Date(), metadata: { contentType: bucket === "images" ? "image/png" : "video/mp4" } });
+      let destroyed;
+      const closed = new Promise(resolve => { destroyed = resolve; });
+      prototype.openDownloadStream = () => new Readable({
+        read() { this.pendingTimer = setTimeout(() => { this.pendingTimer = null; this.push(Buffer.alloc(1024)); }, 5); },
+        destroy(error, callback) { clearTimeout(this.pendingTimer); destroyed(); callback(error); }
+      });
+      const controller = new AbortController();
+      const response = await fetch(`${base}/${bucket}/${id}`, { signal: controller.signal });
+      assert.equal(response.status, 200);
+      await response.body.getReader().read(); controller.abort();
+      await Promise.race([closed, new Promise((_, reject) => { const timer = setTimeout(() => reject(new Error("GridFS reader leaked after abort")), 2000); timer.unref(); })]);
+    }
+  } finally { prototype.openDownloadStream = original; }
 });

@@ -24,6 +24,7 @@ import {
 } from "../middleware/rateLimit.middleware.js";
 
 import { authenticateToken } from "../middleware/auth.middleware.js";
+import { requireCookieOrigin } from "../middleware/cookieOrigin.middleware.js";
 
 import multer from "multer";
 import * as profile from "../services/profile.service.js";
@@ -103,11 +104,13 @@ router.patch(
 
 router.post(
   "/refresh",
+  requireCookieOrigin,
   refresh
 );
 
 router.post(
   "/logout",
+  requireCookieOrigin,
   logout
 );
 

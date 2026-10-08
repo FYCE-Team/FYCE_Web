@@ -4,6 +4,7 @@ import app from "./app.js";
 import { startTicketEmailWorker } from "./services/ticketEmail.service.js";
 import { startPaymentSyncWorker } from "./services/paymentSync.service.js";
 import connectDB from "./config/db.js";
+import { createHttpServer } from "./config/httpServer.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -13,7 +14,9 @@ const startServer = async () => {
 
         startTicketEmailWorker();
         startPaymentSyncWorker();
-        app.listen(PORT, () => {
+        const server = createHttpServer(app);
+        server.maxRequestsPerSocket = 1000;
+        server.listen({ port: PORT, backlog: 2048 }, () => {
             console.log(
                 `Server running at http://localhost:${PORT}`
             );

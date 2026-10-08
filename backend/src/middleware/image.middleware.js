@@ -41,6 +41,10 @@ export const uploadImage =
         storage,
         fileFilter,
         limits: {
+            files: 1,
+            fields: 10,
+            parts: 11,
+            fieldSize: 16 * 1024,
             fileSize:
                 50 *
                 1024 *

@@ -1,5 +1,7 @@
 # Kiến trúc FYCEweb — bản ghi từ mã nguồn
 
+08/10 bảo mật/tải: admission trước parser giới hạn general80/webhook16/multipart2 mỗi process, excess503+Retry-After2; health bypass. Homepage single-flight chỉ gộp query đang chạy, không TTL/cache kết quả. Mongo pool20/wait queue5s/server selection10s; HTTP header15s/body120s/keepalive5s/header16KiB, backlog2048 chịu giới hạn OS. OTP attempts/CAS/consumption nguyên tử; refresh/logout kiểm tra exact Origin; JWT chỉ HS256; ảnh admin kiểm tra magic, media download dừng khi client ngắt. Không đổi schema/tiền/QR/hold. Xem SECURITY_LOAD_TEST.md và JSON số đo: chưa chứng nhận1.000/10.000 concurrent production; cold burst local vẫn có timeout/503.
+
 07/10 chuyển động: ConcertAtmosphere bổ sung minh họa SVG nhạc cụ; auth-layout trong suốt để nền hiện dưới whitespace, card giữ nền đặc. PublicMotion observe thêm gallery figures/auth cards, chỉ animate card/text và transform nền, không ẩn section. Logo là SPA Link `/#top`; scrollPolicy/Home đưa top về window.scrollY0, không scrollIntoView vào container sau header. Admin và nghiệp vụ/backend không đổi.
 
 07/10 media deploy: `routePublicVideo` chỉ đổi URL GridFS video public cùng origin sang `PUBLIC_VIDEO_ORIGIN` (production mặc định Render, tùy chọn `VITE_PUBLIC_VIDEO_ORIGIN`). Điều này tránh Vercel rewrite cache nhầm response Range 206 thành video đầy đủ. URL CDN ngoài/signed/blob và local giữ nguyên. `API_BASE_URL` cho auth/payment vẫn `/api` first-party; không dùng origin video cho API nghiệp vụ.

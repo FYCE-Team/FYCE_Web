@@ -2,6 +2,7 @@ import HeroSection from "../models/HeroSection.js";
 import Event from "../models/Event.js";
 import AboutSection from "../models/AboutSection.js";
 import Gallery from "../models/Gallery.js";
+import { singleFlight } from "../utils/singleFlight.js";
 
 const upcomingLimit = 3;
 
@@ -86,7 +87,7 @@ const getHomepageGallery = async () => {
     .lean();
 };
 
-export const getHomepageData = async () => {
+export const getHomepageData = singleFlight(async () => {
   const [
     hero,
     about,
@@ -109,4 +110,4 @@ export const getHomepageData = async () => {
     about,
     gallery
   };
-};
+});

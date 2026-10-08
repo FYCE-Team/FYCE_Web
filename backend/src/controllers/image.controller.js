@@ -1,3 +1,4 @@
+import { detectImageType } from "../utils/imageType.js";
 import {
     findImageById,
     getImageBucket,
@@ -22,6 +23,10 @@ export const uploadImageFile = async (
                 message:
                     "Vui lòng chọn hình ảnh."
             });
+        }
+
+        if (detectImageType(req.file.buffer) !== req.file.mimetype) {
+            return res.status(400).json({ success: false, message: "Nội dung tệp không khớp định dạng hình ảnh." });
         }
 
         const stored =
@@ -159,6 +164,8 @@ export const streamImageFile = async (
             }
         );
 
+        // F5/navigation must stop reading chunks for a disconnected client.
+        res.once("close", () => downloadStream.destroy());
         downloadStream.pipe(res);
     } catch (error) {
         return next(error);

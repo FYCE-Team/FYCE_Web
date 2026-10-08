@@ -1,19 +1,24 @@
 {
-  "updatedAt": "2026-10-07",
+  "updatedAt": "2026-10-08",
   "latestUpdate": {
-    "status": "instruments_motion_logo_released_verified",
-    "commit": "fc2c829",
-    "deployment": "Pushed main, Vercel success, production index-BXJViotw.js matches verified build; Chrome production login instruments/transparent wrapper, logo auth and Home scroll1786 ->0, register390 no overflow.",
+    "status": "security_regression_passed_load_capacity_not_certified",
+    "deployment": "Changes verified locally; push/deployment recorded in Git history. Render production capacity not certified.",
     "completed": [
-      "Reveal auth music background previously hidden by opaque auth-layout",
-      "Animated piano/violin/flute SVG and continuous unclipped treble clef",
-      "Stronger transform-only notes/staves/card/text motion with reduced-motion",
-      "SPA logo links to home top; exact scrollY0 instead of header-offset scrollIntoView"
+      "Atomic OTP attempts and one-time verification",
+      "Cookie Origin allowlist and HS256 verification",
+      "Per-process admission with reserved webhook and upload slots",
+      "Homepage single-flight; bounded Mongo pool wait",
+      "HTTP timeouts and media disconnect cleanup",
+      "Admin image signature checks and safe JSON errors",
+      "Countdown English labels",
+      "Isolated reproducible load harness"
     ],
-    "qa": "Chrome desktop login background visible; register390 transparent/no overflow; auth logo and Home after scroll2608 return0; no hidden sections. Frontend19, audits0 frontend/backend, backend syntax99; backend integration73 remains historical. No provider submissions, database changes or system modifications. Build passed, lint0 errors/16 existing warnings, git diff check passed. Production UI verified; viewport reset and only QA5180 stopped.",
+    "qa": "Backend82/82, frontend19/19, build passed, lint0 errors/16 existing warnings, audits0 both including dev; backend syntax107. Local load: reload1000/1000 HTTP200; burst1000 outstanding:2685 HTTP200,7025 HTTP503,290 ETIMEDOUT; paced1000workers3000/3000 HTTP200 but max8 outstanding;500 deliberate aborts; all phases recover homepage200. No production load/provider/data/system mutations.",
     "pending": [
-      "Existing provider acceptance and multi-device FPS benchmarking"
-    ]
+      "Production 1000/10000 concurrency acceptance requires Render plan/staging configuration; local cold burst did not pass",
+      "Existing real Google/SePay/email/camera acceptance remains pending"
+    ],
+    "report": "Docs/SECURITY_LOAD_TEST.md"
   },
   "motionUpdate": {
     "status": "code_verified_pending_visual_and_provider_acceptance",
@@ -65,8 +70,8 @@
   "status": "released_frontend_and_backend_feature_verified_pending_provider_acceptance",
   "entrypoint": "/admin",
   "tests": {
-    "integrationWritten": 73,
-    "integrationPassed": 73,
+    "integrationWritten": 78,
+    "integrationPassed": 78,
     "frontendBuild": "passed",
     "frontendLintErrors": 0,
     "frontendLintWarnings": 16,
@@ -75,9 +80,11 @@
       "frontend": 0,
       "includesDevDependencies": true
     },
-    "backendSyntax": "passed (99 files)",
+    "backendSyntax": "passed (107 source/test/harness files)",
     "gitDiffCheck": "passed",
-    "frontendUnitPassed": 19
+    "frontendUnitPassed": 19,
+    "backendUnitPassed": 4,
+    "backendTotalPassed": 82
   },
   "blockedChecks": [
     "Render workspace login: authorized GitHub account leads to new-account form; correct existing account needed for deployment SHA/log",
@@ -98,7 +105,8 @@
     "Docs/ARCHITECTURE.md",
     "Docs/TESTING.md",
     "Docs/LOCAL_SETUP.md",
-    "Docs/DEPLOYMENT.md"
+    "Docs/DEPLOYMENT.md",
+    "Docs/SECURITY_LOAD_TEST.md"
   ],
   "existingUntrackedData": "fyce_backup/ untouched and excluded; only the two missing public GridFS images were selectively read/restored, never used as fixtures",
   "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180; no production database/provider used.",
@@ -209,5 +217,31 @@
       "Block avatar image/chevron and explicit name line-height"
     ],
     "qa": "9eca0fb pushed, Vercel success; production Safari signed-in account aligned and dropdown opens/closes. Chrome desktop nav/language/admin/account centers y35; mobile390 account/menu centers y32, scrollWidth390. Viewport reset; build/diff passed. No auth/API/database changes. Not all browser versions/devices tested."
+  },
+  "previousVisualUpdate": {
+    "status": "instruments_motion_logo_released_verified",
+    "commit": "fc2c829",
+    "deployment": "Pushed main, Vercel success, production index-BXJViotw.js matches verified build; Chrome production login instruments/transparent wrapper, logo auth and Home scroll1786 ->0, register390 no overflow.",
+    "completed": [
+      "Reveal auth music background previously hidden by opaque auth-layout",
+      "Animated piano/violin/flute SVG and continuous unclipped treble clef",
+      "Stronger transform-only notes/staves/card/text motion with reduced-motion",
+      "SPA logo links to home top; exact scrollY0 instead of header-offset scrollIntoView"
+    ],
+    "qa": "Chrome desktop login background visible; register390 transparent/no overflow; auth logo and Home after scroll2608 return0; no hidden sections. Frontend19, audits0 frontend/backend, backend syntax99; backend integration73 remains historical. No provider submissions, database changes or system modifications. Build passed, lint0 errors/16 existing warnings, git diff check passed. Production UI verified; viewport reset and only QA5180 stopped.",
+    "pending": [
+      "Existing provider acceptance and multi-device FPS benchmarking"
+    ]
+  },
+  "loadTesting": {
+    "report": "Docs/security-load-results.json",
+    "environment": "isolated loopback/M4/16GiB, generator/API/DB same machine",
+    "capacityCertified": false,
+    "coldBurstNetworkErrors": 290,
+    "coldBurstControlled503": 7025,
+    "pacedWorkers": 1000,
+    "pacedActualMaxOutstanding": 8,
+    "productionLoadTested": false,
+    "kernelBacklogObserved": 128
   }
 }

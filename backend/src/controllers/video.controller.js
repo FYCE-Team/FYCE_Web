@@ -378,6 +378,8 @@ export const streamVideoFile = async (
             }
         );
 
+        // F5/navigation must stop reading chunks for a disconnected client.
+        res.once("close", () => downloadStream.destroy());
         downloadStream.pipe(res);
     } catch (error) {
         return next(error);

@@ -10,7 +10,8 @@
     "migrate:images-gridfs:dry-run": "node src/scripts/migrateImagesToGridFS.js --dry-run",
     "migrate:videos-gridfs": "node src/scripts/migrateVideosToGridFS.js",
     "migrate:videos-gridfs:dry-run": "node src/scripts/migrateVideosToGridFS.js --dry-run",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:load": "node scripts/load-test.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

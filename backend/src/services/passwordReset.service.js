@@ -190,9 +190,10 @@ export const verifyPasswordResetOtp = async ({
   const otpHash = hashValue(otp);
 
   if (otpHash !== resetRequest.otpHash) {
-    resetRequest.attempts += 1;
-
-    await resetRequest.save();
+    await PasswordReset.updateOne({
+      _id: resetRequest._id, otpHash: resetRequest.otpHash, verified: false,
+      attempts: { $lt: MAX_OTP_ATTEMPTS }, otpExpiresAt: { $gt: new Date() }
+    }, { $inc: { attempts: 1 } });
 
     throw new Error("RESET_OTP_INVALID");
   }
@@ -201,15 +202,14 @@ export const verifyPasswordResetOtp = async ({
   const resetTokenHash =
     hashValue(resetToken);
 
-  resetRequest.verified = true;
-  resetRequest.resetTokenHash =
-    resetTokenHash;
-  resetRequest.resetTokenExpiresAt =
-    new Date(
-      Date.now() + RESET_TOKEN_EXPIRES_MS
-    );
-
-  await resetRequest.save();
+  const verified = await PasswordReset.findOneAndUpdate({
+    _id: resetRequest._id, otpHash, verified: false,
+    attempts: { $lt: MAX_OTP_ATTEMPTS }, otpExpiresAt: { $gt: new Date() }
+  }, { $set: {
+    verified: true, resetTokenHash,
+    resetTokenExpiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRES_MS)
+  } }, { new: true });
+  if (!verified) throw new Error("RESET_OTP_ALREADY_VERIFIED");
 
   return {
     resetToken

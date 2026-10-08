@@ -19,6 +19,7 @@ import bookingRoutes from "./routes/booking.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import ticketRoutes from "./routes/ticket.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
+import { createRequestAdmission } from "./middleware/loadProtection.middleware.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,11 +59,13 @@ app.use(
     })
 );
 
+app.use(createRequestAdmission());
+
 app.use(
     express.json({
         limit: "2mb",
         verify(req, res, buffer) {
-            if (req.originalUrl === "/api/payments/sepay-webhook") req.rawBody = buffer.toString("utf8");
+            if (/^\/api\/payments\/sepay-webhook\/?$/i.test(req.path)) req.rawBody = buffer.toString("utf8");
         }
     })
 );

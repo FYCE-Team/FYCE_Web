@@ -1,5 +1,7 @@
 # Triển khai FYCE Vercel / Render
 
+08/10: deploy backend để áp dụng giới hạn tải/OTP/Origin/media. HTTP_MAX_INFLIGHT=80, HTTP_MAX_WEBHOOK_INFLIGHT=16, HTTP_MAX_UPLOAD_INFLIGHT=2 mặc định mỗi process; nâng chỉ sau đo RAM/DB. Mongo pool20/wait queue5s; HTTP request header/body có timeout, không cắt response trailer đang phát. CLIENT_URL/CLIENT_URLS phải khớp frontend chính xác để refresh/logout không403. Giữ secret và URI thật nguyên trạng; test load chỉ chạy DB QA27028. Chưa chứng nhận1.000/10.000 concurrent Render: xem SECURITY_LOAD_TEST.md, cần gói/staging phù hợp và benchmark riêng, không stress production.
+
 Cập nhật 2026-09-30. URL người dùng xác nhận: https://fyce-web.vercel.app. Backend: https://fyce-web.onrender.com. Không đặt secret trong VITE_* hoặc commit .env. Không thay trạng thái đơn thật bằng query success từ browser.
 
 ## Vercel

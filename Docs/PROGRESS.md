@@ -1,3 +1,15 @@
+## Bảo mật và chống quá tải — 08/10/2026
+
+**█████████░ 90% — hồi quy đạt; chưa chứng nhận1.000/10.000 concurrent production.**
+
+- Đã sửa race OTP/CAS, bảo vệ Origin cho cookie refresh/logout, JWT HS256, giới hạn request/DB wait, single-flight homepage, HTTP timeouts, ngắt GridFS khi client rời trang, magic ảnh và JSON errors; bổ sung2 nhãn English thiếu.
+- Backend82/82 (78 integration+4 unit), frontend19/19, build đạt, lint0 lỗi/16 warning cũ, audits0 hai phía, syntax107 và diff check đạt. Không thay schema/tiền/QR/hold hoặc dữ liệu/provider thật.
+- Local tải:1.000 reload/25 concurrent đều200;10.000 request burst/1.000 outstanding có2685 HTTP200,7025 HTTP503 bảo vệ và290 ETIMEDOUT. API không crash và mọi phase phục hồi homepage200. 1.000 worker có nhịp nghỉ:3000/3000 HTTP200, **tối đa8 outstanding**, không chứng nhận1.000 request đồng thời.500 abort chủ động không làm mất khả năng phục vụ.
+- Cold burst chưa đạt, harness exit1 và giữ JSON; kernel backlog local128 chỉ được đọc, không chỉnh OS. Gói Render/staging chưa có, không stress production và không hứa10.000 user. Report/điều kiện nghiệm thu: [SECURITY_LOAD_TEST.md](SECURITY_LOAD_TEST.md), [số đo JSON](security-load-results.json).
+- Thanh tiến độ giữ90%; các cổng Google/SePay/email/camera trước đây và capacity production còn mở. Commit/push xem Git history; không coi push là bằng chứng Render đã chạy đúng backend.
+
+---
+
 ## Căn hàng header trên Safari — 08/10/2026
 
 - Quan sát Safari production: nút tài khoản lệch lên so với nav/language/admin. Account wrapper đổi từ normal inline flow sang flex center; nút account dùng flex, chữ/avatar/SVG có display và line-height rõ ràng, ảnh avatar block để bỏ khoảng baseline.

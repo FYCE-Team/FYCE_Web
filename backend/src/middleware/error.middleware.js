@@ -1,6 +1,11 @@
 export const errorHandler = (error, req, res, next) => {
-    if (error.code === "LIMIT_FILE_SIZE") return res.status(400).json({ success: false, message: "Tệp vượt quá dung lượng cho phép." });
     if (res.headersSent) return next(error);
+    if (error.type === "entity.parse.failed") return res.status(400).json({ success: false, message: "JSON không hợp lệ." });
+    if (error.type === "entity.too.large") return res.status(413).json({ success: false, message: "Nội dung yêu cầu quá lớn." });
+    if (["MongoWaitQueueTimeoutError", "MongoServerSelectionError", "MongooseServerSelectionError"].includes(error.name)) {
+        return res.set("Retry-After", "2").status(503).json({ success: false, code: "DATABASE_BUSY", message: "Dịch vụ dữ liệu đang bận. Vui lòng thử lại sau." });
+    }
+    if (error.code === "LIMIT_FILE_SIZE") return res.status(400).json({ success: false, message: "Tệp vượt quá dung lượng cho phép." });
     if (["HERO_BACKGROUND_SOURCE_CONFLICT", "ABOUT_FEATURE_ORDER_DUPLICATE"].includes(error.message)) return res.status(400).json({ success: false, message: error.message === "HERO_BACKGROUND_SOURCE_CONFLICT" ? "Chỉ chọn ảnh hoặc video nền." : "Thứ tự điểm nổi bật bị trùng." });
     if (error.message === "SEPAY_RECONCILIATION_NOT_CONFIGURED") return res.status(503).json({ success: false, message: "Máy chủ chưa cấu hình thông tin đối soát SePay." });
     if (error.message === "SEPAY_RECONCILIATION_REQUEST_FAILED") return res.status(502).json({ success: false, message: "Chưa truy vấn được SePay. Vui lòng thử lại sau." });

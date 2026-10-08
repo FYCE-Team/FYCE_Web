@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
 import User from "../models/User.js";
@@ -360,9 +361,10 @@ export const verifyRegistrationOtp = async ({
     if (
         otpHash !== verification.otpHash
     ) {
-        verification.attempts += 1;
-
-        await verification.save();
+        await EmailVerification.updateOne({
+            _id: verification._id, otpHash: verification.otpHash,
+            attempts: { $lt: 5 }, expiresAt: { $gt: new Date() }
+        }, { $inc: { attempts: 1 } });
 
         throw new Error(
             "INVALID_OTP"
@@ -378,13 +380,17 @@ export const verifyRegistrationOtp = async ({
         );
     }
 
-    user.isActive = true;
-
-    await user.save();
-
-    await EmailVerification.deleteOne({
-        _id: verification._id
+    await mongoose.connection.transaction(async session => {
+        const consumed = await EmailVerification.findOneAndDelete({
+            _id: verification._id, userId, otpHash,
+            attempts: { $lt: 5 }, expiresAt: { $gt: new Date() }
+        }, { session });
+        if (!consumed) throw new Error("OTP_NOT_FOUND");
+        const activated = await User.updateOne({ _id: userId, isBlocked: { $ne: true } },
+            { $set: { isActive: true } }, { session });
+        if (!activated.matchedCount) throw Object.assign(new Error("Tài khoản không còn hoạt động."), { status: 403 });
     });
+    user.isActive = true;
 
     return {
         id: user._id,
@@ -777,4 +783,3 @@ export const updateUserProfile = async ({
         updatedAt: user.updatedAt
     };
 };
-
