@@ -402,13 +402,13 @@ const backstageGallery = useMemo(() => {
                         <div className="event-detail-content">
                             <section className="event-detail-section">
                                 <div className="event-detail-section-heading">
-                                    <span> {t("▪ CHƯƠNG TRÌNH & TÁC PHẨM BIỂU DIỄN")} </span>
+                                    <span> {t("▪ CHƯƠNG TRÌNH & CÁC TÁC PHẨM")} </span>
 
-                                    <h2> {t("Tác Phẩm Thính Phòng Đêm Biểu Diễn")} </h2>
+                                    <h2> {t("Tác Phẩm Thính Phòng Buổi Biểu Diễn")} </h2>
 
                                     <p>
                                         {t(event.shortDescription ||
-                                            "Khám phá chương trình biểu diễn và những tác phẩm được lựa chọn cho buổi biểu diễn.")}
+                                            "Khám phá chương trình và những tác phẩm được lựa chọn cho buổi biểu diễn.")}
                                     </p>
                                 </div>
 
