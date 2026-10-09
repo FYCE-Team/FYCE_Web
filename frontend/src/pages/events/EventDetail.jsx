@@ -402,13 +402,13 @@ const backstageGallery = useMemo(() => {
                         <div className="event-detail-content">
                             <section className="event-detail-section">
                                 <div className="event-detail-section-heading">
-                                    <span> {t("▪ CHƯƠNG TRÌNH & NHẠC MỤC BIỂU DIỄN")} </span>
+                                    <span> {t("▪ CHƯƠNG TRÌNH & TÁC PHẨM BIỂU DIỄN")} </span>
 
-                                    <h2> {t("Tác Phẩm Thính Phòng Mùa Biểu Diễn")} </h2>
+                                    <h2> {t("Tác Phẩm Thính Phòng Đêm Biểu Diễn")} </h2>
 
                                     <p>
                                         {t(event.shortDescription ||
-                                            "Khám phá chương trình biểu diễn và những tác phẩm được lựa chọn cho mùa diễn.")}
+                                            "Khám phá chương trình biểu diễn và những tác phẩm được lựa chọn cho buổi biểu diễn.")}
                                     </p>
                                 </div>
 
@@ -598,7 +598,7 @@ const backstageGallery = useMemo(() => {
                             {t(event.artists?.length > 0 && (
                                 <section className="event-detail-section">
                                     <div className="event-detail-section-heading">
-                                        <span> {t("▪ NGHỆ SĨ & BAN ĐIỀU HÀNH BIỂU DIỄN")} </span>
+                                        <span> {t("▪ NGHỆ SĨ THAM GIA BIỂU DIỄN & NHỮNG NGƯỜI CỘNG TÁC")} </span>
 
                                         <h2>
                                             Fantasy Youth Chamber Ensemble
