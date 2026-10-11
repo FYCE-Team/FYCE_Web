@@ -9,6 +9,7 @@
 - Tải QA:1000 reload/25 outstanding đều200. Burst10000/1000 outstanding:2896 HTTP200,6801 HTTP503,303 timeout; API phục hồi sau mọi phase, không HTTP500. Paced1000worker đạt3000/3000 nhưng tối đa5 request đang chờ. Harness exit1, chưa chứng nhận1000/10000 concurrent production.
 - **Còn cần owner rà soát tài khoản Google đã liên kết trước bản sửa:** thiếu dấu vết nguồn mật khẩu nên không tự reset hàng loạt. Còn gói Render/staging/proxy và nghiệm thu Google/SePay/email/camera thật.
 - Handoff: [SECURITY_FINAL_REVIEW.md](SECURITY_FINAL_REVIEW.md), [SECURITY_LOAD_TEST.md](SECURITY_LOAD_TEST.md), [report JSON](security-load-results-2026-10-11.json). Commit/release được ghi theo Git history; không coi push là bằng chứng rollout backend.
+- Release 61853a2 đã push FYCE-Team/FYCE_Web main. GitHub Vercel success; production bundle index-AxDCIVkb.js khớp local và đủ CSP/frame/nosniff/Permissions-Policy mới. Health Vercel/Render JSON200; Render featured event còn dữ liệu và không trả author metadata. Đây là kiểm chứng hành vi backend, chưa xem SHA dashboard Render hoặc nghiệm thu provider/tải production. Đã dừng đúng MongoDB QA27028 do phiên này tạo; load child đã kết thúc, server ứng dụng khác giữ nguyên.
 
 ---
 

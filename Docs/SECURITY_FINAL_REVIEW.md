@@ -45,3 +45,9 @@ Phạm vi là repository FYCEweb: API, đăng nhập/OTP, đặt/nhả ghế, ca
 5. Không tự dọn Atlas chunks cũ, quét malware hệ điều hành, đổi kernel hoặc thay dữ liệu production. Quota media và quyền tài khoản dịch vụ cần owner xử lý theo [MEDIA_STORAGE.md](MEDIA_STORAGE.md).
 
 Tiến độ toàn dự án giữ **90%** cho đến khi hoàn tất các cổng nghiệm thu bên ngoài và mục lịch sử tài khoản/tải production. Audit dependency 0 advisory không loại trừ lỗ hổng chưa công bố.
+
+## Release đã kiểm tra
+
+Release 61853a2 đã push FYCE-Team/FYCE_Web main. GitHub Vercel success; production bundle index-AxDCIVkb.js khớp local và đủ CSP/frame/nosniff/Permissions-Policy mới. Health Vercel/Render JSON200; Render featured event còn dữ liệu và không trả author metadata. Đây là kiểm chứng hành vi backend, chưa xem SHA dashboard Render hoặc nghiệm thu provider/tải production. Đã dừng đúng MongoDB QA27028 do phiên này tạo; load child đã kết thúc, server ứng dụng khác giữ nguyên.
+
+[Commit code 61853a2](https://github.com/FYCE-Team/FYCE_Web/commit/61853a2d518b8405df49886ffc65a1ffbcbfa76a). Commit tài liệu tiếp theo chỉ ghi bằng chứng triển khai; không thay code đã kiểm thử.
