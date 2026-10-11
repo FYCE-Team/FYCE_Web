@@ -1,3 +1,21 @@
+## Đo lại sau rà soát bảo mật — 11/10/2026
+
+Bản sửa auth/OTP/checkout/media/public metadata: [SECURITY_FINAL_REVIEW.md](SECURITY_FINAL_REVIEW.md). Backend135/135, frontend19/19 đạt; build/lint/syntax kết thúc trước lượt benchmark cuối. Không stress production.
+
+| Phase | Tổng request | Đang chờ tối đa | 200 | 503 | Lỗi mạng | Client tự hủy | p95 thành công ms | RSS đỉnh MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| homepage-reload | 1000 | 25 | 1000 | 0 | 0 | 0 | 7.8 | 151.8 |
+| mixed-burst-100 | 2000 | 100 | 1404 | 596 | 0 | 0 | 153.4 | 300.2 |
+| mixed-burst-1000 | 10000 | 1000 | 2896 | 6801 | 303 | 0 | 4626.4 | 324.8 |
+| paced-1000-workers | 3000 | 5 | 3000 | 0 | 0 | 0 | 3.6 | 328.9 |
+| reload-abort | 500 | 100 | 1 | 0 | 0 | 499 | 9.2 | 328.8 |
+
+[Số đo đầy đủ](security-load-results-2026-10-11.json) ghi timestamp UTC. API phục hồi homepage200 sau mọi phase, không HTTP500; cold burst vẫn **chưa đạt**, harness exit1:303 ETIMEDOUT và6801 HTTP503. 503 là cơ chế bảo vệ, không phải request thành công. Phase paced có1000 worker nhưng tối đa5 request đang chờ; không chứng nhận1000 user đồng thời. Phase abort:499 request chủ động hủy,1 hoàn tất200.
+
+Generator/API/Mongo cùng Apple M4/16GiB, Node22.20.0. Không thể suy ra năng lực Render hoặc khả năng chống DDoS từ phép đo này. Gói Render/staging, shared limiter, proxy-IP và kiểm thử provider thực vẫn còn cần nghiệm thu. Số liệu08/10 bên dưới là lịch sử, không thay thế report11/10.
+
+---
+
 # Rà soát bảo mật và tải — 08/10/2026
 
 ## Phạm vi và nghiệm thu

@@ -6,11 +6,13 @@ import User from "../models/User.js";
 import PasswordReset from "../models/PasswordReset.js";
 import RefreshToken from "../models/RefreshToken.js";
 import { sendPasswordResetOtpEmail } from "./email.service.js";
+import { generateOtp, hashOtp, matchesOtp } from "../utils/otp.js";
 
 const OTP_EXPIRES_MS = 5 * 60 * 1000;
 const RESET_TOKEN_EXPIRES_MS = 10 * 60 * 1000;
 const RECORD_EXPIRES_MS = 15 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
+const RESEND_COOLDOWN_MS = 60 * 1000;
 
 const normalizeEmail = (email) => {
   if (typeof email !== "string") {
@@ -25,11 +27,6 @@ const hashValue = (value) =>
     .createHash("sha256")
     .update(value)
     .digest("hex");
-
-const generateOtp = () =>
-  crypto
-    .randomInt(100000, 1000000)
-    .toString();
 
 const generateResetToken = () =>
   crypto.randomBytes(48).toString("hex");
@@ -60,79 +57,48 @@ const validateNewPassword = (password) => {
   }
 };
 
-export const requestPasswordReset = async (email) => {
+export const requestPasswordReset = async (email, { send = sendPasswordResetOtpEmail } = {}) => {
   const normalizedEmail = normalizeEmail(email);
-
-  if (!normalizedEmail) {
-    throw new Error("EMAIL_INVALID");
-  }
-
-  const user = await User.findOne({
-    email: normalizedEmail
-  });
-
-  if (!user) {
-    return {
-      accepted: true
-    };
-  }
-
-  if (!user.isActive) {
-    return {
-      accepted: true
-    };
-  }
-
-  await PasswordReset.deleteMany({
-    userId: user._id
-  });
+  if (!normalizedEmail) throw new Error("EMAIL_INVALID");
+  const existing = await User.findOne({ email: normalizedEmail });
+  if (!existing?.isActive || existing.isBlocked || existing.deletedAt) return { accepted: true };
 
   const otp = generateOtp();
-  const otpHash = hashValue(otp);
-
-  const now = Date.now();
-
-  await PasswordReset.create({
-    userId: user._id,
-    email: normalizedEmail,
-    otpHash,
-    otpExpiresAt: new Date(
-      now + OTP_EXPIRES_MS
-    ),
-    attempts: 0,
-    verified: false,
-    resetTokenHash: null,
-    resetTokenExpiresAt: null,
-    expiresAt: new Date(
-      now + RECORD_EXPIRES_MS
-    )
+  let user, resetRequest;
+  await mongoose.connection.transaction(async session => {
+    // The driver may retry this callback after a transient write conflict.
+    // Only the record created by the committed attempt may trigger an email.
+    resetRequest = null;
+    // Share an account-row write with password/account changes. This prevents
+    // concurrent first requests from creating multiple OTPs without a new index.
+    user = await User.findOneAndUpdate({
+      _id: existing._id, email: normalizedEmail, isActive: true,
+      isBlocked: { $ne: true }, deletedAt: null
+    }, { $inc: { __v: 1 } }, { session, timestamps: false, returnDocument: "after" });
+    if (!user) return;
+    const now = new Date();
+    const recent = await PasswordReset.exists({
+      userId: user._id, createdAt: { $gt: new Date(now.getTime() - RESEND_COOLDOWN_MS) }
+    }).session(session);
+    // Same public response for missing, inactive and cooling-down accounts.
+    if (recent) return;
+    await PasswordReset.deleteMany({ userId: user._id }, { session });
+    [resetRequest] = await PasswordReset.create([{
+      _id: user._id, userId: user._id, email: normalizedEmail,
+      otpHash: hashOtp(otp, "password-reset", user._id),
+      otpExpiresAt: new Date(now.getTime() + OTP_EXPIRES_MS),
+      attempts: 0, verified: false, resetTokenHash: null, resetTokenExpiresAt: null,
+      expiresAt: new Date(now.getTime() + RECORD_EXPIRES_MS)
+    }], { session });
   });
-
+  if (!resetRequest) return { accepted: true };
   try {
-    await sendPasswordResetOtpEmail({
-      to: normalizedEmail,
-      otp,
-      expiresMinutes: 5,
-      fullName: user.fullName
-    });
-  } catch (error) {
-    await PasswordReset.deleteMany({
-      userId: user._id
-    });
-
-    console.error(
-      "Password reset email error:",
-      error
-    );
-
-    throw new Error(
-      "PASSWORD_RESET_EMAIL_FAILED"
-    );
+    await send({ to: normalizedEmail, otp, expiresMinutes: 5, fullName: user.fullName });
+  } catch {
+    await PasswordReset.deleteOne({ _id: resetRequest._id, otpHash: resetRequest.otpHash, verified: false });
+    throw new Error("PASSWORD_RESET_EMAIL_FAILED");
   }
-
-  return {
-    accepted: true
-  };
+  return { accepted: true };
 };
 
 export const verifyPasswordResetOtp = async ({
@@ -187,9 +153,9 @@ export const verifyPasswordResetOtp = async ({
     );
   }
 
-  const otpHash = hashValue(otp);
+  const otpHash = resetRequest.otpHash;
 
-  if (otpHash !== resetRequest.otpHash) {
+  if (!matchesOtp(otp, otpHash, "password-reset", resetRequest.userId)) {
     await PasswordReset.updateOne({
       _id: resetRequest._id, otpHash: resetRequest.otpHash, verified: false,
       attempts: { $lt: MAX_OTP_ATTEMPTS }, otpExpiresAt: { $gt: new Date() }
@@ -208,7 +174,7 @@ export const verifyPasswordResetOtp = async ({
   }, { $set: {
     verified: true, resetTokenHash,
     resetTokenExpiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRES_MS)
-  } }, { new: true });
+  } }, { returnDocument: "after" });
   if (!verified) throw new Error("RESET_OTP_ALREADY_VERIFIED");
 
   return {
@@ -216,10 +182,8 @@ export const verifyPasswordResetOtp = async ({
   };
 };
 
-export const resendPasswordResetOtp = async (
-  email
-) => {
-  return requestPasswordReset(email);
+export const resendPasswordResetOtp = async (email, options) => {
+  return requestPasswordReset(email, options);
 };
 
 export const resetPassword = async ({
@@ -254,7 +218,7 @@ export const resetPassword = async ({
       Date.now()
   ) {
     await PasswordReset.deleteOne({
-      _id: resetRequest._id
+      _id: resetRequest._id, resetTokenHash
     });
 
     throw new Error("RESET_TOKEN_EXPIRED");
@@ -266,7 +230,7 @@ export const resetPassword = async ({
 
   if (!user) {
     await PasswordReset.deleteOne({
-      _id: resetRequest._id
+      _id: resetRequest._id, resetTokenHash
     });
 
     throw new Error("USER_NOT_FOUND");
@@ -293,10 +257,12 @@ export const resetPassword = async ({
       resetTokenExpiresAt: { $gt: new Date() }
     }, { session });
     if (!consumed) throw new Error("RESET_TOKEN_INVALID");
-    const changed = await User.updateOne({ _id: user._id }, {
-      $set: { password: passwordHash, isActive: true }, $inc: { authVersion: 1 }
+    const changed = await User.updateOne({
+      _id: user._id, isActive: true, isBlocked: { $ne: true }, deletedAt: null
+    }, {
+      $set: { password: passwordHash }, $inc: { authVersion: 1 }
     }, { session });
-    if (!changed.matchedCount) throw new Error("USER_NOT_FOUND");
+    if (!changed.matchedCount) throw Object.assign(new Error("Tài khoản không còn hoạt động."), { status: 403 });
     await RefreshToken.deleteMany({ userId: user._id }, { session });
     await PasswordReset.deleteMany({ userId: user._id }, { session });
     await ProfileOtp.deleteMany({ userId: user._id }, { session });

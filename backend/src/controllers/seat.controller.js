@@ -74,6 +74,21 @@ const handleServiceError = (
                         "Không tìm thấy sự kiện"
                 });
 
+        case "EVENT_SOLD_OUT":
+        case "EVENT_BOOKING_NOT_ALLOWED":
+        case "EVENT_BOOKING_NOT_OPEN":
+        case "EVENT_BOOKING_CLOSED":
+            return res.status(409).json({
+                success: false,
+                code: error.message,
+                message: {
+                    EVENT_SOLD_OUT: "Sự kiện đã bán hết vé",
+                    EVENT_BOOKING_NOT_ALLOWED: "Sự kiện hiện không cho phép đặt vé",
+                    EVENT_BOOKING_NOT_OPEN: "Sự kiện chưa đến thời gian mở bán vé",
+                    EVENT_BOOKING_CLOSED: "Sự kiện đã đóng bán vé"
+                }[error.message]
+            });
+
         case "USER_ID_INVALID":
             return res
                 .status(401)
@@ -82,6 +97,9 @@ const handleServiceError = (
                     message:
                         "Phiên đăng nhập không hợp lệ"
                 });
+
+        case "USER_INACTIVE":
+            return res.status(403).json({ success: false, message: "Tài khoản không còn hoạt động." });
 
         case "SEAT_ID_INVALID":
             return res
@@ -210,6 +228,13 @@ const handleServiceError = (
                     message:
                         "Mã giữ ghế không hợp lệ"
                 });
+
+        case "HOLD_SESSION_CONFLICT":
+            return res.status(409).json({
+                success: false,
+                code: error.message,
+                message: "Đang có nhiều phiên đặt vé chưa thanh toán. Vui lòng xử lý các đơn hiện có hoặc liên hệ FYCE trước khi chọn thêm ghế."
+            });
 
         case "HOLD_TOKEN_NOT_OWNED":
             return res

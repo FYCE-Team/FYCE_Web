@@ -1,4 +1,5 @@
 import fs from "fs";
+import { finished } from "node:stream/promises";
 import mongoose from "mongoose";
 
 const BUCKET_NAME = "videos";
@@ -68,124 +69,59 @@ const buildMetadata = ({
  * Video được stream từ file tạm sang GridFS.
  * Không load toàn bộ video vào RAM.
  */
-export const uploadVideoFileStream = ({
+export const uploadVideoFileStream = async ({
     filePath,
     originalName,
     mimeType,
     uploadedBy = null,
     extraMetadata = {}
 }) => {
-    return new Promise(
-        (resolve, reject) => {
-            const bucket =
-                getVideoBucket();
-
-            const uploadStream =
-                bucket.openUploadStream(
-                    originalName ||
-                        "video",
-                    {
-                        contentType:
-                            mimeType ||
-                            "application/octet-stream",
-
-                        /*
-                         * Chunk lớn hơn mặc định một chút để giảm
-                         * số document khi lưu video dung lượng lớn.
-                         */
-                        chunkSizeBytes:
-                            1024 * 1024,
-
-                        metadata:
-                            buildMetadata({
-                                originalName,
-                                mimeType,
-                                uploadedBy,
-                                extraMetadata
-                            })
-                    }
-                );
-
-            const source =
-                fs.createReadStream(
-                    filePath
-                );
-
-            let settled = false;
-
-            const fail = async (error) => {
-                if (settled) {
-                    return;
-                }
-
-                settled = true;
-                source.destroy();
-                // GridFS abort deletes partial chunks; destroy alone can leave orphans.
-                try { await uploadStream.abort(); } catch (cleanupError) { console.warn("Video upload cleanup failed:", cleanupError.message); }
-                reject(error);
-            };
-
-            source.once(
-                "error",
-                fail
-            );
-
-            uploadStream.once(
-                "error",
-                fail
-            );
-
-            uploadStream.once(
-                "finish",
-                async () => {
-                    if (settled) {
-                        return;
-                    }
-
-                    try {
-                        const file =
-                            await bucket
-                                .find({
-                                    _id:
-                                        uploadStream.id
-                                })
-                                .limit(1)
-                                .next();
-
-                        const stat =
-                            fs.statSync(
-                                filePath
-                            );
-
-                        settled = true;
-
-                        resolve({
-                            id:
-                                uploadStream.id,
-                            filename:
-                                file?.filename ||
-                                originalName ||
-                                "video",
-                            length:
-                                Number(
-                                    file?.length
-                                ) ||
-                                stat.size,
-                            contentType:
-                                mimeType ||
-                                "application/octet-stream"
-                        });
-                    } catch (error) {
-                        fail(error);
-                    }
-                }
-            );
-
-            source.pipe(
-                uploadStream
-            );
+    const source = fs.createReadStream(filePath);
+    let uploadStream;
+    try {
+        const bucket = getVideoBucket();
+        const chunkSizeBytes = 1024 * 1024;
+        uploadStream = bucket.openUploadStream(originalName || "video", {
+            contentType: mimeType || "application/octet-stream",
+            chunkSizeBytes,
+            metadata: buildMetadata({ originalName, mimeType, uploadedBy, extraMetadata })
+        });
+        uploadStream.on("error", () => {});
+        // Sequential bounded writes settle before any failed upload cleanup runs.
+        for await (const chunk of source) {
+            for (let offset = 0; offset < chunk.length; offset += chunkSizeBytes) {
+                const part = chunk.subarray(offset, offset + chunkSizeBytes);
+                await new Promise((resolve, reject) => uploadStream.write(part, error => error ? reject(error) : resolve()));
+            }
         }
-    );
+        const completion = finished(uploadStream, { readable: false, cleanup: true });
+        uploadStream.end();
+        await completion;
+        const file = await bucket.find({ _id: uploadStream.id }).limit(1).next();
+        if (!file) throw new Error("VIDEO_UPLOAD_METADATA_MISSING");
+        return {
+            id: uploadStream.id,
+            filename: file.filename || originalName || "video",
+            length: Number(file.length),
+            contentType: mimeType || "application/octet-stream"
+        };
+    } catch (error) {
+        source.destroy();
+        if (uploadStream) {
+            try {
+                // abort cannot run after finalization starts. Explicit fresh-ID cleanup
+                // also handles metadata insert/read failure after all chunks were written.
+                try { await uploadStream.abort(); } catch { /* already finalized */ }
+                uploadStream.destroy();
+                const database = ensureDatabase();
+                await database.collection(`${BUCKET_NAME}.files`).deleteOne({ _id: uploadStream.id });
+                await database.collection(`${BUCKET_NAME}.chunks`).deleteMany({ files_id: uploadStream.id });
+            } catch {
+                console.warn("Video upload cleanup failed; operator reconciliation is required.");
+            }
+        }
+        throw error;
+    }
 };
 
 export const findVideoById = async (

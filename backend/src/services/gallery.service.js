@@ -84,7 +84,7 @@ export const getActiveGallery = async ({
       createdAt: -1
     })
     .skip(skip)
-    .limit(limit);
+    .limit(limit).select("-createdBy -updatedBy -deletedBy -__v");
 };
 
 export const getAllGallery = async ({

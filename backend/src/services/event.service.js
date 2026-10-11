@@ -1829,14 +1829,7 @@ export const getEventBySlug =
         status:
           "published"
       })
-        .populate(
-          "createdBy",
-          "username fullName email"
-        )
-        .populate(
-          "updatedBy",
-          "username fullName email"
-        );
+        .select("-createdBy -updatedBy -deletedBy -__v");
 
     if (!event || event.deletedAt) {
       throw new Error(
@@ -1861,7 +1854,8 @@ export const getPublishedEvents =
         startAt: 1
       })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .select("-createdBy -updatedBy -deletedBy -__v");
   };
 
 export const getFeaturedEvent =
@@ -1877,14 +1871,7 @@ export const getFeaturedEvent =
         updatedAt: -1,
         createdAt: -1
       })
-      .populate(
-        "createdBy",
-        "username fullName email"
-      )
-      .populate(
-        "updatedBy",
-        "username fullName email"
-      );
+      .select("-createdBy -updatedBy -deletedBy -__v");
   };
 
 export const getUpcomingEvents =
@@ -1905,7 +1892,8 @@ export const getUpcomingEvents =
       .sort({
         startAt: 1
       })
-      .limit(limit);
+      .limit(limit)
+      .select("-createdBy -updatedBy -deletedBy -__v");
   };
 
 export const publishEvent =

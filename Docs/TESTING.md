@@ -1,3 +1,5 @@
+11/10 — kết quả cuối: **135/135 backend** (78 suite nghiệp vụ,4 load protection,22 auth,15 booking,14 media,2 public metadata), **19/19 frontend**. Build/syntax112/diff đạt; lint0 lỗi/16 warning cũ, audits root/backend/frontend0. Full suite bắt regression admin cancel owner bị khóa; đã sửa và chạy lại đạt. Benchmark cuối sau các check khác: cold burst vẫn timeout/503, exit1; mọi phase phục hồi200. Xem [SECURITY_FINAL_REVIEW.md](SECURITY_FINAL_REVIEW.md) và [report mới](security-load-results-2026-10-11.json). Không dùng DB/provider thật.
+
 08/10 — bảo mật/tải:82/82 backend (78 integration+4 unit),19/19 frontend; build/syntax107/diff đạt, lint0 lỗi/16 warning cũ, audits0 gồm dev. Test mới OTP24 sai/8 đúng đồng thời, Origin/JWT/JSON/magic ảnh, stream abort, admission riêng webhook, single-flight1000, DB503 không xóa phiên, slow header408. Chỉ DB QA27028, không dùng .env/provider thật. `npm run test:load --prefix backend` sau hồi quy, chỉ target cố địnhfyce_load_test; lưu /tmp/fyce-security-load-results.json. Cold burst1000 còn timeout/503, exit1; paced1000workers thành công nhưng chỉ8 request đang chờ. Không chứng nhận production capacity; xem SECURITY_LOAD_TEST.md.
 
 07/10 — nhạc cụ/chuyển động: frontend19 tests gồm top-home policy cho PUSH/POP/REPLACE, build đạt, lint0 lỗi/16 warning cũ. Chrome desktop login có1 nền/4 nhạc cụ; register/login390 không overflow, wrappertransparent; logo auth và Home sau cuộn2608 đều scrollY0. Production Vercel bundleindex-BXJViotw.js: auth logo và Home sau cuộn1786 về0, register390 không overflow. Không submit form/provider. Audit hai phía0 và syntax99backendđạt; integration73 lịch sử chưa chạy lại vì backend không đổi. CSS giảm chuyển động có đầy đủ quy tắc tắt animation; chưa đo benchmark FPS mọi thiết bị.
@@ -45,7 +47,7 @@ npm audit --prefix backend
 npm audit --prefix frontend
 ```
 
-`npm test` xóa/tạo lại **chỉ** `fyce_admin_test` tại localhost:27028. Không chạy hai bộ test cùng lúc. Không thay URI trong test thành URI ứng dụng. Các secret trong test là giá trị giả dùng riêng cho test, không dành cho deploy. Tắt mongod thử nghiệm sau khi dùng.
+`npm test` xóa/tạo dữ liệu **chỉ** trong các DB QA cố định tại localhost:27028: `fyce_admin_test`, `fyce_auth_security_test`, `fyce_booking_security_test`, `fyce_media_security_test`, `fyce_public_security_test`. Mỗi suite dùng DB riêng; không chạy hai bản của cùng suite cùng lúc. Benchmark dùng `fyce_load_test`, chạy sau khi hồi quy kết thúc. Không thay URI trong test thành URI ứng dụng. Các secret trong test là giá trị giả dùng riêng cho test, không dành cho deploy. Tắt mongod thử nghiệm sau khi dùng.
 
 ## Kết quả và phạm vi
 

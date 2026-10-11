@@ -437,6 +437,7 @@ const handleBackToRegister = () => {
 sessionStorage.removeItem(
     "fyce_pending_user_id"
 );
+sessionStorage.removeItem("fyce_registration_token");
 
 sessionStorage.removeItem(
     "fyce_pending_email"

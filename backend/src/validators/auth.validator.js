@@ -5,7 +5,10 @@ export const registerSchema = z
         userId: z
             .string()
             .trim()
+            .regex(/^[a-f\d]{24}$/i, "Phiên đăng ký không hợp lệ")
             .optional(),
+
+        registrationToken: z.string().max(100).optional(),
 
         fullName: z
             .string()
@@ -62,6 +65,7 @@ export const registerSchema = z
                 128,
                 "Mật khẩu quá dài"
             )
+            .refine(value => Buffer.byteLength(value) <= 72, "Mật khẩu tối đa 72 byte")
             .regex(
                 /[A-Z]/,
                 "Mật khẩu cần có ít nhất 1 chữ hoa"

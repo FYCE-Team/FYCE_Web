@@ -118,10 +118,9 @@ export const getActiveHero = async () => {
         sortOrder: 1,
         createdAt: -1
       })
-      .populate(
-        "featuredEvent",
-        "title slug shortDescription coverImage startAt endAt venue address city status"
-      );
+      .select("-createdBy -updatedBy -deletedBy -__v")
+      .populate({ path: "featuredEvent", match: { deletedAt: null, status: "published" },
+        select: "title slug shortDescription coverImage startAt endAt venue address city status" });
 
   if (!hero || hero.deletedAt) {
     throw new Error("HERO_NOT_FOUND");

@@ -76,7 +76,7 @@ export const getActiveAbout = async () => {
     }).sort({
       sortOrder: 1,
       createdAt: -1
-    });
+    }).select("-createdBy -updatedBy -deletedBy -__v");
 
   if (!about || about.deletedAt) {
     throw new Error("ABOUT_NOT_FOUND");

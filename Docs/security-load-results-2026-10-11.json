@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-11T01:50:28.218Z",
+  "scope": "Loopback API + separate child Node process + local MongoDB replica. No production/CDN/providers/browser rendering. 10000 total burst requests, not 10000 concurrent users.",
+  "fixtureDatabase": "fyce_load_test",
+  "stabilityRecovered": true,
+  "capacityAllRequestsSucceeded": false,
+  "environment": {
+    "node": "v22.20.0",
+    "platform": "darwin",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "memoryGiB": 16
+  },
+  "defaults": {
+    "generalInFlight": 80,
+    "webhookInFlight": 16,
+    "multipartInFlight": 2,
+    "mongoPool": 20
+  },
+  "results": [
+    {
+      "name": "homepage-reload",
+      "total": 1000,
+      "concurrency": 25,
+      "maxOutstanding": 25,
+      "seconds": 0.5,
+      "requestsPerSecond": 2014,
+      "statuses": {
+        "200": 1000
+      },
+      "networkErrors": 0,
+      "networkErrorsByCode": {},
+      "clientAborts": 0,
+      "receivedMiB": 6.3,
+      "latencyMs": {
+        "p50": 3.6,
+        "p95": 7.8,
+        "p99": 27.4,
+        "successfulP95": 7.8
+      },
+      "type": "metrics",
+      "peakRssMiB": 151.8,
+      "rssMiB": 151.9,
+      "eventLoopP99Ms": 21.5,
+      "eventLoopMaxMs": 21.5,
+      "recoveryHomepage200": true
+    },
+    {
+      "name": "mixed-burst-100",
+      "total": 2000,
+      "concurrency": 100,
+      "maxOutstanding": 100,
+      "seconds": 1.5,
+      "requestsPerSecond": 1330.9,
+      "statuses": {
+        "200": 1404,
+        "503": 596
+      },
+      "networkErrors": 0,
+      "networkErrorsByCode": {},
+      "clientAborts": 0,
+      "receivedMiB": 29.6,
+      "latencyMs": {
+        "p50": 45.2,
+        "p95": 151.3,
+        "p99": 280.5,
+        "successfulP95": 153.4
+      },
+      "type": "metrics",
+      "peakRssMiB": 300.2,
+      "rssMiB": 300,
+      "eventLoopP99Ms": 31.3,
+      "eventLoopMaxMs": 33.3,
+      "recoveryHomepage200": true
+    },
+    {
+      "name": "mixed-burst-1000",
+      "total": 10000,
+      "concurrency": 1000,
+      "maxOutstanding": 1000,
+      "seconds": 9.2,
+      "requestsPerSecond": 1087.5,
+      "statuses": {
+        "200": 2896,
+        "503": 6801
+      },
+      "networkErrors": 303,
+      "networkErrorsByCode": {
+        "ETIMEDOUT": 303
+      },
+      "clientAborts": 0,
+      "receivedMiB": 61.6,
+      "latencyMs": {
+        "p50": 17.4,
+        "p95": 2033.6,
+        "p99": 6714.1,
+        "successfulP95": 4626.4
+      },
+      "type": "metrics",
+      "peakRssMiB": 324.8,
+      "rssMiB": 324.4,
+      "eventLoopP99Ms": 31.2,
+      "eventLoopMaxMs": 33.7,
+      "recoveryHomepage200": true
+    },
+    {
+      "name": "paced-1000-workers",
+      "total": 3000,
+      "concurrency": 1000,
+      "maxOutstanding": 5,
+      "seconds": 8.31,
+      "requestsPerSecond": 361.1,
+      "statuses": {
+        "200": 3000
+      },
+      "networkErrors": 0,
+      "networkErrorsByCode": {},
+      "clientAborts": 0,
+      "receivedMiB": 62,
+      "latencyMs": {
+        "p50": 1,
+        "p95": 3.6,
+        "p99": 4.9,
+        "successfulP95": 3.6
+      },
+      "type": "metrics",
+      "peakRssMiB": 328.9,
+      "rssMiB": 328.7,
+      "eventLoopP99Ms": 21.7,
+      "eventLoopMaxMs": 22.4,
+      "recoveryHomepage200": true
+    },
+    {
+      "name": "reload-abort",
+      "total": 500,
+      "concurrency": 100,
+      "maxOutstanding": 100,
+      "seconds": 0.36,
+      "requestsPerSecond": 1386.3,
+      "statuses": {
+        "200": 1
+      },
+      "networkErrors": 0,
+      "networkErrorsByCode": {},
+      "clientAborts": 499,
+      "receivedMiB": 0,
+      "latencyMs": {
+        "p50": 9.2,
+        "p95": 9.2,
+        "p99": 9.2,
+        "successfulP95": 9.2
+      },
+      "type": "metrics",
+      "peakRssMiB": 328.8,
+      "rssMiB": 328.8,
+      "eventLoopP99Ms": 39.3,
+      "eventLoopMaxMs": 39.3,
+      "recoveryHomepage200": true
+    }
+  ]
+}

@@ -1,5 +1,17 @@
 // Vietnamese source messages are stable keys. CMS/user content is not machine-translated.
 export default {
+  "Email này chưa được Google xác minh quyền sở hữu hiện tại. Vui lòng đăng ký bằng email và xác thực mã OTP.": "Google cannot confirm current ownership of this email address. Please register with your email and verify the OTP code.",
+  "Email này cần được xác minh lại trước khi liên kết Google. Vui lòng đăng nhập bằng mật khẩu hoặc dùng Quên mật khẩu.": "Verify this email again before linking Google. Sign in with your password or use Forgot password.",
+  "Dung lượng ảnh đại diện đã đạt giới hạn. Vui lòng liên hệ FYCE để được hỗ trợ dọn ảnh cũ.": "Your profile picture storage limit has been reached. Contact FYCE for help removing old pictures.",
+  "▪ CHƯƠNG TRÌNH & CÁC TÁC PHẨM": "▪ PROGRAMME & WORKS",
+  "Tác Phẩm Thính Phòng Buổi Biểu Diễn": "Chamber Works in This Performance",
+  "▪ NGHỆ SĨ THAM GIA BIỂU DIỄN & NHỮNG NGƯỜI CỘNG TÁC": "▪ PERFORMING ARTISTS & COLLABORATORS",
+  "Mật khẩu tối đa 72 byte.": "Your password must be no more than 72 bytes.",
+  "Phiên chỉnh sửa đăng ký không hợp lệ. Hãy nhập lại mật khẩu đã dùng hoặc xác thực email.": "This registration editing session is invalid. Enter your original password or verify your email.",
+  "Nguồn yêu cầu không được phép.": "This request origin is not allowed.",
+  "Máy chủ đang bận. Vui lòng đợi một lát rồi thử lại.": "The server is busy. Please wait a moment and try again.",
+  "Dịch vụ dữ liệu đang bận. Vui lòng thử lại sau.": "The data service is busy. Please try again later.",
+  "Bạn đã tải ảnh đại diện quá nhiều lần. Vui lòng chờ 15 phút rồi thử lại.": "You have uploaded too many profile pictures. Please wait 15 minutes and try again.",
   "Xem ảnh lớn": "View full image",
   "Đóng ảnh": "Close image",
   "Xem ảnh bìa": "View cover image",

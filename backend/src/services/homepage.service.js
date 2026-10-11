@@ -17,8 +17,9 @@ const getHomepageHero = async () => {
       createdAt: -1
     })
     .populate(
-      { path: "featuredEvent", match: { deletedAt: null }, select: "english title slug badge shortDescription description subtitle coverImage heroVideoUrl trailerVideoUrl startAt endAt venue address city totalTickets ticketCategories status isFeatured allowBooking" }
+      { path: "featuredEvent", match: { deletedAt: null, status: "published" }, select: "english title slug badge shortDescription description subtitle coverImage heroVideoUrl trailerVideoUrl startAt endAt venue address city totalTickets ticketCategories status isFeatured allowBooking" }
     )
+    .select("-createdBy -updatedBy -deletedBy -__v")
     .lean();
 };
 
@@ -39,6 +40,7 @@ const getHomepageFeaturedEvent = async (hero) => {
       startAt: 1,
       createdAt: -1
     })
+    .select("-createdBy -updatedBy -deletedBy -__v")
     .lean();
 };
 
@@ -69,6 +71,7 @@ const getHomepageAbout = async () => {
       sortOrder: 1,
       createdAt: -1
     })
+    .select("-createdBy -updatedBy -deletedBy -__v")
     .lean();
 };
 

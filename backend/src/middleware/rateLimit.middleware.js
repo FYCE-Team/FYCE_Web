@@ -73,3 +73,13 @@ export const paymentSyncRateLimit = rateLimit({
 
 // XLSX generation is bounded per authenticated administrator, separate from scanner traffic.
 export const adminExportRateLimit=rateLimit({windowMs:60000,limit:10,keyGenerator:req=>String(req.user.userId),standardHeaders:"draft-8",legacyHeaders:false,message:{success:false,message:"Xuất file quá nhiều lần. Vui lòng chờ một phút rồi thử lại."}});
+
+// Apply after authentication and before buffering multipart data.
+export const avatarUploadRateLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    keyGenerator: req => String(req.user.userId),
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: { success: false, message: "Bạn đã tải ảnh đại diện quá nhiều lần. Vui lòng chờ 15 phút rồi thử lại." }
+});

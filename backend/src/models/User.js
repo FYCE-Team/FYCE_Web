@@ -55,6 +55,9 @@ const userSchema = new mongoose.Schema(
         },
 
         avatarUrl: { type: String, default: "" },
+        // Internal, atomically reserved upload budget. Undefined on legacy users until first upload.
+        avatarStorageBytes: { type: Number, min: 0, select: false },
+        avatarStorageCount: { type: Number, min: 0, select: false },
         authVersion: { type: Number, default: 0 },
 
         isBlocked: { type: Boolean, default: false, index: true },

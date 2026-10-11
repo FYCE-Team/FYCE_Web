@@ -332,7 +332,7 @@ export const cancelAdminBooking = async (id) => {
   if (booking.status !== "pending_payment" || booking.paymentStatus === "paid")
     fail(409, "Chỉ có thể hủy đơn đang chờ thanh toán.");
   try {
-    const result = await cancelBooking(booking.bookingCode, booking.userId);
+    const result = await cancelBooking(booking.bookingCode, booking.userId, { allowInactiveOwner: true });
     return { bookingCode: result.bookingCode, status: result.status };
   } catch (error) {
     if (

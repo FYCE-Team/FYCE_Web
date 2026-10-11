@@ -59,6 +59,7 @@ export const register = async (
 
         const {
             userId,
+            registrationToken,
             fullName,
             username,
             email,
@@ -71,6 +72,7 @@ export const register = async (
         const data =
             await registerUser({
                 userId,
+                registrationToken,
                 fullName,
                 username,
                 email,
@@ -795,6 +797,7 @@ export const googleLogin = async (
                     googleUser.googleId,
                 email:
                     googleUser.email,
+                emailAuthoritative: googleUser.emailAuthoritative,
                 fullName:
                     googleUser.fullName
             });

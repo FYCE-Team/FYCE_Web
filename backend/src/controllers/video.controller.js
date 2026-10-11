@@ -12,6 +12,15 @@ const getVideoUrl = (
 ) =>
     `/api/videos/${videoId}`;
 
+const clearVideoResponseHeaders = res => {
+    if (res.headersSent) return;
+    res.removeHeader("Content-Length");
+    res.removeHeader("Content-Range");
+    res.removeHeader("Content-Type");
+    res.removeHeader("Accept-Ranges");
+    res.setHeader("Cache-Control", "no-store");
+};
+
 const removeTempFile = async (
     filePath
 ) => {
@@ -239,6 +248,9 @@ export const streamVideoFile = async (
                 objectId
             );
 
+        // A request can disconnect before the metadata lookup finishes.
+        if (res.destroyed) return;
+
         if (!file) {
             return res.status(404).json({
                 success: false,
@@ -370,6 +382,7 @@ export const streamVideoFile = async (
                 if (
                     !res.headersSent
                 ) {
+                    clearVideoResponseHeaders(res);
                     next(error);
                     return;
                 }
@@ -382,6 +395,7 @@ export const streamVideoFile = async (
         res.once("close", () => downloadStream.destroy());
         downloadStream.pipe(res);
     } catch (error) {
+        clearVideoResponseHeaders(res);
         return next(error);
     }
 };

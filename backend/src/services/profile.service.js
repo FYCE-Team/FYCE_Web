@@ -7,6 +7,33 @@ import RefreshToken from "../models/RefreshToken.js";
 import PasswordReset from "../models/PasswordReset.js";
 import { sendPasswordResetOtpEmail } from "./email.service.js";
 import { uploadImageBuffer } from "./image.service.js";
+const AVATAR_STORAGE_BYTES = 25 * 1024 * 1024;
+const AVATAR_STORAGE_COUNT = 20;
+
+const reserveAvatarStorage = async (userId, bytes) => {
+  const user = await User.findById(userId).select("+avatarStorageBytes +avatarStorageCount").lean();
+  if (!user?.isActive || user.isBlocked || user.deletedAt) fail(403, "Tài khoản không còn hoạt động.");
+  if (user.avatarStorageBytes === undefined && user.avatarStorageCount === undefined) {
+    // Legacy avatars use the fixed server filename/originalName "avatar". CMS images are excluded.
+    const [usage] = await mongoose.connection.db.collection("images.files").aggregate([
+      { $match: {
+        "metadata.uploadedBy": { $in: [String(userId), new mongoose.Types.ObjectId(String(userId))] },
+        $or: [{ "metadata.purpose": "avatar" }, { filename: "avatar", "metadata.originalName": "avatar" }]
+      } },
+      { $group: { _id: null, bytes: { $sum: "$length" }, count: { $sum: 1 } } }
+    ]).toArray();
+    // Initialize once; concurrent requests cannot overwrite another reservation.
+    await User.updateOne({ _id: userId, avatarStorageBytes: { $exists: false }, avatarStorageCount: { $exists: false } }, {
+      $set: { avatarStorageBytes: usage?.bytes || 0, avatarStorageCount: usage?.count || 0 }
+    });
+  }
+  const reserved = await User.updateOne({
+    _id: userId, isActive: true, isBlocked: { $ne: true }, deletedAt: null,
+    avatarStorageBytes: { $gte: 0, $lte: AVATAR_STORAGE_BYTES - bytes },
+    avatarStorageCount: { $gte: 0, $lt: AVATAR_STORAGE_COUNT }
+  }, { $inc: { avatarStorageBytes: bytes, avatarStorageCount: 1 } });
+  if (!reserved.matchedCount) fail(409, "Dung lượng ảnh đại diện đã đạt giới hạn. Vui lòng liên hệ FYCE để được hỗ trợ dọn ảnh cũ.");
+};
 const fail = (status, message) => {
   throw Object.assign(new Error(message), { status });
 };
@@ -115,7 +142,7 @@ export const updateAvatar = async (userId, file) => {
   if (!file || file.size > 5 * 1024 * 1024)
     fail(400, "Chọn ảnh JPG, PNG hoặc WebP, tối đa 5MB.");
   const b = file.buffer;
-  if (!Buffer.isBuffer(b) || b.length < 12) fail(400, "Tệp ảnh không hợp lệ.");
+  if (!Buffer.isBuffer(b) || b.length < 12 || b.length > 5 * 1024 * 1024) fail(400, "Tệp ảnh không hợp lệ.");
   const type =
     b[0] === 255 && b[1] === 216 && b[2] === 255
       ? "image/jpeg"
@@ -126,13 +153,30 @@ export const updateAvatar = async (userId, file) => {
           ? "image/webp"
           : null;
   if (!type || type !== file.mimetype) fail(400, "Tệp ảnh không hợp lệ.");
-  const stored = await uploadImageBuffer({
-    buffer: b,
-    originalName: "avatar",
-    mimeType: type,
-    uploadedBy: userId,
-  });
-  const avatarUrl = `/api/images/${stored.id}`;
-  await User.updateOne({ _id: userId }, { avatarUrl });
-  return { avatarUrl };
+  await reserveAvatarStorage(userId, b.length);
+  let stored;
+  try {
+    stored = await uploadImageBuffer({
+      buffer: b,
+      originalName: "avatar",
+      mimeType: type,
+      uploadedBy: userId,
+      extraMetadata: { purpose: "avatar" },
+    });
+    const avatarUrl = `/api/images/${stored.id}`;
+    const updated = await User.updateOne({ _id: userId, isActive: true, isBlocked: { $ne: true }, deletedAt: null }, { avatarUrl });
+    if (!updated.matchedCount) fail(403, "Tài khoản không còn hoạt động.");
+    return { avatarUrl };
+  } catch (error) {
+    // A completed or ambiguously committed upload stays charged. Never delete an image
+    // that may already be referenced by the account or CMS; reconciliation is explicit.
+    if (!stored && error.imageCleanupComplete === true) {
+      try {
+        await User.updateOne({ _id: userId, avatarStorageBytes: { $gte: b.length }, avatarStorageCount: { $gte: 1 } }, {
+          $inc: { avatarStorageBytes: -b.length, avatarStorageCount: -1 }
+        });
+      } catch { /* retain the conservative reservation when database cleanup is uncertain */ }
+    }
+    throw error;
+  }
 };

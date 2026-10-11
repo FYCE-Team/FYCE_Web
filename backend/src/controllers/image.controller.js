@@ -11,6 +11,13 @@ const getImageUrl = (
 ) =>
     `/api/images/${imageId}`;
 
+const clearImageResponseHeaders = res => {
+    if (res.headersSent) return;
+    res.removeHeader("Content-Length");
+    res.removeHeader("Content-Type");
+    res.setHeader("Cache-Control", "no-store");
+};
+
 export const uploadImageFile = async (
     req,
     res,
@@ -110,6 +117,10 @@ export const streamImageFile = async (
                 objectId
             );
 
+        // The browser may leave while MongoDB is still looking up metadata.
+        // In that case the close event has already fired, so do not start a new stream.
+        if (res.destroyed) return;
+
         if (!file) {
             return res.status(404).json({
                 success: false,
@@ -144,6 +155,9 @@ export const streamImageFile = async (
             "public, max-age=31536000, immutable"
         );
 
+        // Express routes HEAD through GET; return metadata without reading every image chunk.
+        if (req.method === "HEAD") return res.status(200).end();
+
         const downloadStream =
             getImageBucket()
                 .openDownloadStream(
@@ -156,6 +170,7 @@ export const streamImageFile = async (
                 if (
                     !res.headersSent
                 ) {
+                    clearImageResponseHeaders(res);
                     next(error);
                     return;
                 }
@@ -168,6 +183,7 @@ export const streamImageFile = async (
         res.once("close", () => downloadStream.destroy());
         downloadStream.pipe(res);
     } catch (error) {
+        clearImageResponseHeaders(res);
         return next(error);
     }
 };

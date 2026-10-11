@@ -5,6 +5,7 @@ import Booking from "../models/Booking.js";
 import Event from "../models/Event.js";
 import Seat from "../models/Seat.js";
 import User from "../models/User.js";
+import { assertEventBookable } from "../utils/eventAccess.js";
 import {
     releaseExpiredHolds
 } from "./seat.service.js";
@@ -235,57 +236,9 @@ const generateBookingCode = () => {
     return `FYCE-${datePart}-${randomPart}`;
 };
 
-const assertEventBookable = (
-    event
-) => {
-    const now = new Date();
-
-    if (event.status === "sold_out") {
-        throw new Error(
-            "EVENT_SOLD_OUT"
-        );
-    }
-
-    if (
-        event.deletedAt ||
-        event.status !== "published" ||
-        event.allowBooking === false
-    ) {
-        throw new Error(
-            "EVENT_BOOKING_NOT_ALLOWED"
-        );
-    }
-
-    if (
-        event.bookingOpenAt &&
-        new Date(event.bookingOpenAt) > now
-    ) {
-        throw new Error(
-            "EVENT_BOOKING_NOT_OPEN"
-        );
-    }
-
-    if (
-        event.bookingCloseAt &&
-        new Date(event.bookingCloseAt) <= now
-    ) {
-        throw new Error(
-            "EVENT_BOOKING_CLOSED"
-        );
-    }
-
-    if (
-        event.startAt &&
-        new Date(event.startAt) <= now
-    ) {
-        throw new Error(
-            "EVENT_BOOKING_CLOSED"
-        );
-    }
-};
-
 const releaseBookingSeats = async (
-    booking
+    booking,
+    session = null
 ) => {
     const seatIds = booking.items.map(
         (item) => item.seatId
@@ -311,7 +264,8 @@ const releaseBookingSeats = async (
                 heldByUserId: null,
                 holdExpiresAt: null
             }
-        }
+        },
+        { session }
     );
 };
 
@@ -431,86 +385,105 @@ const cancelOrphanedPendingBookings =
 
         let cancelledCount = 0;
 
-        for (const booking of bookings) {
-            const seatIds =
-                booking.items.map(
-                    (item) =>
-                        item.seatId
-                );
-
-            const validHeldCount =
-                await Seat.countDocuments({
-                    _id: {
-                        $in: seatIds
-                    },
-                    eventId:
-                        booking.eventId,
-                    status:
-                        "held",
-                    holdToken:
-                        booking.holdToken,
-                    heldByUserId:
-                        booking.userId,
-                    holdExpiresAt: {
-                        $gt: now
-                    }
+        for (const candidate of bookings) {
+            const repaired = await mongoose.connection.transaction(async session => {
+                // Legacy cleanup must publish cancellation and seat release as
+                // one operation under checkout's account lock. Otherwise a new
+                // invoice can reuse the remaining hold between those writes.
+                await User.updateOne({ _id: candidate.userId }, { $inc: { __v: 1 } }, {
+                    session, timestamps: false
                 });
+                const booking = await Booking.findOne({
+                    _id: candidate._id,
+                    status: "pending_payment",
+                    paymentStatus: "unpaid",
+                    holdExpiresAt: { $gt: new Date() }
+                }).session(session);
+                if (!booking) return false;
 
-            if (
-                validHeldCount ===
-                seatIds.length
-            ) {
-                continue;
-            }
+                const seatIds =
+                    booking.items.map(
+                        (item) =>
+                            item.seatId
+                    );
 
-            const soldSeatCount =
-                await Seat.countDocuments({
-                    _id: {
-                        $in: seatIds
-                    },
-                    eventId:
-                        booking.eventId,
-                    status:
-                        "sold"
-                });
-
-            // Do not race the payment confirmation path.
-            if (soldSeatCount > 0) {
-                continue;
-            }
-
-            const cancelledBooking =
-                await Booking.findOneAndUpdate(
-                    {
-                        _id:
-                            booking._id,
+                const validHeldCount =
+                    await Seat.countDocuments({
+                        _id: {
+                            $in: seatIds
+                        },
+                        eventId:
+                            booking.eventId,
                         status:
-                            "pending_payment",
-                        paymentStatus:
-                            "unpaid"
-                    },
-                    {
-                        $set: {
-                            status:
-                                "cancelled",
-                            cancelledAt:
-                                now
+                            "held",
+                        holdToken:
+                            booking.holdToken,
+                        heldByUserId:
+                            booking.userId,
+                        holdExpiresAt: {
+                            $gt: now
                         }
-                    },
-                    {
-                        new: true
-                    }
+                    }).session(session);
+
+                if (
+                    validHeldCount ===
+                    seatIds.length
+                ) {
+                    return false;
+                }
+
+                const soldSeatCount =
+                    await Seat.countDocuments({
+                        _id: {
+                            $in: seatIds
+                        },
+                        eventId:
+                            booking.eventId,
+                        status:
+                            "sold"
+                    }).session(session);
+
+                // Do not race the payment confirmation path.
+                if (soldSeatCount > 0) {
+                    return false;
+                }
+
+                const cancelledBooking =
+                    await Booking.findOneAndUpdate(
+                        {
+                            _id:
+                                booking._id,
+                            status:
+                                "pending_payment",
+                            paymentStatus:
+                                "unpaid"
+                        },
+                        {
+                            $set: {
+                                status:
+                                    "cancelled",
+                                cancelledAt:
+                                    now
+                            }
+                        },
+                        {
+                            returnDocument: "after",
+                            session
+                        }
+                    );
+
+                if (!cancelledBooking) {
+                    return false;
+                }
+
+                await releaseBookingSeats(
+                    cancelledBooking,
+                    session
                 );
 
-            if (!cancelledBooking) {
-                continue;
-            }
-
-            await releaseBookingSeats(
-                cancelledBooking
-            );
-
-            cancelledCount += 1;
+                return true;
+            }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
+            if (repaired) cancelledCount += 1;
         }
 
         return {
@@ -582,22 +555,24 @@ const releaseUncommittedHold = async (
         return;
     }
 
-    await Seat.updateMany(
-        {
-            eventId,
-            status: "held",
-            heldByUserId: userId,
-            holdToken
-        },
-        {
-            $set: {
-                status: "available",
-                holdToken: null,
-                heldByUserId: null,
-                holdExpiresAt: null
-            }
-        }
-    );
+    await mongoose.connection.transaction(async session => {
+        // This cleanup follows a failed transaction and may run much later.
+        // Recheck under checkout's lock before freeing a now-committed hold.
+        const accountClaim = await User.updateOne({
+            _id: userId, isActive: true, isBlocked: { $ne: true }, deletedAt: null
+        }, { $inc: { __v: 1 } }, { session, timestamps: false });
+        if (accountClaim.matchedCount !== 1) return;
+        const committed = await Booking.exists({
+            eventId, userId, holdToken, status: "pending_payment"
+        }).session(session);
+        if (committed) return;
+
+        await Seat.updateMany({
+            eventId, status: "held", heldByUserId: userId, holdToken
+        }, { $set: {
+            status: "available", holdToken: null, heldByUserId: null, holdExpiresAt: null
+        } }, { session });
+    }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
 };
 
 /*
@@ -1010,385 +985,400 @@ export const createBooking = async (
         eventId: normalizedEventId
     });
 
-    const [
-        event,
-        user
-    ] = await Promise.all([
-        Event.findById(
-            normalizedEventId
-        ).lean(),
-        User.findById(
-            normalizedUserId
-        ).lean()
-    ]);
-
-    if (!event) {
-        throw new Error(
-            "EVENT_NOT_FOUND"
-        );
-    }
-
-    if (!user) {
-        throw new Error(
-            "USER_NOT_FOUND"
-        );
-    }
-
-    if (user.isActive === false) {
-        throw new Error(
-            "USER_INACTIVE"
-        );
-    }
-
-    assertEventBookable(event);
-
-    const existingBooking =
-        await Booking.findOne({
-            userId:
-                normalizedUserId,
-            eventId:
-                normalizedEventId,
-            holdToken:
-                normalizedHoldToken,
-            status:
-                "pending_payment",
-            holdExpiresAt: {
-                $gt: new Date()
-            }
-        });
-
-    if (existingBooking) {
-        return existingBooking;
-    }
-
-    const activeBooking =
-        await getActiveBookingByEvent(
-            normalizedEventId,
-            normalizedUserId
-        );
-
-    if (activeBooking) {
-        await releaseUncommittedHold({
-            eventId:
-                normalizedEventId,
-            userId:
-                normalizedUserId,
-            holdToken:
-                normalizedHoldToken
-        });
-
-        throw createServiceError(
-            "ACTIVE_BOOKING_EXISTS",
-            {
-                bookingCode:
-                    activeBooking.bookingCode,
-                holdExpiresAt:
-                    activeBooking.holdExpiresAt
-            }
-        );
-    }
-
-    const seats = await Seat.find({
-        _id: {
-            $in: normalizedSeatIds
-        },
-        eventId:
-            normalizedEventId,
-        isActive: true
-    }).lean();
-
-    if (
-        seats.length !==
-        normalizedSeatIds.length
-    ) {
-        throw new Error(
-            "BOOKING_SEAT_NOT_FOUND"
-        );
-    }
-
-    const now = new Date();
-
-    for (const seat of seats) {
-        const owned =
-            seat.status === "held" &&
-            seat.holdToken ===
-                normalizedHoldToken &&
-            String(
-                seat.heldByUserId || ""
-            ) ===
-                String(
-                    normalizedUserId
-                ) &&
-            seat.holdExpiresAt &&
-            new Date(
-                seat.holdExpiresAt
-            ) > now;
-
-        if (!owned) {
-            throw createServiceError(
-                "BOOKING_SEAT_HOLD_INVALID",
-                {
-                    seatId:
-                        String(seat._id),
-                    seatLabel:
-                        seat.label,
-                    status:
-                        seat.status
-                }
-            );
-        }
-    }
-
-    const categoryMap = new Map(
-        (event.ticketCategories || [])
-            .map((category) => [
-                String(category._id),
-                category
-            ])
-    );
-
-    const categoryCounts =
-        new Map();
-
-    const categoryRepairs =
-        [];
-
-    const items = seats
-        .map((seat) => {
-            const {
-                category,
-                usedFallback
-            } =
-                resolveSeatCategory(
-                    seat,
-                    event
-                );
-
-            if (!category) {
-                throw createServiceError(
-                    "BOOKING_TICKET_CATEGORY_NOT_FOUND",
-                    {
-                        seatId:
-                            String(seat._id),
-                        seatLabel:
-                            seat.label,
-                        seatTicketCategoryId:
-                            String(
-                                seat.ticketCategoryId ||
-                                    ""
-                            ),
-                        inferredCode:
-                            inferFyceCategoryCode(
-                                seat
-                            ),
-                        currentCategories:
-                            (
-                                event.ticketCategories ||
-                                []
-                            ).map(
-                                (item) => ({
-                                    id:
-                                        String(
-                                            item._id
-                                        ),
-                                    code:
-                                        item.code,
-                                    name:
-                                        item.name
-                                })
-                            )
-                    }
-                );
-            }
-
-            if (
-                category.isActive === false
-            ) {
-                throw createServiceError(
-                    "BOOKING_TICKET_CATEGORY_INACTIVE",
-                    {
-                        categoryId:
-                            String(category._id),
-                        categoryName:
-                            category.name
-                    }
-                );
-            }
-
-            if (
-                usedFallback &&
-                String(
-                    seat.ticketCategoryId ||
-                        ""
-                ) !==
-                    String(category._id)
-            ) {
-                categoryRepairs.push({
-                    updateOne: {
-                        filter: {
-                            _id: seat._id,
-                            eventId:
-                                normalizedEventId
-                        },
-                        update: {
-                            $set: {
-                                ticketCategoryId:
-                                    category._id
-                            }
-                        }
-                    }
-                });
-            }
-
-            const categoryId =
-                String(category._id);
-
-            categoryCounts.set(
-                categoryId,
-                (categoryCounts.get(
-                    categoryId
-                ) || 0) + 1
-            );
-
-            return {
-                seatId: seat._id,
-                seatLabel: seat.label,
-                section: seat.section,
-                row: seat.row,
-                number: seat.number,
-                ticketCategoryId:
-                    category._id,
-                ticketCategoryCode:
-                    category.code,
-                ticketCategoryName:
-                    category.name,
-                unitPrice:
-                    Number(
-                        category.price
-                    ) || 0,
-                ticketCode: `TKT-${randomBytes(6).toString("hex").toUpperCase()}`
-            };
-        })
-        .sort((a, b) => {
-            if (a.row !== b.row) {
-                return a.row.localeCompare(
-                    b.row,
-                    "vi"
-                );
-            }
-
-            return a.number - b.number;
-        });
-
-    if (categoryRepairs.length > 0) {
-        await Seat.bulkWrite(
-            categoryRepairs,
-            {
-                ordered: false
-            }
-        );
-    }
-
-    for (
-        const [
-            categoryId,
-            count
-        ] of categoryCounts.entries()
-    ) {
-        const category =
-            categoryMap.get(
-                categoryId
-            );
-
-        const maxPerOrder =
-            Number(
-                category?.maxPerOrder
-            ) || 6;
-
-        if (count > maxPerOrder) {
-            throw createServiceError(
-                "BOOKING_MAX_PER_ORDER_EXCEEDED",
-                {
-                    categoryName:
-                        category?.name ||
-                        "Hạng vé",
-                    maxPerOrder,
-                    requested: count
-                }
-            );
-        }
-    }
-
-    const holdExpiresAt =
-        seats.reduce(
-            (earliest, seat) => {
-                const current = new Date(
-                    seat.holdExpiresAt
-                );
-
-                if (
-                    !earliest ||
-                    current < earliest
-                ) {
-                    return current;
-                }
-
-                return earliest;
-            },
-            null
-        );
-
-    if (
-        !holdExpiresAt ||
-        holdExpiresAt <= new Date()
-    ) {
-        throw new Error(
-            "BOOKING_HOLD_EXPIRED"
-        );
-    }
-
-    const subtotal = items.reduce(
-        (sum, item) =>
-            sum + item.unitPrice,
-        0
-    );
-
-    const booking = await Booking.create({
-        bookingCode:
-            generateBookingCode(),
-        userId:
-            normalizedUserId,
-        eventId:
-            normalizedEventId,
-        eventSnapshot: {
-            title: event.title,
-            slug: event.slug,
-            startAt:
-                event.startAt || null,
-            venue:
-                event.venue || "",
-            address:
-                event.address || ""
-        },
-        customer: {
-            fullName:
-                user.fullName,
-            email:
-                user.email,
-            phone:
-                user.phone || ""
-        },
-        items,
-        subtotal,
-        totalAmount: subtotal,
-        holdToken:
-            normalizedHoldToken,
-        holdExpiresAt,
-        status: "pending_payment",
-        paymentStatus: "unpaid"
+    await cancelOrphanedPendingBookings({
+        userId: normalizedUserId,
+        eventId: normalizedEventId
     });
 
-    return booking;
+    try {
+        return await mongoose.connection.transaction(async session => {
+            // Serialize checkout creation across replicas using the existing account
+            // document. Internal versioning does not change authVersion/updatedAt.
+            // No new unique index is required for legacy production records.
+            const accountClaim = await User.updateOne({
+                _id: normalizedUserId, isActive: true, isBlocked: { $ne: true }, deletedAt: null
+            }, { $inc: { __v: 1 } }, { session, timestamps: false });
+            if (accountClaim.matchedCount !== 1) throw new Error("USER_INACTIVE");
+            // Mongo transaction queries are deliberately sequential.
+            const event = await Event.findById(normalizedEventId).session(session).lean();
+            const user = await User.findById(normalizedUserId).session(session).lean();
+
+            if (!event) {
+                throw new Error(
+                    "EVENT_NOT_FOUND"
+                );
+            }
+
+            if (!user) {
+                throw new Error(
+                    "USER_NOT_FOUND"
+                );
+            }
+
+            if (user.isActive === false) {
+                throw new Error(
+                    "USER_INACTIVE"
+                );
+            }
+
+            assertEventBookable(event);
+
+            const existingBooking =
+                await Booking.findOne({
+                    userId:
+                        normalizedUserId,
+                    eventId:
+                        normalizedEventId,
+                    holdToken:
+                        normalizedHoldToken,
+                    status:
+                        "pending_payment",
+                    holdExpiresAt: {
+                        $gt: new Date()
+                    }
+                }).session(session);
+
+            if (existingBooking) {
+                return existingBooking;
+            }
+
+            const activeBooking = await Booking.findOne({
+                userId: normalizedUserId,
+                eventId: normalizedEventId,
+                status: "pending_payment",
+                paymentStatus: { $in: ["unpaid", "processing"] },
+                holdExpiresAt: { $gt: new Date() }
+            }).session(session);
+
+            if (activeBooking) {
+                throw createServiceError(
+                    "ACTIVE_BOOKING_EXISTS",
+                    {
+                        bookingCode:
+                            activeBooking.bookingCode,
+                        holdExpiresAt:
+                            activeBooking.holdExpiresAt
+                    }
+                );
+            }
+
+            const seats = await Seat.find({
+                _id: {
+                    $in: normalizedSeatIds
+                },
+                eventId:
+                    normalizedEventId,
+                isActive: true
+            }).session(session).lean();
+
+            if (
+                seats.length !==
+                normalizedSeatIds.length
+            ) {
+                throw new Error(
+                    "BOOKING_SEAT_NOT_FOUND"
+                );
+            }
+
+            const now = new Date();
+
+            for (const seat of seats) {
+                const owned =
+                    seat.status === "held" &&
+                    seat.holdToken ===
+                        normalizedHoldToken &&
+                    String(
+                        seat.heldByUserId || ""
+                    ) ===
+                        String(
+                            normalizedUserId
+                        ) &&
+                    seat.holdExpiresAt &&
+                    new Date(
+                        seat.holdExpiresAt
+                    ) > now;
+
+                if (!owned) {
+                    throw createServiceError(
+                        "BOOKING_SEAT_HOLD_INVALID",
+                        {
+                            seatId:
+                                String(seat._id),
+                            seatLabel:
+                                seat.label,
+                            status:
+                                seat.status
+                        }
+                    );
+                }
+            }
+
+            const categoryMap = new Map(
+                (event.ticketCategories || [])
+                    .map((category) => [
+                        String(category._id),
+                        category
+                    ])
+            );
+
+            const categoryCounts =
+                new Map();
+
+            const categoryRepairs =
+                [];
+
+            const items = seats
+                .map((seat) => {
+                    const {
+                        category,
+                        usedFallback
+                    } =
+                        resolveSeatCategory(
+                            seat,
+                            event
+                        );
+
+                    if (!category) {
+                        throw createServiceError(
+                            "BOOKING_TICKET_CATEGORY_NOT_FOUND",
+                            {
+                                seatId:
+                                    String(seat._id),
+                                seatLabel:
+                                    seat.label,
+                                seatTicketCategoryId:
+                                    String(
+                                        seat.ticketCategoryId ||
+                                            ""
+                                    ),
+                                inferredCode:
+                                    inferFyceCategoryCode(
+                                        seat
+                                    ),
+                                currentCategories:
+                                    (
+                                        event.ticketCategories ||
+                                        []
+                                    ).map(
+                                        (item) => ({
+                                            id:
+                                                String(
+                                                    item._id
+                                                ),
+                                            code:
+                                                item.code,
+                                            name:
+                                                item.name
+                                        })
+                                    )
+                            }
+                        );
+                    }
+
+                    if (
+                        category.isActive === false
+                    ) {
+                        throw createServiceError(
+                            "BOOKING_TICKET_CATEGORY_INACTIVE",
+                            {
+                                categoryId:
+                                    String(category._id),
+                                categoryName:
+                                    category.name
+                            }
+                        );
+                    }
+
+                    if (
+                        usedFallback &&
+                        String(
+                            seat.ticketCategoryId ||
+                                ""
+                        ) !==
+                            String(category._id)
+                    ) {
+                        categoryRepairs.push({
+                            updateOne: {
+                                filter: {
+                                    _id: seat._id,
+                                    eventId:
+                                        normalizedEventId
+                                },
+                                update: {
+                                    $set: {
+                                        ticketCategoryId:
+                                            category._id
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+                    const categoryId =
+                        String(category._id);
+
+                    categoryCounts.set(
+                        categoryId,
+                        (categoryCounts.get(
+                            categoryId
+                        ) || 0) + 1
+                    );
+
+                    return {
+                        seatId: seat._id,
+                        seatLabel: seat.label,
+                        section: seat.section,
+                        row: seat.row,
+                        number: seat.number,
+                        ticketCategoryId:
+                            category._id,
+                        ticketCategoryCode:
+                            category.code,
+                        ticketCategoryName:
+                            category.name,
+                        unitPrice:
+                            Number(
+                                category.price
+                            ) || 0,
+                        ticketCode: `TKT-${randomBytes(6).toString("hex").toUpperCase()}`
+                    };
+                })
+                .sort((a, b) => {
+                    if (a.row !== b.row) {
+                        return a.row.localeCompare(
+                            b.row,
+                            "vi"
+                        );
+                    }
+
+                    return a.number - b.number;
+                });
+
+            // Conflict with a concurrent release/payment/category write rather than
+            // commit a new payable invoice using a stale snapshot of held seats.
+            const seatClaim = await Seat.updateMany({
+                _id: { $in: normalizedSeatIds }, eventId: normalizedEventId,
+                isActive: true, status: "held", holdToken: normalizedHoldToken,
+                heldByUserId: normalizedUserId, holdExpiresAt: { $gt: new Date() }
+            }, { $inc: { __v: 1 } }, { session, timestamps: false });
+            if (seatClaim.matchedCount !== normalizedSeatIds.length) {
+                throw new Error("BOOKING_SEAT_HOLD_INVALID");
+            }
+            if (categoryRepairs.length > 0) {
+                await Seat.bulkWrite(categoryRepairs, { ordered: true, session });
+            }
+
+            for (
+                const [
+                    categoryId,
+                    count
+                ] of categoryCounts.entries()
+            ) {
+                const category =
+                    categoryMap.get(
+                        categoryId
+                    );
+
+                const maxPerOrder =
+                    Number(
+                        category?.maxPerOrder
+                    ) || 6;
+
+                if (count > maxPerOrder) {
+                    throw createServiceError(
+                        "BOOKING_MAX_PER_ORDER_EXCEEDED",
+                        {
+                            categoryName:
+                                category?.name ||
+                                "Hạng vé",
+                            maxPerOrder,
+                            requested: count
+                        }
+                    );
+                }
+            }
+
+            const holdExpiresAt =
+                seats.reduce(
+                    (earliest, seat) => {
+                        const current = new Date(
+                            seat.holdExpiresAt
+                        );
+
+                        if (
+                            !earliest ||
+                            current < earliest
+                        ) {
+                            return current;
+                        }
+
+                        return earliest;
+                    },
+                    null
+                );
+
+            if (
+                !holdExpiresAt ||
+                holdExpiresAt <= new Date()
+            ) {
+                throw new Error(
+                    "BOOKING_HOLD_EXPIRED"
+                );
+            }
+
+            const subtotal = items.reduce(
+                (sum, item) =>
+                    sum + item.unitPrice,
+                0
+            );
+
+            const [booking] = await Booking.create([{
+                bookingCode:
+                    generateBookingCode(),
+                userId:
+                    normalizedUserId,
+                eventId:
+                    normalizedEventId,
+                eventSnapshot: {
+                    title: event.title,
+                    slug: event.slug,
+                    startAt:
+                        event.startAt || null,
+                    venue:
+                        event.venue || "",
+                    address:
+                        event.address || ""
+                },
+                customer: {
+                    fullName:
+                        user.fullName,
+                    email:
+                        user.email,
+                    phone:
+                        user.phone || ""
+                },
+                items,
+                subtotal,
+                totalAmount: subtotal,
+                holdToken:
+                    normalizedHoldToken,
+                holdExpiresAt,
+                status: "pending_payment",
+                paymentStatus: "unpaid"
+            }], { session });
+
+            return booking;
+        }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
+    } catch (error) {
+        if (error.message === "ACTIVE_BOOKING_EXISTS") {
+            await releaseUncommittedHold({
+                eventId: normalizedEventId,
+                userId: normalizedUserId,
+                holdToken: normalizedHoldToken
+            });
+        }
+        throw error;
+    }
 };
 
 export const getBookingByCode =
@@ -1506,7 +1496,8 @@ export const getMyBookings =
 
 export const cancelBooking = async (
     bookingCode,
-    userId
+    userId,
+    { allowInactiveOwner = false } = {}
 ) => {
     const booking =
         await getBookingByCode(
@@ -1514,32 +1505,34 @@ export const cancelBooking = async (
             userId
         );
 
-    if (
-        booking.status === "expired"
-    ) {
-        throw new Error(
-            "BOOKING_ALREADY_EXPIRED"
-        );
-    }
+    return mongoose.connection.transaction(async session => {
+        // Publish cancellation and release together, under the same account lock
+        // as checkout. Otherwise a new invoice can reuse the still-held seats
+        // in between these writes and lose them to the previous cancellation.
+        // Only the authorized admin service opts out of customer eligibility.
+        // A blocked/deleted buyer must not prevent staff cancelling an unpaid
+        // order; the shared account write still serializes it with checkout.
+        const accountClaim = await User.updateOne({
+            _id: booking.userId,
+            ...(allowInactiveOwner ? {} : { isActive: true, isBlocked: { $ne: true }, deletedAt: null })
+        }, { $inc: { __v: 1 } }, { session, timestamps: false });
+        if (!allowInactiveOwner && accountClaim.matchedCount !== 1) throw new Error("USER_INACTIVE");
 
-    if (
-        booking.status === "cancelled"
-    ) {
-        return booking;
-    }
+        const current = await Booking.findById(booking._id).session(session);
+        if (!current) throw new Error("BOOKING_NOT_FOUND");
+        if (current.status === "expired") throw new Error("BOOKING_ALREADY_EXPIRED");
+        if (current.status === "cancelled") return current;
+        if (current.status !== "pending_payment" || current.paymentStatus === "paid") {
+            throw new Error("BOOKING_CANCEL_NOT_ALLOWED");
+        }
 
-    if (
-        booking.status !==
-        "pending_payment" ||
-        booking.paymentStatus === "paid"
-    ) {
-        throw new Error(
-            "BOOKING_CANCEL_NOT_ALLOWED"
-        );
-    }
-
-    const cancelled = await Booking.findOneAndUpdate({ _id: booking._id, status: "pending_payment", paymentStatus: { $ne: "paid" } }, { $set: { status: "cancelled", cancelledAt: new Date() } }, { returnDocument: "after" });
-    if (!cancelled) throw new Error("BOOKING_CANCEL_NOT_ALLOWED");
-    await releaseBookingSeats(cancelled);
-    return cancelled;
+        const cancelled = await Booking.findOneAndUpdate({
+            _id: current._id, status: "pending_payment", paymentStatus: { $ne: "paid" }
+        }, { $set: { status: "cancelled", cancelledAt: new Date() } }, {
+            returnDocument: "after", session
+        });
+        if (!cancelled) throw new Error("BOOKING_CANCEL_NOT_ALLOWED");
+        await releaseBookingSeats(cancelled, session);
+        return cancelled;
+    }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
 };

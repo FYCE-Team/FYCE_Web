@@ -15,10 +15,10 @@ export const register = async (data) => {
     const result = await response.json();
 
     if (!response.ok) {
-        throw new Error(
+        throw Object.assign(new Error(
             result.message ||
             "Đăng ký thất bại"
-        );
+        ), { status: response.status });
     }
 
     return result;

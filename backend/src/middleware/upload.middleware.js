@@ -94,6 +94,10 @@ export const uploadVideo =
         fileFilter,
         limits: {
             // GridFS is for small clips; use an external media URL for large video.
+            files: 1,
+            fields: 5,
+            parts: 6,
+            fieldSize: 16 * 1024,
             fileSize: videoUploadMaxBytes
         }
     });

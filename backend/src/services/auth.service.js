@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { createHmac, timingSafeEqual, randomBytes } from "node:crypto";
+import PasswordReset from "../models/PasswordReset.js";
+import ProfileOtp from "../models/ProfileOtp.js";
 
 import User from "../models/User.js";
 import RefreshToken from "../models/RefreshToken.js";
@@ -13,7 +16,8 @@ import {
 
 import {
     generateOtp,
-    hashOtp
+    hashOtp,
+    matchesOtp
 } from "../utils/otp.js";
 
 import {
@@ -123,203 +127,102 @@ export const loginUser = async ({
     };
 };
 
+const pendingRegistrationFilter = {
+    isActive: false, isBlocked: { $ne: true }, deletedAt: null,
+    role: "user", googleId: null
+};
+const registrationProof = (user, expires) => {
+    if (!process.env.JWT_REFRESH_SECRET) throw new Error("REFRESH_SECRET_NOT_CONFIGURED");
+    return createHmac("sha256", process.env.JWT_REFRESH_SECRET)
+        .update(JSON.stringify(["fyce-registration-v1", String(user._id), user.email,
+            user.username, user.password, user.authVersion || 0, expires]))
+        .digest("hex");
+};
+const makeRegistrationToken = user => {
+    const expires = Date.now() + 24 * 60 * 60 * 1000;
+    return `${expires}.${registrationProof(user, expires)}`;
+};
+const hasRegistrationProof = (user, token) => {
+    if (typeof token !== "string" || !/^\d{13}\.[a-f0-9]{64}$/.test(token)) return false;
+    const [expiry, supplied] = token.split(".");
+    const expires = Number(expiry);
+    if (expires <= Date.now()) return false;
+    const expected = registrationProof(user, expires);
+    return timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+};
+const registrationDenied = () => Object.assign(
+    new Error("Phiên chỉnh sửa đăng ký không hợp lệ. Hãy nhập lại mật khẩu đã dùng hoặc xác thực email."),
+    { status: 403 }
+);
+
 export const registerUser = async ({
-    userId,
-    fullName,
-    username,
-    email,
-    phone,
-    password
-}) => {
-    const normalizedFullName =
-        fullName.trim();
-
-    const normalizedUsername =
-        username.trim().toLowerCase();
-
-    const normalizedEmail =
-        email.trim().toLowerCase();
-
-    const normalizedPhone =
-        phone.trim();
-
-    let user = null;
-
-    /*
-     * ------------------------------------------------
-     * 1. Nếu frontend gửi userId
-     *    => đây là registration đang tiếp tục
-     * ------------------------------------------------
-     */
+    userId, registrationToken, fullName, username, email, phone, password
+}, { send = sendVerificationEmail } = {}) => {
+    const normalizedFullName = fullName.trim();
+    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.trim();
+    if (typeof password !== "string" || Buffer.byteLength(password) > 72) {
+        throw Object.assign(new Error("Mật khẩu tối đa 72 byte."), { status: 400 });
+    }
+    let previous = null;
     if (userId) {
-        user = await User.findById(userId);
-
-        if (!user) {
-            throw new Error(
-                "REGISTRATION_NOT_FOUND"
-            );
+        previous = await User.findById(userId).select("+password");
+        if (!previous) throw new Error("REGISTRATION_NOT_FOUND");
+        if (previous.isActive) throw new Error("ACCOUNT_ALREADY_ACTIVE");
+        if (previous.isBlocked || previous.deletedAt || previous.googleId || previous.role !== "user") {
+            throw registrationDenied();
         }
-
-        /*
-         * Không cho phép sửa lại tài khoản
-         * đã được kích hoạt.
-         */
-        if (user.isActive) {
-            throw new Error(
-                "ACCOUNT_ALREADY_ACTIVE"
-            );
-        }
+        // Older clients can resume with the original password; changing it requires
+        // the opaque proof returned to the browser that began the registration.
+        const authorized = hasRegistrationProof(previous, registrationToken)
+            || (!registrationToken && previous.password && await bcrypt.compare(password, previous.password));
+        if (!authorized) throw registrationDenied();
     }
-
-    /*
-     * ------------------------------------------------
-     * 2. Kiểm tra email có thuộc user khác không
-     * ------------------------------------------------
-     */
-    const emailOwner = await User.findOne({
-        email: normalizedEmail
-    });
-
-    if (
-        emailOwner &&
-        (
-            !user ||
-            emailOwner._id.toString() !==
-                user._id.toString()
-        )
-    ) {
-        throw new Error(
-            "EMAIL_EXISTS"
-        );
+    const emailOwner = await User.findOne({ email: normalizedEmail }).select("+password");
+    // Delivery can fail before the browser receives a pending ID/proof. Recover
+    // that signup only with its original password, never with email alone.
+    if (!previous && emailOwner && !registrationToken && !emailOwner.isActive
+        && !emailOwner.isBlocked && !emailOwner.deletedAt && !emailOwner.googleId
+        && emailOwner.role === "user" && emailOwner.password
+        && await bcrypt.compare(password, emailOwner.password)) {
+        previous = emailOwner;
     }
+    if (emailOwner && (!previous || String(emailOwner._id) !== String(previous._id))) throw new Error("EMAIL_EXISTS");
+    const usernameOwner = await User.findOne({ username: normalizedUsername });
+    if (usernameOwner && (!previous || String(usernameOwner._id) !== String(previous._id))) throw new Error("USERNAME_EXISTS");
 
-    /*
-     * ------------------------------------------------
-     * 3. Kiểm tra username có thuộc user khác không
-     * ------------------------------------------------
-     */
-    const usernameOwner = await User.findOne({
-        username: normalizedUsername
-    });
-
-    if (
-        usernameOwner &&
-        (
-            !user ||
-            usernameOwner._id.toString() !==
-                user._id.toString()
-        )
-    ) {
-        throw new Error(
-            "USERNAME_EXISTS"
-        );
-    }
-
-    /*
-     * ------------------------------------------------
-     * 4. Hash password
-     * ------------------------------------------------
-     */
-    const passwordHash =
-        await bcrypt.hash(password, 12);
-
-    /*
-     * ------------------------------------------------
-     * 5. Tạo mới hoặc cập nhật registration cũ
-     * ------------------------------------------------
-     */
-    if (!user) {
-        user = await User.create({
-            fullName: normalizedFullName,
-            username: normalizedUsername,
-            email: normalizedEmail,
-            phone: normalizedPhone,
-            password: passwordHash,
-            role: "user",
-            isActive: false
-        });
-    } else {
-        user.fullName =
-            normalizedFullName;
-
-        user.username =
-            normalizedUsername;
-
-        user.email =
-            normalizedEmail;
-
-        user.phone =
-            normalizedPhone;
-
-        user.password =
-            passwordHash;
-
-        user.isActive = false;
-
-        await user.save();
-    }
-
-    /*
-     * ------------------------------------------------
-     * 6. OTP cũ không còn hợp lệ
-     * ------------------------------------------------
-     */
-    await EmailVerification.deleteMany({
-        userId: user._id
-    });
-
-    /*
-     * ------------------------------------------------
-     * 7. Tạo OTP mới
-     * ------------------------------------------------
-     */
+    const passwordHash = await bcrypt.hash(password, 12);
     const otp = generateOtp();
-
-    const otpHash = hashOtp(otp);
-
-    const expiresAt = new Date(
-        Date.now() +
-        OTP_EXPIRE_MINUTES * 60 * 1000
-    );
-
-    await EmailVerification.create({
-        userId: user._id,
-        otpHash,
-        expiresAt,
-        attempts: 0
+    const expiresAt = new Date(Date.now() + OTP_EXPIRE_MINUTES * 60 * 1000);
+    const payload = { fullName: normalizedFullName, username: normalizedUsername,
+        email: normalizedEmail, phone: normalizedPhone, password: passwordHash };
+    let user, verification;
+    await mongoose.connection.transaction(async session => {
+        if (previous) {
+            user = await User.findOneAndUpdate({
+                _id: previous._id, ...pendingRegistrationFilter,
+                password: previous.password, email: previous.email, username: previous.username
+            }, { $set: payload }, { returnDocument: "after", runValidators: true, session }).select("+password");
+            if (!user) throw Object.assign(new Error("ACCOUNT_ALREADY_ACTIVE"), { status: 409 });
+        } else {
+            [user] = await User.create([{ ...payload, role: "user", isActive: false }], { session });
+        }
+        await EmailVerification.deleteMany({ userId: user._id }, { session });
+        [verification] = await EmailVerification.create([{
+            _id: user._id, userId: user._id,
+            otpHash: hashOtp(otp, "registration", user._id), expiresAt, attempts: 0
+        }], { session });
     });
-
-    /*
-     * ------------------------------------------------
-     * 8. Gửi email
-     * ------------------------------------------------
-     */
     try {
-        await sendVerificationEmail({
-            email: user.email,
-            fullName: user.fullName,
-            otp
-        });
-    } catch (error) {
-        /*
-         * Không xóa User khi đây là registration
-         * cũ. User vẫn được giữ ở isActive=false
-         * để có thể retry đăng ký.
-         */
-        await EmailVerification.deleteMany({
-            userId: user._id
-        });
-
-        throw new Error(
-            "EMAIL_SEND_FAILED"
-        );
+        await send({ email: user.email, fullName: user.fullName, otp });
+    } catch {
+        // A delayed sender failure must not remove a newer registration's OTP.
+        await EmailVerification.deleteOne({ _id: verification._id, otpHash: verification.otpHash });
+        throw new Error("EMAIL_SEND_FAILED");
     }
-
-    return {
-        userId: user._id.toString(),
-        email: user.email,
-        expiresAt
-    };
+    return { userId: String(user._id), email: user.email, expiresAt,
+        registrationToken: makeRegistrationToken(user) };
 };
 
 export const verifyRegistrationOtp = async ({
@@ -342,7 +245,7 @@ export const verifyRegistrationOtp = async ({
         Date.now()
     ) {
         await EmailVerification.deleteOne({
-            _id: verification._id
+            _id: verification._id, otpHash: verification.otpHash
         });
 
         throw new Error(
@@ -356,10 +259,10 @@ export const verifyRegistrationOtp = async ({
         );
     }
 
-    const otpHash = hashOtp(otp);
+    const otpHash = verification.otpHash;
 
     if (
-        otpHash !== verification.otpHash
+        !matchesOtp(otp, otpHash, "registration", verification.userId)
     ) {
         await EmailVerification.updateOne({
             _id: verification._id, otpHash: verification.otpHash,
@@ -386,7 +289,7 @@ export const verifyRegistrationOtp = async ({
             attempts: { $lt: 5 }, expiresAt: { $gt: new Date() }
         }, { session });
         if (!consumed) throw new Error("OTP_NOT_FOUND");
-        const activated = await User.updateOne({ _id: userId, isBlocked: { $ne: true } },
+        const activated = await User.updateOne({ _id: userId, ...pendingRegistrationFilter },
             { $set: { isActive: true } }, { session });
         if (!activated.matchedCount) throw Object.assign(new Error("Tài khoản không còn hoạt động."), { status: 403 });
     });
@@ -404,225 +307,93 @@ export const verifyRegistrationOtp = async ({
     };
 };
 
-export const resendRegistrationOtp = async ({
-    userId
-}) => {
-    const user =
-        await User.findById(userId);
-
-    if (!user) {
-        throw new Error(
-            "USER_NOT_FOUND"
-        );
-    }
-
-    if (user.isActive) {
-        throw new Error(
-            "ACCOUNT_ALREADY_ACTIVE"
-        );
-    }
-
-    const currentVerification =
-        await EmailVerification.findOne({
-            userId
-        });
-
-    if (
-        currentVerification &&
-        currentVerification.expiresAt.getTime() >
-            Date.now()
-    ) {
-        throw new Error(
-            "OTP_STILL_ACTIVE"
-        );
-    }
-
-    await EmailVerification.deleteMany({
-        userId
-    });
-
+export const resendRegistrationOtp = async ({ userId }, { send = sendVerificationEmail } = {}) => {
+    const existing = await User.findById(userId);
+    if (!existing) throw new Error("USER_NOT_FOUND");
+    if (existing.isActive) throw new Error("ACCOUNT_ALREADY_ACTIVE");
+    if (existing.isBlocked || existing.deletedAt || existing.googleId || existing.role !== "user") throw registrationDenied();
     const otp = generateOtp();
-
-    const otpHash = hashOtp(otp);
-
-    const expiresAt = new Date(
-        Date.now() +
-        OTP_EXPIRE_MINUTES * 60 * 1000
-    );
-
-    await EmailVerification.create({
-        userId: user._id,
-        otpHash,
-        expiresAt,
-        attempts: 0
+    let user, verification;
+    await mongoose.connection.transaction(async session => {
+        // Serialize against registration edits and account activation, not only
+        // other resend calls. Internal version changes do not touch updatedAt.
+        user = await User.findOneAndUpdate({ _id: userId, ...pendingRegistrationFilter },
+            { $inc: { __v: 1 } }, { session, timestamps: false, returnDocument: "after" });
+        if (!user) throw registrationDenied();
+        const now = new Date();
+        const current = await EmailVerification.findOne({ userId }).sort({ createdAt: -1 }).session(session);
+        if (current && current.expiresAt > now) throw new Error("OTP_STILL_ACTIVE");
+        const expiresAt = new Date(now.getTime() + OTP_EXPIRE_MINUTES * 60 * 1000);
+        await EmailVerification.deleteMany({ userId }, { session });
+        [verification] = await EmailVerification.create([{
+            _id: user._id, userId: user._id, otpHash: hashOtp(otp, "registration", user._id),
+            expiresAt, attempts: 0
+        }], { session });
     });
-
     try {
-        await sendVerificationEmail({
-            email: user.email,
-            fullName: user.fullName,
-            otp
-        });
-    } catch (error) {
-        await EmailVerification.deleteMany({
-            userId: user._id
-        });
-
-        throw new Error(
-            "EMAIL_SEND_FAILED"
-        );
+        await send({ email: user.email, fullName: user.fullName, otp });
+    } catch {
+        await EmailVerification.deleteOne({ _id: verification._id, otpHash: verification.otpHash });
+        throw new Error("EMAIL_SEND_FAILED");
     }
-
-    return {
-        userId: user._id.toString(),
-        email: user.email,
-        expiresAt
-    };
+    return { userId: String(user._id), email: user.email, expiresAt: verification.expiresAt };
 };
 
-export const loginWithGoogle = async ({
-    googleId,
-    email,
-    fullName
-}) => {
-    if (
-        !googleId ||
-        typeof googleId !== "string"
-    ) {
-        throw new Error(
-            "GOOGLE_ID_INVALID"
-        );
-    }
-
-    if (
-        !email ||
-        typeof email !== "string"
-    ) {
-        throw new Error(
-            "GOOGLE_EMAIL_INVALID"
-        );
-    }
-
-    const normalizedEmail =
-        email.trim().toLowerCase();
-
-    const normalizedFullName =
-        fullName?.trim() ||
-        "Google User";
-
-    let user = await User.findOne({
-        googleId
-    });
-
-    /*
-     * ------------------------------------------------
-     * 1. Google account đã được liên kết trước đó
-     * ------------------------------------------------
-     */
-    if (user) {
-        if (user.isBlocked) throw new Error("ACCOUNT_NOT_ACTIVE");
-        user.isActive = true;
-
-        if (
-            !user.fullName ||
-            user.fullName === "Google User"
-        ) {
-            user.fullName =
-                normalizedFullName;
+export const loginWithGoogle = async ({ googleId, email, fullName, emailAuthoritative = false }) => {
+    if (!googleId || typeof googleId !== "string") throw new Error("GOOGLE_ID_INVALID");
+    if (!email || typeof email !== "string") throw new Error("GOOGLE_EMAIL_INVALID");
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedFullName = fullName?.trim() || "Google User";
+    let user;
+    await mongoose.connection.transaction(async session => {
+        user = await User.findOne({ googleId }).select("+password").session(session);
+        const alreadyLinked = Boolean(user);
+        if (!user) {
+            user = await User.findOne({ email: normalizedEmail }).select("+password").session(session);
+            if (user?.googleId) throw new Error("GOOGLE_ACCOUNT_MISMATCH");
         }
-
-        await user.save();
-    } else {
-        /*
-         * ------------------------------------------------
-         * 2. Chưa có googleId
-         *    Kiểm tra email hiện tại
-         * ------------------------------------------------
-         */
-        user = await User.findOne({
-            email: normalizedEmail
-        });
-
         if (user) {
-            /*
-             * Email đã tồn tại.
-             *
-             * Nếu tài khoản chưa có googleId,
-             * liên kết tài khoản đó với Google.
-             */
-            if (user.googleId) {
-                throw new Error(
-                    "GOOGLE_ACCOUNT_MISMATCH"
-                );
+            if (user.isBlocked || user.deletedAt || (!user.isActive && user.role !== "user")) {
+                throw new Error("ACCOUNT_NOT_ACTIVE");
             }
-
-            if (user.isBlocked) throw new Error("ACCOUNT_NOT_ACTIVE");
+            if (!alreadyLinked && emailAuthoritative !== true) {
+                throw Object.assign(new Error("Email này cần được xác minh lại trước khi liên kết Google. Vui lòng đăng nhập bằng mật khẩu hoặc dùng Quên mật khẩu."), { status: 403 });
+            }
+            if (!user.isActive) {
+                // Email ownership was never proved for this password. Keeping it
+                // would let a pre-registration attacker log into the Google owner.
+                user.password = undefined;
+                user.authVersion = (user.authVersion || 0) + 1;
+                user.fullName = normalizedFullName;
+                user.phone = "";
+                await RefreshToken.deleteMany({ userId: user._id }, { session });
+                await PasswordReset.deleteMany({ userId: user._id }, { session });
+                await ProfileOtp.deleteMany({ userId: user._id }, { session });
+            }
             user.googleId = googleId;
             user.isActive = true;
-
-            if (
-                !user.fullName
-            ) {
-                user.fullName =
-                    normalizedFullName;
-            }
-
-            await user.save();
+            if (!user.fullName || user.fullName === "Google User") user.fullName = normalizedFullName;
+            // This write conflicts with continuation/OTP activation transactions;
+            // a retry reads the latest account instead of saving an old snapshot.
+            await user.save({ session });
+            await EmailVerification.deleteMany({ userId: user._id }, { session });
         } else {
-            /*
-             * ------------------------------------------------
-             * 3. Chưa có User
-             *    => tạo tài khoản Google mới
-             * ------------------------------------------------
-             */
-
-            const emailPrefix =
-                normalizedEmail
-                    .split("@")[0]
-                    .replace(
-                        /[^a-z0-9_]/g,
-                        ""
-                    )
-                    .slice(0, 20);
-
-            let username =
-                emailPrefix ||
-                "googleuser";
-
-            let usernameExists =
-                await User.exists({
-                    username
-                });
-
-            let counter = 1;
-
-            while (
-                usernameExists
-            ) {
-                username =
-                    `${emailPrefix || "googleuser"}${counter}`;
-
-                usernameExists =
-                    await User.exists({
-                        username
-                    });
-
-                counter++;
+            // A newly created account also needs current email ownership. An old
+            // third-party Google address could otherwise preclaim the account
+            // before its present email owner registers or recovers a password.
+            if (emailAuthoritative !== true) {
+                throw Object.assign(new Error("Email này chưa được Google xác minh quyền sở hữu hiện tại. Vui lòng đăng ký bằng email và xác thực mã OTP."), { status: 403 });
             }
-
-            user = await User.create({
-                username,
-                fullName:
-                    normalizedFullName,
-                email:
-                    normalizedEmail,
-                phone: "",
-                googleId,
-                role: "user",
-                isActive: true
-            });
+            const emailPrefix = normalizedEmail.split("@")[0].replace(/[^a-z0-9_]/g, "").slice(0, 20);
+            const base = emailPrefix.length >= 3 ? emailPrefix : "googleuser";
+            let username = base;
+            if (await User.exists({ username }).session(session)) username = `${base}_${randomBytes(4).toString("hex")}`;
+            [user] = await User.create([{
+                username, fullName: normalizedFullName, email: normalizedEmail,
+                phone: "", googleId, role: "user", isActive: true
+            }], { session });
         }
-    }
+    });
 
     /*
      * ------------------------------------------------

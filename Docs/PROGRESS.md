@@ -1,3 +1,17 @@
+## Rà soát bảo mật cuối — 11/10/2026
+
+**█████████░ 90% — bản sửa code đạt hồi quy; tải production và lịch sử tài khoản chưa đủ điều kiện chốt.**
+
+- Sửa proof đăng ký, Google pre-account takeover/linking, OTP HMAC và race resend/cleanup; login Origin; phục hồi đăng ký sau lỗi gửi email bằng mật khẩu gốc. Không reset tài khoản thật.
+- Checkout/hold/release/cancel/legacy repair cùng transaction/account lock; admin vẫn hủy được đơn unpaid của buyer bị khóa/inactive/trash. Không đổi tiền hoặc QR.
+- Loại author/PII khỏi public API và event draft khỏi hero; bounded multipart/avatar quota; cleanup GridFS lỗi và stream disconnect/HEAD. Bổ sung bảo vệ header Vercel và nhãn tiếng Anh.
+- **135/135 backend,19/19 frontend**, build đạt, lint0 lỗi/16 warning hiện hữu, syntax112 và diff check đạt. Audit root/backend/frontend gồm dev:0 advisory; không bảo đảm không có lỗ hổng chưa công bố.
+- Tải QA:1000 reload/25 outstanding đều200. Burst10000/1000 outstanding:2896 HTTP200,6801 HTTP503,303 timeout; API phục hồi sau mọi phase, không HTTP500. Paced1000worker đạt3000/3000 nhưng tối đa5 request đang chờ. Harness exit1, chưa chứng nhận1000/10000 concurrent production.
+- **Còn cần owner rà soát tài khoản Google đã liên kết trước bản sửa:** thiếu dấu vết nguồn mật khẩu nên không tự reset hàng loạt. Còn gói Render/staging/proxy và nghiệm thu Google/SePay/email/camera thật.
+- Handoff: [SECURITY_FINAL_REVIEW.md](SECURITY_FINAL_REVIEW.md), [SECURITY_LOAD_TEST.md](SECURITY_LOAD_TEST.md), [report JSON](security-load-results-2026-10-11.json). Commit/release được ghi theo Git history; không coi push là bằng chứng rollout backend.
+
+---
+
 ## Bảo mật và chống quá tải — 08/10/2026
 
 **█████████░ 90% — hồi quy đạt; chưa chứng nhận1.000/10.000 concurrent production.**

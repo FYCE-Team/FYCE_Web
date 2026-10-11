@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import Event from "../models/Event.js";
 import Seat from "../models/Seat.js";
 import Booking from "../models/Booking.js";
+import User from "../models/User.js";
+import { assertEventBookable, assertPublicEvent } from "../utils/eventAccess.js";
 import {
     createSeatHistoryEntry
 } from "./seatHistory.service.js";
@@ -87,6 +89,8 @@ const sanitizeSeatForClient = (
     delete clean.blockedByUserId;
     delete clean.adminStatusUpdatedAt;
     delete clean.adminStatusUpdatedByUserId;
+    delete clean.soldBookingId;
+    delete clean.saleClaimToken;
 
     return clean;
 };
@@ -262,7 +266,8 @@ export const releaseExpiredHolds =
 const loadCanonicalUserHoldSession =
     async (
         eventObjectId,
-        userObjectId
+        userObjectId,
+        session = null
     ) => {
         const now = new Date();
 
@@ -285,6 +290,7 @@ const loadCanonicalUserHoldSession =
                 isActive:
                     true
             })
+                .session(session)
                 .sort({
                     holdExpiresAt: 1,
                     createdAt: 1,
@@ -297,6 +303,20 @@ const loadCanonicalUserHoldSession =
             return null;
         }
 
+        // A checkout has already frozen its token/deadline. Legacy split holds
+        // may be repaired around that invoice, never by rewriting its ownership.
+        const pendingHolds = await Booking.aggregate([
+            { $match: { eventId: eventObjectId, userId: userObjectId,
+                status: "pending_payment", paymentStatus: { $in: ["unpaid", "processing"] },
+                holdExpiresAt: { $gt: now } } },
+            { $group: { _id: { token: "$holdToken", expiresAt: "$holdExpiresAt" } } },
+            { $limit: 2 }
+        ]).session(session);
+        if (pendingHolds.length > 1 || (pendingHolds.length && !pendingHolds[0]._id.token)) {
+            throw new Error("HOLD_SESSION_CONFLICT");
+        }
+        const pendingHold = pendingHolds[0]?._id;
+
         const firstTokenSeat =
             heldSeats.find(
                 (seat) =>
@@ -305,14 +325,14 @@ const loadCanonicalUserHoldSession =
                     )
             );
 
-        const canonicalToken =
+        const canonicalToken = pendingHold?.token ||
             normalizeHoldToken(
                 firstTokenSeat
                     ?.holdToken
             ) ||
             randomUUID();
 
-        const canonicalExpiresAt =
+        const canonicalExpiresAt = pendingHold?.expiresAt ||
             heldSeats.reduce(
                 (earliest, seat) => {
                     if (
@@ -384,7 +404,8 @@ const loadCanonicalUserHoldSession =
                         holdExpiresAt:
                             canonicalExpiresAt
                     }
-                }
+                },
+                { session }
             );
         }
 
@@ -428,10 +449,15 @@ export const getActiveHoldSession =
             event._id
         );
 
-        return loadCanonicalUserHoldSession(
-            event._id,
-            normalizedUserId
-        );
+        return mongoose.connection.transaction(async session => {
+            // Canonicalization can repair legacy split holds. Share checkout's
+            // account lock so that repair never rewrites a committed invoice's hold.
+            const accountClaim = await User.updateOne({
+                _id: normalizedUserId, isActive: true, isBlocked: { $ne: true }, deletedAt: null
+            }, { $inc: { __v: 1 } }, { session, timestamps: false });
+            if (accountClaim.matchedCount !== 1) throw new Error("USER_INACTIVE");
+            return loadCanonicalUserHoldSession(event._id, normalizedUserId, session);
+        }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
     };
 
 /*
@@ -482,6 +508,8 @@ export const getSeatsByEvent =
             await getEvent(
                 eventId
             );
+
+        assertPublicEvent(event);
 
         await releaseExpiredHolds(
             event._id
@@ -615,6 +643,8 @@ export const getSeatById =
             );
         }
 
+        assertPublicEvent(await getEvent(seat.eventId));
+
         return sanitizeSeatForClient(
             seat
         );
@@ -639,6 +669,8 @@ export const getSeatByPosition =
             await getEvent(
                 eventId
             );
+
+        assertPublicEvent(event);
 
         const normalizedSection =
             normalizeSection(
@@ -726,6 +758,8 @@ export const getAvailableSeats =
                 eventId
             );
 
+        assertPublicEvent(event);
+
         await releaseExpiredHolds(
             event._id
         );
@@ -767,6 +801,8 @@ export const getSeatSummary =
             await getEvent(
                 eventId
             );
+
+        assertPublicEvent(event);
 
         await releaseExpiredHolds(
             event._id
@@ -910,7 +946,7 @@ export const holdSeats =
                 eventId
             );
 
-        if (event.deletedAt) throw new Error("EVENT_NOT_FOUND");
+        assertEventBookable(event);
 
         const normalizedUserId =
             ensureObjectId(
@@ -927,243 +963,67 @@ export const holdSeats =
                 seatIds
             );
 
-        const requestedToken =
-            normalizeHoldToken(
-                holdToken
-            );
+        return mongoose.connection.transaction(async session => {
+            // Serialize one account's hold/checkout/release while other accounts
+            // keep competing through atomic writes to the actual selected seats.
+            const accountClaim = await User.updateOne({
+                _id: normalizedUserId, isActive: true, isBlocked: { $ne: true }, deletedAt: null
+            }, { $inc: { __v: 1 } }, { session, timestamps: false });
+            if (accountClaim.matchedCount !== 1) throw new Error("USER_INACTIVE");
+            // A transaction may wait/retry behind another tab. Re-read the sale
+            // boundary on each attempt instead of reusing the pre-lock event.
+            const currentEvent = await Event.findById(event._id).session(session).lean();
+            if (!currentEvent) throw new Error("EVENT_NOT_FOUND");
+            assertEventBookable(currentEvent);
 
-        const now =
-            new Date();
+            const requestedToken =
+                normalizeHoldToken(
+                    holdToken
+                );
 
-        let effectiveToken =
-            null;
+            const now =
+                new Date();
 
-        let holdExpiresAt =
-            null;
+            let effectiveToken =
+                null;
 
-        /*
-         * First priority: if this ACCOUNT already has an active
-         * hold for the event, every browser/device must reuse it.
-         * sessionStorage is intentionally not the source of truth.
-         */
-        const accountHoldSession =
-            await loadCanonicalUserHoldSession(
-                event._id,
-                normalizedUserId
-            );
+            let holdExpiresAt =
+                null;
 
-        if (accountHoldSession) {
-            effectiveToken =
-                accountHoldSession
-                    .holdToken;
+            /*
+             * First priority: if this ACCOUNT already has an active
+             * hold for the event, every browser/device must reuse it.
+             * sessionStorage is intentionally not the source of truth.
+             */
+            const accountHoldSession =
+                await loadCanonicalUserHoldSession(
+                    event._id,
+                    normalizedUserId,
+                    session
+                );
 
-            holdExpiresAt =
-                accountHoldSession
-                    .holdExpiresAt;
-        }
-
-        /*
-         * Backward-compatible token path. This is mainly useful
-         * when the caller has a token but there are no active seats
-         * visible for the account yet. A token owned by another
-         * account is still rejected.
-         */
-        if (
-            !effectiveToken &&
-            requestedToken
-        ) {
-            const existingHold =
-                await Seat.findOne({
-                    eventId:
-                        event._id,
-
-                    status:
-                        "held",
-
-                    holdToken:
-                        requestedToken,
-
-                    holdExpiresAt: {
-                        $gt: now
-                    },
-
-                    isActive:
-                        true
-                }).lean();
-
-            if (existingHold) {
-                if (
-                    String(
-                        existingHold
-                            .heldByUserId ||
-                            ""
-                    ) !==
-                    String(
-                        normalizedUserId
-                    )
-                ) {
-                    throw createServiceError(
-                        "HOLD_TOKEN_NOT_OWNED"
-                    );
-                }
-
+            if (accountHoldSession) {
                 effectiveToken =
-                    requestedToken;
+                    accountHoldSession
+                        .holdToken;
 
                 holdExpiresAt =
-                    existingHold
+                    accountHoldSession
                         .holdExpiresAt;
             }
-        }
 
-        if (!effectiveToken) {
-            effectiveToken =
-                randomUUID();
-
-            holdExpiresAt =
-                new Date(
-                    now.getTime() +
-                    SEAT_HOLD_DURATION_MS
-                );
-        }
-
-        const newlyHeldIds =
-            [];
-
-        const resultSeats =
-            [];
-
-        try {
-            for (
-                const seatId of
-                normalizedSeatIds
-            ) {
-                const heldSeat =
-                    await Seat.findOneAndUpdate(
-                        {
-                            _id:
-                                seatId,
-
-                            eventId:
-                                event._id,
-
-                            isActive:
-                                true,
-
-                            status:
-                                "available"
-                        },
-                        {
-                            $set: {
-                                status:
-                                    "held",
-
-                                holdToken:
-                                    effectiveToken,
-
-                                heldByUserId:
-                                    normalizedUserId,
-
-                                holdExpiresAt
-                            }
-                        },
-                        {
-                            returnDocument:
-                                "after"
-                        }
-                    );
-
-                if (heldSeat) {
-                    newlyHeldIds.push(
-                        heldSeat._id
-                    );
-
-                    resultSeats.push(
-                        heldSeat
-                    );
-
-                    continue;
-                }
-
-                const currentSeat =
-                    await Seat.findOne({
-                        _id:
-                            seatId,
-
-                        eventId:
-                            event._id,
-
-                        isActive:
-                            true
-                    });
-
-                if (!currentSeat) {
-                    throw createServiceError(
-                        "SEAT_NOT_FOUND",
-                        {
-                            seatId:
-                                String(
-                                    seatId
-                                )
-                        }
-                    );
-                }
-
-                const isOwnedBySameHold =
-                    currentSeat.status ===
-                        "held" &&
-                    currentSeat.holdToken ===
-                        effectiveToken &&
-                    String(
-                        currentSeat
-                            .heldByUserId ||
-                            ""
-                    ) ===
-                        String(
-                            normalizedUserId
-                        ) &&
-                    currentSeat.holdExpiresAt &&
-                    currentSeat.holdExpiresAt >
-                        now;
-
-                if (
-                    isOwnedBySameHold
-                ) {
-                    resultSeats.push(
-                        currentSeat
-                    );
-
-                    continue;
-                }
-
-                throw createServiceError(
-                    "SEAT_NOT_AVAILABLE",
-                    {
-                        seatId:
-                            String(
-                                currentSeat._id
-                            ),
-
-                        seatLabel:
-                            currentSeat.label,
-
-                        status:
-                            currentSeat.status
-                    }
-                );
-            }
-        } catch (error) {
+            /*
+             * Backward-compatible token path. This is mainly useful
+             * when the caller has a token but there are no active seats
+             * visible for the account yet. A token owned by another
+             * account is still rejected.
+             */
             if (
-                newlyHeldIds.length >
-                0
+                !effectiveToken &&
+                requestedToken
             ) {
-                await Seat.updateMany(
-                    {
-                        _id: {
-                            $in:
-                                newlyHeldIds
-                        },
-
+                const existingHold =
+                    await Seat.findOne({
                         eventId:
                             event._id,
 
@@ -1171,66 +1031,206 @@ export const holdSeats =
                             "held",
 
                         holdToken:
-                            effectiveToken,
+                            requestedToken,
 
-                        heldByUserId:
+                        holdExpiresAt: {
+                            $gt: now
+                        },
+
+                        isActive:
+                            true
+                    }).session(session).lean();
+
+                if (existingHold) {
+                    if (
+                        String(
+                            existingHold
+                                .heldByUserId ||
+                                ""
+                        ) !==
+                        String(
                             normalizedUserId
-                    },
-                    {
-                        $set: {
-                            status:
-                                "available",
-
-                            holdToken:
-                                null,
-
-                            heldByUserId:
-                                null,
-
-                            holdExpiresAt:
-                                null
-                        }
+                        )
+                    ) {
+                        throw createServiceError(
+                            "HOLD_TOKEN_NOT_OWNED"
+                        );
                     }
-                );
+
+                    effectiveToken =
+                        requestedToken;
+
+                    holdExpiresAt =
+                        existingHold
+                            .holdExpiresAt;
+                }
             }
 
-            throw error;
-        }
+            if (!effectiveToken) {
+                effectiveToken =
+                    randomUUID();
 
-        /*
-         * Re-read the account session after the atomic seat updates.
-         * This closes the small race where two browsers start holding
-         * different seats at almost the same moment and initially create
-         * different tokens. The response always converges to one account
-         * session and returns ALL seats currently held by that account.
-         */
-        const canonicalSession =
-            await loadCanonicalUserHoldSession(
-                event._id,
-                normalizedUserId
-            );
+                holdExpiresAt =
+                    new Date(
+                        now.getTime() +
+                        SEAT_HOLD_DURATION_MS
+                    );
+            }
 
-        if (canonicalSession) {
-            return canonicalSession;
-        }
+            const resultSeats =
+                [];
 
-        return {
-            eventId:
-                event._id,
+            for (
+                    const seatId of
+                    normalizedSeatIds
+                ) {
+                    const heldSeat =
+                        await Seat.findOneAndUpdate(
+                            {
+                                _id:
+                                    seatId,
 
-            holdToken:
-                effectiveToken,
+                                eventId:
+                                    event._id,
 
-            holdExpiresAt,
+                                isActive:
+                                    true,
 
-            holdMinutes:
-                SEAT_HOLD_MINUTES,
+                                status:
+                                    "available"
+                            },
+                            {
+                                $set: {
+                                    status:
+                                        "held",
 
-            seats:
-                resultSeats.map(
-                    sanitizeSeatForClient
-                )
-        };
+                                    holdToken:
+                                        effectiveToken,
+
+                                    heldByUserId:
+                                        normalizedUserId,
+
+                                    holdExpiresAt
+                                }
+                            },
+                            {
+                                returnDocument:
+                                    "after",
+                                session
+                            }
+                        );
+
+                    if (heldSeat) {
+                        resultSeats.push(
+                            heldSeat
+                        );
+
+                        continue;
+                    }
+
+                    const currentSeat =
+                        await Seat.findOne({
+                            _id:
+                                seatId,
+
+                            eventId:
+                                event._id,
+
+                            isActive:
+                                true
+                        }).session(session);
+
+                    if (!currentSeat) {
+                        throw createServiceError(
+                            "SEAT_NOT_FOUND",
+                            {
+                                seatId:
+                                    String(
+                                        seatId
+                                    )
+                            }
+                        );
+                    }
+
+                    const isOwnedBySameHold =
+                        currentSeat.status ===
+                            "held" &&
+                        currentSeat.holdToken ===
+                            effectiveToken &&
+                        String(
+                            currentSeat
+                                .heldByUserId ||
+                                ""
+                        ) ===
+                            String(
+                                normalizedUserId
+                            ) &&
+                        currentSeat.holdExpiresAt &&
+                        currentSeat.holdExpiresAt >
+                            now;
+
+                    if (
+                        isOwnedBySameHold
+                    ) {
+                        resultSeats.push(
+                            currentSeat
+                        );
+
+                        continue;
+                    }
+
+                    throw createServiceError(
+                        "SEAT_NOT_AVAILABLE",
+                        {
+                            seatId:
+                                String(
+                                    currentSeat._id
+                                ),
+
+                            seatLabel:
+                                currentSeat.label,
+
+                            status:
+                                currentSeat.status
+                        }
+                    );
+                }
+            /*
+             * Re-read the account session after the atomic seat updates.
+             * This closes the small race where two browsers start holding
+             * different seats at almost the same moment and initially create
+             * different tokens. The response always converges to one account
+             * session and returns ALL seats currently held by that account.
+             */
+            const canonicalSession =
+                await loadCanonicalUserHoldSession(
+                    event._id,
+                    normalizedUserId,
+                    session
+                );
+
+            if (canonicalSession) {
+                return canonicalSession;
+            }
+
+            return {
+                eventId:
+                    event._id,
+
+                holdToken:
+                    effectiveToken,
+
+                holdExpiresAt,
+
+                holdMinutes:
+                    SEAT_HOLD_MINUTES,
+
+                seats:
+                    resultSeats.map(
+                        sanitizeSeatForClient
+                    )
+            };
+        }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
     };
 
 /*
@@ -1263,273 +1263,286 @@ export const releaseHeldSeats =
             event._id
         );
 
-        const normalizedHoldToken =
-            normalizeHoldToken(
-                holdToken,
-                {
-                    required:
-                        true
-                }
-            );
+        return mongoose.connection.transaction(async session => {
+            // Shares checkout's account lock, so Back/release cannot read an absent
+            // booking then free its seats immediately after checkout commits.
+            const accountClaim = await User.updateOne({
+                _id: normalizedUserId, isActive: true, isBlocked: { $ne: true }, deletedAt: null
+            }, { $inc: { __v: 1 } }, { session, timestamps: false });
+            if (accountClaim.matchedCount !== 1) throw new Error("USER_INACTIVE");
 
-        /*
-         * Resolve the account's canonical session first. If another
-         * browser still has an older token from a legacy split hold,
-         * the authenticated account can still release its own seats.
-         */
-        const accountHoldSession =
-            await loadCanonicalUserHoldSession(
-                event._id,
-                normalizedUserId
-            );
+            const normalizedHoldToken =
+                normalizeHoldToken(
+                    holdToken,
+                    {
+                        required:
+                            true
+                    }
+                );
 
-        const effectiveHoldToken =
-            accountHoldSession
-                ?.holdToken ||
-            normalizedHoldToken;
-
-        const normalizedSeatIds =
-            normalizeSeatIds(
-                seatIds
-            );
-
-        const seats =
-            await Seat.find({
-                _id: {
-                    $in:
-                        normalizedSeatIds
-                },
-
-                eventId:
+            /*
+             * Resolve the account's canonical session first. If another
+             * browser still has an older token from a legacy split hold,
+             * the authenticated account can still release its own seats.
+             */
+            const accountHoldSession =
+                await loadCanonicalUserHoldSession(
                     event._id,
-
-                isActive:
-                    true
-            }).lean();
-
-        if (
-            seats.length !==
-            normalizedSeatIds.length
-        ) {
-            throw new Error(
-                "SEAT_NOT_FOUND"
-            );
-        }
-
-        const invalidSeat =
-            seats.find(
-                (seat) =>
-                    seat.status !==
-                        "held" ||
-                    seat.holdToken !==
-                        effectiveHoldToken ||
-                    String(
-                        seat.heldByUserId ||
-                            ""
-                    ) !==
-                        String(
-                            normalizedUserId
-                        )
-            );
-
-        if (invalidSeat) {
-            throw createServiceError(
-                "SEAT_RELEASE_NOT_ALLOWED",
-                {
-                    seatId:
-                        String(
-                            invalidSeat._id
-                        ),
-
-                    seatLabel:
-                        invalidSeat.label,
-
-                    status:
-                        invalidSeat.status
-                }
-            );
-        }
-
-        /*
-         * A pending booking freezes the exact seat list and amount sent to
-         * SePay. Releasing one of those booked seats without cancelling the
-         * booking creates an orphan booking: the seat becomes available, but
-         * "My tickets" still shows an unpaid order for that seat.
-         *
-         * Business rule:
-         * - If the released seat belongs to an UNPAID pending booking, cancel
-         *   the whole booking and release every seat of that booking.
-         * - If payment is already being processed/paid, do not let the seat
-         *   map mutate the booking.
-         *
-         * This keeps Booking <-> Seat <-> SePay amount immutable once a
-         * booking document exists.
-         */
-        const linkedBooking =
-            await Booking.findOne({
-                eventId:
-                    event._id,
-                userId:
                     normalizedUserId,
-                status:
-                    "pending_payment",
-                "items.seatId": {
-                    $in:
-                        normalizedSeatIds
-                }
-            });
-
-        if (
-            linkedBooking &&
-            linkedBooking.paymentStatus !==
-                "unpaid"
-        ) {
-            throw createServiceError(
-                "SEAT_RELEASE_BOOKING_PAYMENT_IN_PROGRESS",
-                {
-                    bookingCode:
-                        linkedBooking.bookingCode,
-                    paymentStatus:
-                        linkedBooking.paymentStatus
-                }
-            );
-        }
-
-        let cancelledBooking =
-            null;
-
-        let seatIdsToRelease =
-            normalizedSeatIds;
-
-        if (linkedBooking) {
-            cancelledBooking =
-                await Booking.findOneAndUpdate(
-                    {
-                        _id:
-                            linkedBooking._id,
-                        status:
-                            "pending_payment",
-                        paymentStatus:
-                            "unpaid"
-                    },
-                    {
-                        $set: {
-                            status:
-                                "cancelled",
-                            cancelledAt:
-                                new Date()
-                        }
-                    },
-                    {
-                        new: true
-                    }
+                    session
                 );
 
-            if (!cancelledBooking) {
-                throw createServiceError(
-                    "SEAT_RELEASE_BOOKING_STATE_CHANGED",
-                    {
-                        bookingCode:
-                            linkedBooking.bookingCode
-                    }
-                );
-            }
+            const effectiveHoldToken =
+                accountHoldSession
+                    ?.holdToken ||
+                normalizedHoldToken;
 
-            const bookingSeatIds =
-                linkedBooking.items.map(
-                    (item) =>
-                        item.seatId
+            const normalizedSeatIds =
+                normalizeSeatIds(
+                    seatIds
                 );
 
-            const uniqueReleaseIds =
-                new Map();
-
-            [
-                ...bookingSeatIds,
-                ...normalizedSeatIds
-            ].forEach((seatId) => {
-                uniqueReleaseIds.set(
-                    String(seatId),
-                    seatId
-                );
-            });
-
-            seatIdsToRelease =
-                [
-                    ...uniqueReleaseIds.values()
-                ];
-        }
-
-        const result =
-            await Seat.updateMany(
-                {
+            const seats =
+                await Seat.find({
                     _id: {
                         $in:
-                            seatIdsToRelease
+                            normalizedSeatIds
                     },
 
                     eventId:
                         event._id,
 
-                    status:
-                        "held",
+                    isActive:
+                        true
+                }).session(session).lean();
 
-                    holdToken:
-                        effectiveHoldToken,
+            if (
+                seats.length !==
+                normalizedSeatIds.length
+            ) {
+                throw new Error(
+                    "SEAT_NOT_FOUND"
+                );
+            }
 
-                    heldByUserId:
-                        normalizedUserId
-                },
-                {
-                    $set: {
+            const invalidSeat =
+                seats.find(
+                    (seat) =>
+                        seat.status !==
+                            "held" ||
+                        seat.holdToken !==
+                            effectiveHoldToken ||
+                        String(
+                            seat.heldByUserId ||
+                                ""
+                        ) !==
+                            String(
+                                normalizedUserId
+                            )
+                );
+
+            if (invalidSeat) {
+                throw createServiceError(
+                    "SEAT_RELEASE_NOT_ALLOWED",
+                    {
+                        seatId:
+                            String(
+                                invalidSeat._id
+                            ),
+
+                        seatLabel:
+                            invalidSeat.label,
+
                         status:
-                            "available",
+                            invalidSeat.status
+                    }
+                );
+            }
+
+            /*
+             * A pending booking freezes the exact seat list and amount sent to
+             * SePay. Releasing one of those booked seats without cancelling the
+             * booking creates an orphan booking: the seat becomes available, but
+             * "My tickets" still shows an unpaid order for that seat.
+             *
+             * Business rule:
+             * - If the released seat belongs to an UNPAID pending booking, cancel
+             *   the whole booking and release every seat of that booking.
+             * - If payment is already being processed/paid, do not let the seat
+             *   map mutate the booking.
+             *
+             * This keeps Booking <-> Seat <-> SePay amount immutable once a
+             * booking document exists.
+             */
+            const linkedBooking =
+                await Booking.findOne({
+                    eventId:
+                        event._id,
+                    userId:
+                        normalizedUserId,
+                    status:
+                        "pending_payment",
+                    "items.seatId": {
+                        $in:
+                            normalizedSeatIds
+                    }
+                }).session(session);
+
+            if (
+                linkedBooking &&
+                linkedBooking.paymentStatus !==
+                    "unpaid"
+            ) {
+                throw createServiceError(
+                    "SEAT_RELEASE_BOOKING_PAYMENT_IN_PROGRESS",
+                    {
+                        bookingCode:
+                            linkedBooking.bookingCode,
+                        paymentStatus:
+                            linkedBooking.paymentStatus
+                    }
+                );
+            }
+
+            let cancelledBooking =
+                null;
+
+            let seatIdsToRelease =
+                normalizedSeatIds;
+
+            if (linkedBooking) {
+                cancelledBooking =
+                    await Booking.findOneAndUpdate(
+                        {
+                            _id:
+                                linkedBooking._id,
+                            status:
+                                "pending_payment",
+                            paymentStatus:
+                                "unpaid"
+                        },
+                        {
+                            $set: {
+                                status:
+                                    "cancelled",
+                                cancelledAt:
+                                    new Date()
+                            }
+                        },
+                        {
+                            returnDocument: "after",
+                            session
+                        }
+                    );
+
+                if (!cancelledBooking) {
+                    throw createServiceError(
+                        "SEAT_RELEASE_BOOKING_STATE_CHANGED",
+                        {
+                            bookingCode:
+                                linkedBooking.bookingCode
+                        }
+                    );
+                }
+
+                const bookingSeatIds =
+                    linkedBooking.items.map(
+                        (item) =>
+                            item.seatId
+                    );
+
+                const uniqueReleaseIds =
+                    new Map();
+
+                [
+                    ...bookingSeatIds,
+                    ...normalizedSeatIds
+                ].forEach((seatId) => {
+                    uniqueReleaseIds.set(
+                        String(seatId),
+                        seatId
+                    );
+                });
+
+                seatIdsToRelease =
+                    [
+                        ...uniqueReleaseIds.values()
+                    ];
+            }
+
+            const result =
+                await Seat.updateMany(
+                    {
+                        _id: {
+                            $in:
+                                seatIdsToRelease
+                        },
+
+                        eventId:
+                            event._id,
+
+                        status:
+                            "held",
 
                         holdToken:
-                            null,
+                            effectiveHoldToken,
 
                         heldByUserId:
-                            null,
+                            normalizedUserId
+                    },
+                    {
+                        $set: {
+                            status:
+                                "available",
 
-                        holdExpiresAt:
-                            null
-                    }
-                }
-            );
+                            holdToken:
+                                null,
 
-        const remainingHoldSession =
-            await loadCanonicalUserHoldSession(
-                event._id,
-                normalizedUserId
-            );
+                            heldByUserId:
+                                null,
 
-        return {
-            eventId:
-                event._id,
+                            holdExpiresAt:
+                                null
+                        }
+                    },
+                    { session }
+                );
 
-            releasedSeatIds:
-                seatIdsToRelease.map(
-                    (seatId) =>
-                        String(seatId)
-                ),
+            const remainingHoldSession =
+                await loadCanonicalUserHoldSession(
+                    event._id,
+                    normalizedUserId,
+                    session
+                );
 
-            releasedCount:
-                result.modifiedCount ||
-                0,
+            return {
+                eventId:
+                    event._id,
 
-            bookingCancelled:
-                Boolean(
+                releasedSeatIds:
+                    seatIdsToRelease.map(
+                        (seatId) =>
+                            String(seatId)
+                    ),
+
+                releasedCount:
+                    result.modifiedCount ||
+                    0,
+
+                bookingCancelled:
+                    Boolean(
+                        cancelledBooking
+                    ),
+
+                cancelledBookingCode:
                     cancelledBooking
-                ),
+                        ?.bookingCode ||
+                    null,
 
-            cancelledBookingCode:
-                cancelledBooking
-                    ?.bookingCode ||
-                null,
-
-            holdSession:
-                remainingHoldSession
-        };
+                holdSession:
+                    remainingHoldSession
+            };
+        }, { readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
     };
 
 /*
@@ -1631,12 +1644,18 @@ export const updateSeatCategory =
             );
         }
 
-        seat.ticketCategoryId =
-            normalizedCategoryId;
-
-        await seat.save();
-
-        return seat;
+        // A customer can hold the seat while the editor validates categories.
+        // Keep its price/category stable once that hold has won the race.
+        const updated = await Seat.findOneAndUpdate({
+            _id: seat._id,
+            isActive: true,
+            status: { $in: ["available", "blocked"] },
+            ticketCategoryId: seat.ticketCategoryId
+        }, { $set: { ticketCategoryId: normalizedCategoryId } }, {
+            returnDocument: "after", runValidators: true
+        });
+        if (!updated) throw new Error("SEAT_CATEGORY_CHANGE_NOT_ALLOWED");
+        return updated;
     };
 
 /*

@@ -52,6 +52,7 @@ export const verifyGoogleCredential = async (
         sub,
         email,
         email_verified,
+        hd,
         name,
         given_name,
         family_name,
@@ -71,7 +72,7 @@ export const verifyGoogleCredential = async (
     }
 
     if (
-        !email_verified
+        email_verified !== true
     ) {
         throw new Error(
             "GOOGLE_EMAIL_NOT_VERIFIED"
@@ -115,6 +116,12 @@ export const verifyGoogleCredential = async (
                 .toLowerCase(),
         emailVerified:
             email_verified === true,
+        // A verified third-party email without a Workspace hosted domain can
+        // have changed owners since Google first checked it.
+        emailAuthoritative: email_verified === true && (
+            email.trim().toLowerCase().endsWith("@gmail.com") ||
+            (typeof hd === "string" && hd.trim().length > 0)
+        ),
         fullName:
             name?.trim() ||
             [

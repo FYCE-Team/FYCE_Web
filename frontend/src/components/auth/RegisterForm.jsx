@@ -213,6 +213,8 @@ const handleChange = (e) => {
     } else if (password.length < 8) {
       newErrors.password =
         "Mật khẩu phải có ít nhất 8 ký tự";
+    } else if (new TextEncoder().encode(password).length > 72) {
+      newErrors.password = "Mật khẩu tối đa 72 byte.";
     } else if (!/[A-Z]/.test(password)) {
       newErrors.password =
         "Mật khẩu cần có ít nhất 1 chữ hoa";
@@ -264,7 +266,7 @@ const handleSubmit = async (e) => {
 
     const result = await register({
       ...(pendingUserId
-        ? { userId: pendingUserId }
+        ? { userId: pendingUserId, registrationToken: sessionStorage.getItem("fyce_registration_token") || undefined }
         : {}),
       fullName: form.fullName.trim(),
       username:
@@ -292,6 +294,12 @@ const handleSubmit = async (e) => {
       "fyce_pending_user_id",
       result.data.userId
     );
+
+    if (result.data.registrationToken) {
+      sessionStorage.setItem("fyce_registration_token", result.data.registrationToken);
+    } else {
+      sessionStorage.removeItem("fyce_registration_token");
+    }
 
     sessionStorage.setItem(
       "fyce_pending_email",
@@ -323,6 +331,9 @@ const handleSubmit = async (e) => {
 
     navigate("/verify-otp");
   } catch (error) {
+    // Expired proof is discarded; a later, explicit submission can prove the
+    // original pending password. Never retry a changed password automatically.
+    if (error.status === 403) sessionStorage.removeItem("fyce_registration_token");
     setErrors({
       general:
         error?.message ||

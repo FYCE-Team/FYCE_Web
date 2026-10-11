@@ -1,26 +1,24 @@
 {
-  "updatedAt": "2026-10-08",
+  "updatedAt": "2026-10-11",
   "latestUpdate": {
-    "status": "security_regression_released_capacity_not_certified",
-    "deployment": "Pushed FYCE-Team/FYCE_Web main; GitHub Vercel success, production index-DzvmXCU-.js matches local build. Vercel/Render health JSON200. Render foreign-Origin refresh without cookie returns new403 message and no Set-Cookie. Exact Render dashboard SHA not inspected; production capacity not certified.",
+    "status": "security_regression_verified_pending_release",
     "completed": [
-      "Atomic OTP attempts and one-time verification",
-      "Cookie Origin allowlist and HS256 verification",
-      "Per-process admission with reserved webhook and upload slots",
-      "Homepage single-flight; bounded Mongo pool wait",
-      "HTTP timeouts and media disconnect cleanup",
-      "Admin image signature checks and safe JSON errors",
-      "Countdown English labels",
-      "Isolated reproducible load harness"
+      "Pending registration proof and safe retry after email failure",
+      "Google authoritative email/linking and unverified credential revocation",
+      "Context-bound OTP HMAC, concurrent resend and generation-safe cleanup",
+      "Transactional checkout/hold/release/cancel/legacy repair; admin inactive-buyer cancellation",
+      "Public author metadata and unpublished featured-event protection",
+      "Bounded avatar storage/uploads and GridFS error/disconnect cleanup",
+      "Vercel framing/object/base protections and English security messages"
     ],
-    "qa": "Backend82/82, frontend19/19, build passed, lint0 errors/16 existing warnings, audits0 both including dev; backend syntax107. Local load: reload1000/1000 HTTP200; burst1000 outstanding:2685 HTTP200,7025 HTTP503,290 ETIMEDOUT; paced1000workers3000/3000 HTTP200 but max8 outstanding;500 deliberate aborts; all phases recover homepage200. No production load/provider/data/system mutations.",
+    "qa": "135/135 backend;19/19 frontend;build passed;lint0 errors/16 existing warnings;syntax112;diff passed;root/backend/frontend audits0 including dev.",
     "pending": [
-      "Production 1000/10000 concurrency acceptance requires Render plan/staging configuration; local cold burst did not pass",
-      "Existing real Google/SePay/email/camera acceptance remains pending"
+      "Historical Google-linked password provenance/owner remediation",
+      "Production capacity/staging/Render plan/shared limiter/proxy validation",
+      "Existing Google/SePay/inbox/camera acceptance"
     ],
-    "report": "Docs/SECURITY_LOAD_TEST.md",
-    "commit": "deada0e",
-    "cleanup": "Only own MongoDB QA /tmp/fyce-security-qa-db:27028 stopped; load API child exited and fixture DB cleared. User application servers untouched."
+    "report": "Docs/SECURITY_FINAL_REVIEW.md",
+    "deployment": "Commit/push and deployment verification pending; public health alone is not a version or provider acceptance check."
   },
   "motionUpdate": {
     "status": "code_verified_pending_visual_and_provider_acceptance",
@@ -69,7 +67,7 @@
     "total": 10,
     "percent": 90
   },
-  "status": "released_frontend_and_backend_feature_verified_pending_provider_acceptance",
+  "status": "security_regression_verified_production_acceptance_pending",
   "entrypoint": "/admin",
   "tests": {
     "integrationWritten": 78,
@@ -80,13 +78,23 @@
     "dependencyAudit": {
       "backend": 0,
       "frontend": 0,
-      "includesDevDependencies": true
+      "includesDevDependencies": true,
+      "root": 0
     },
-    "backendSyntax": "passed (107 source/test/harness files)",
+    "backendSyntax": "passed (112 source/test/harness files)",
     "gitDiffCheck": "passed",
     "frontendUnitPassed": 19,
     "backendUnitPassed": 4,
-    "backendTotalPassed": 82
+    "backendTotalPassed": 135,
+    "backendSecurityPassed": 53,
+    "backendSuites": {
+      "adminIntegration": 78,
+      "loadProtection": 4,
+      "authSecurity": 22,
+      "bookingSecurity": 15,
+      "mediaSecurity": 14,
+      "publicSecurity": 2
+    }
   },
   "blockedChecks": [
     "Render workspace login: authorized GitHub account leads to new-account form; correct existing account needed for deployment SHA/log",
@@ -100,7 +108,10 @@
     "Refund is offline confirmation only; no automated money transfer",
     "Bulk operations and gallery reorder capped at 1000 records per confirmation/request",
     "Gallery API returns all active image metadata; images lazy-load in browser",
-    "Soft trash preserves data. Guarded purge reclaims eligible records only; shared GridFS and financial history are retained."
+    "Soft trash preserves data. Guarded purge reclaims eligible records only; shared GridFS and financial history are retained.",
+    "Historical Google-linked accounts have no reliable password provenance; owner review/remediation required, no automatic production resets.",
+    "Avatar quota is cumulative 20 files/25MiB; uncertain cleanup keeps reservations and requires explicit owner reconciliation.",
+    "Rate limits/admission are per process; production concurrency and proxy IP chain remain unverified."
   ],
   "handoff": [
     "Docs/PROGRESS.md",
@@ -108,10 +119,11 @@
     "Docs/TESTING.md",
     "Docs/LOCAL_SETUP.md",
     "Docs/DEPLOYMENT.md",
-    "Docs/SECURITY_LOAD_TEST.md"
+    "Docs/SECURITY_LOAD_TEST.md",
+    "Docs/SECURITY_FINAL_REVIEW.md"
   ],
   "existingUntrackedData": "fyce_backup/ untouched and excluded; only the two missing public GridFS images were selectively read/restored, never used as fixtures",
-  "testEnvironment": "Isolated localhost:27028/fyce_admin_test; QA API3002/Vite5180; no production database/provider used.",
+  "testEnvironment": "Fixed QA databases at127.0.0.1:27028; ephemeral API ports; no .env/production/provider operations.",
   "runtime": {
     "productionFrontend": "https://fyce-web.vercel.app",
     "productionBackend": "https://fyce-web.onrender.com",
@@ -122,7 +134,7 @@
     "adminSave": "Chrome production About PUT succeeded with unchanged existing content",
     "backNavigation": "Chrome production admin → sepay.vn → Back retained authenticated admin"
   },
-  "codeCommit": "85a6587",
+  "codeCommit": "See Git history for this security release; deployment verification pending.",
   "currentIteration": {
     "percent": 90,
     "completed": [
@@ -135,11 +147,14 @@
       "footer_anchor_navigation",
       "dependency_security_patches",
       "guarded_permanent_trash_purge_preserves_financial_history",
-      "dashboard_and_large_blurred_detail_modals"
+      "dashboard_and_large_blurred_detail_modals",
+      "final_security_hardening_and_135_backend_regressions"
     ],
     "pending": [
       "production_otp_inbox_google_camera_and_new_payment_acceptance",
-      "new_dashboard_modal_visual_acceptance_browser_tool_unavailable"
+      "new_dashboard_modal_visual_acceptance_browser_tool_unavailable",
+      "historical_google_linked_password_review",
+      "production_capacity_staging_acceptance"
     ]
   },
   "currentFeatures": [
@@ -236,14 +251,45 @@
     ]
   },
   "loadTesting": {
-    "report": "Docs/security-load-results.json",
-    "environment": "isolated loopback/M4/16GiB, generator/API/DB same machine",
+    "report": "Docs/security-load-results-2026-10-11.json",
+    "environment": {
+      "node": "v22.20.0",
+      "platform": "darwin",
+      "cpu": "Apple M4",
+      "logicalCpus": 10,
+      "memoryGiB": 16
+    },
     "capacityCertified": false,
-    "coldBurstNetworkErrors": 290,
-    "coldBurstControlled503": 7025,
+    "coldBurstNetworkErrors": 303,
+    "coldBurstControlled503": 6801,
+    "coldBurstSuccessful": 2896,
     "pacedWorkers": 1000,
-    "pacedActualMaxOutstanding": 8,
+    "pacedActualMaxOutstanding": 5,
+    "stabilityRecovered": true,
     "productionLoadTested": false,
-    "kernelBacklogObserved": 128
+    "harnessExitCode": 1,
+    "previousReport": "Docs/security-load-results.json"
+  },
+  "previousSecurityUpdate": {
+    "status": "security_regression_released_capacity_not_certified",
+    "deployment": "Pushed FYCE-Team/FYCE_Web main; GitHub Vercel success, production index-DzvmXCU-.js matches local build. Vercel/Render health JSON200. Render foreign-Origin refresh without cookie returns new403 message and no Set-Cookie. Exact Render dashboard SHA not inspected; production capacity not certified.",
+    "completed": [
+      "Atomic OTP attempts and one-time verification",
+      "Cookie Origin allowlist and HS256 verification",
+      "Per-process admission with reserved webhook and upload slots",
+      "Homepage single-flight; bounded Mongo pool wait",
+      "HTTP timeouts and media disconnect cleanup",
+      "Admin image signature checks and safe JSON errors",
+      "Countdown English labels",
+      "Isolated reproducible load harness"
+    ],
+    "qa": "Backend82/82, frontend19/19, build passed, lint0 errors/16 existing warnings, audits0 both including dev; backend syntax107. Local load: reload1000/1000 HTTP200; burst1000 outstanding:2685 HTTP200,7025 HTTP503,290 ETIMEDOUT; paced1000workers3000/3000 HTTP200 but max8 outstanding;500 deliberate aborts; all phases recover homepage200. No production load/provider/data/system mutations.",
+    "pending": [
+      "Production 1000/10000 concurrency acceptance requires Render plan/staging configuration; local cold burst did not pass",
+      "Existing real Google/SePay/email/camera acceptance remains pending"
+    ],
+    "report": "Docs/SECURITY_LOAD_TEST.md",
+    "commit": "deada0e",
+    "cleanup": "Only own MongoDB QA /tmp/fyce-security-qa-db:27028 stopped; load API child exited and fixture DB cleared. User application servers untouched."
   }
 }
